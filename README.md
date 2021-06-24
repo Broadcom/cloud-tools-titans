@@ -159,7 +159,7 @@
 #### **Example 2 - Enable outbound HTTP requests for my app to other service on the service mesh**
 <details>
   <summary>Click to expand!</summary>
-    In addition to example 1:
+    1. In addition to example 1:
       * Route outbound http requests from localhost:9565 for my app to service alpha and beta on the service mesh
 
   ```yaml
