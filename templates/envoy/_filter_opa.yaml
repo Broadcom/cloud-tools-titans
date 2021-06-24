@@ -66,6 +66,7 @@
       allow_partial_message: true
     {{- end }}
     failure_mode_allow: false
+    transport_api_version: V3
     grpc_service:
       google_grpc:
         target_uri: {{ printf "127.0.0.1:%s" ($opaSidecar.port | default "9191") }}

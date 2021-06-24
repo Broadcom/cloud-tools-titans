@@ -114,6 +114,7 @@ envoy.yaml: |
             "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
             common_tls_context:
               tls_certificate_sds_secret_configs:
+                name: client_cert
                 sds_config:
                   path: {{ printf "%s/envoy-sds.yaml" ($envoy.configFolder | default "/envoy") }}
               validation_context: {}

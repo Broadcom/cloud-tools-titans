@@ -19,6 +19,7 @@
     domain: {{ $appName }}
     failure_mode_deny: false
     rate_limit_service:
+      transport_api_version: V3
       grpc_service:
         google_grpc:
           target_uri: {{ printf "127.0.0.1:%s" ($ratelimitSidecar.port | default "8081") }}
