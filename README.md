@@ -159,6 +159,7 @@
 #### **Example 2 - Enable outbound HTTP requests for my app to other service on the service mesh**
 <details>
   <summary>Click to expand!</summary>
+
     In addition to example 1:
       * Route outbound http requests from localhost:9565 for my app to service alpha and beta on the service mesh
 
@@ -192,6 +193,7 @@
 #### **Example 3 - Enable token validation and API path rewrite**
 <details>
   <summary>Click to expand!</summary>
+
     In addition to example 1, 2:
       * Enable token validation for all my API except **/ping/**
       * Rewrite API Path **/v1/delta/** to **/delta/v1/**
@@ -234,6 +236,7 @@
 #### **Example 4 - Enable API metrics and authorization check**
 <details>
   <summary>Click to expand!</summary>
+  
     In addition to example 1, 2, 3:
       * Enable API metrics on some of my APIs
       * Enable authorization check for **/delta/purge**
