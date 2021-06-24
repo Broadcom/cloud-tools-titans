@@ -1,0 +1,162 @@
+{{- define "titan-mesh-helm-lib-chart.configs.envoy" }}
+  {{- $global := $.Values.global  }}
+  {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) }}
+  {{- $envoy := $titanSideCars.envoy  }}
+  {{- $logs := $titanSideCars.logs  }}
+  {{- $opa := $titanSideCars.opa  }}
+  {{- $ratelimit := $titanSideCars.ratelimit  }}
+  {{- $ingress := $titanSideCars.ingress  }}
+  {{- $egress := $titanSideCars.egress  }}
+  {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
+  {{- $clusters := $envoy.clusters  }}
+  {{- if not $clusters }}
+    {{- fail ".Values.titanSideCars.envoy.clusters is required" }}
+  {{- end }}
+  {{- if not (index $clusters "local-myapp") }}
+    {{- fail ".Values.titanSideCars.envoy.clusters.local-myapp is required" }}
+  {{- end }}
+  {{- $localMyApp:= index $clusters "local-myapp" }}
+  {{- $remoteMyApp:= index $clusters "remote-myapp" }}
+  {{- $envoyIngressPort := $remoteMyApp.port | default "9443"  }}
+  {{- $envoyEgressPort := $egress.port | default "9565"  }}
+  {{- $envoyAdminPort := $envoy.adminPort | default "10000"  }}
+  {{- $opaPort := $opa.port | default "9191"  }}
+  {{- $ingressIdleTimeout := $remoteMyApp.idleTimeout }}
+  {{- $customTpls := $titanSideCars.customTpls }}
+  {{- $customEnvoyTpls := $customTpls.envoy }}
+
+envoy.yaml: |
+  admin:
+    access_log_path: /dev/stdout
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value:  {{ $envoyAdminPort }}
+  static_resources:
+  {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" .Release.Namespace "chartName" $.Chart.Name) }}  
+  {{- if and $ingress (not $ingress.enabled) }}
+    listeners:
+    - name: {{ $appName }}-ingress
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: {{ $envoyIngressPort }}
+      filter_chains:
+      - filters:
+        - name: envoy.filters.network.http_connection_manager
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+            access_log:
+              name: envoy.access_loggers.file
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "inbound-downstream") | nindent 14 }}
+            use_remote_address: true
+            stat_prefix: ingress-proxy
+            server_name: {{ $appName }}-ingress
+    {{- if $ingressIdleTimeout }}
+            stream_idle_timeout: {{ $ingressIdleTimeout }}
+    {{- end }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" "HTTP2" "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
+            http_filters:
+    {{- range $customEnvoyTpls.filters }}
+      {{- $before := .before | default "" }}
+      {{- if eq $before "HealthCheck" }}
+        {{- include .name $ | nindent 12 }}
+      {{- end }}
+    {{- end }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" (dict "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
+    {{- range $customEnvoyTpls.filters }}
+      {{- $before := .before | default "" }}
+      {{- if eq $before "TokenValidation" }}
+        {{- include .name $ | nindent 12 }}
+      {{- end }}
+    {{- end }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.ingress "issuers" $titanSideCars.issuers) | nindent 12 }}
+    {{- range $customEnvoyTpls.filters }}
+      {{- $before := .before | default "" }}
+      {{- if eq $before "AccessCheck" }}
+        {{- include .name $ | nindent 12 }}
+      {{- end }}
+    {{- end }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.opa" (dict "titanSideCars" $titanSideCars "opa" $opa "ingress" $ingress) | nindent 12 }}
+    {{- range $customEnvoyTpls.filters }}
+      {{- $before := .before | default "" }}
+      {{- if eq $before "Ratelimit" }}
+        {{- include .name $ | nindent 12 }}
+      {{- end }}
+    {{- end }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.ratelimit" (dict "titanSideCars" $titanSideCars "ratelimit" $ratelimit "routes" $ingress.routes "appName" $appName) | nindent 12 }}
+    {{- range $customEnvoyTpls.filters }}
+      {{- $before := .before | default "" }}
+      {{- if eq $before "" }}
+        {{- include .name $ | nindent 12 }}
+      {{- end }}
+    {{- end }}
+            - name: envoy.filters.http.router
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                upstream_log:
+                - name: envoy.file_access_log
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "inbound-upstream") | nindent 18 }}
+            route_config:
+              name: {{ $appName }}-ingress
+              internal_only_headers:
+              - x-envoy-original-path
+              request_headers_to_add: []
+              virtual_hosts:
+              - domains: '*'
+                name: {{ $appName }}-ingress
+    {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "routes" $ingress.routes "clusters" $clusters ) | nindent 14 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "routes" $ingress.routes "clusters" $clusters ) | nindent 14 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress") }}
+        transport_socket:
+          name: envoy.transport_sockets.tls
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+            common_tls_context:
+              tls_certificate_sds_secret_configs:
+                sds_config:
+                  path: {{ printf "%s/envoy-sds.yaml" ($envoy.configFolder | default "/envoy") }}
+              validation_context: {}
+              alpn_protocols:
+              - h2
+              - http/1.1
+  {{- end }}
+  {{- if $egress.routes }}
+    - name: {{ $appName }}-egress
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: {{ $envoyEgressPort }}
+      filter_chains:
+      - filters:
+        - name: envoy.filters.network.http_connection_manager
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+            stat_prefix: egress-proxy
+            server_name: {{ $appName }}-egress
+            access_log:
+              name: envoy.access_loggers.file
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-downstream") | nindent 14 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" "HTTP2" "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
+            http_filters:
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers) | nindent 12 }}  
+            - name: envoy.filters.http.router
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                upstream_log:
+                - name: envoy.access_loggers.file
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-upstream") | nindent 18 }}
+            route_config:
+              name: {{ $appName }}-egress
+              internal_only_headers:
+              - x-envoy-original-path
+              - x-forwarded-for
+              request_headers_to_add: []
+              virtual_hosts:
+              - name: {{ $appName }}-egress
+                domains: '*'
+    {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "routes" $egress.routes "clusters" $clusters) | nindent 14 }}  
+                rate_limits: []
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress") }}
+  {{- end }}
+{{- end }}

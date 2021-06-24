@@ -1,0 +1,16 @@
+apiVersion: v2
+name: titan-mesh-helm-lib-chart
+version: 1.0.4
+kubeVersion: '>=1.10.0-0'
+type: library
+description: Titan Service Mesh Helm lib chart for every service
+home: https://github.gwd.broadcom.net/SED/titan-mesh-helm-lib-chart
+sources:
+- https://github.gwd.broadcom.net/SED/titan-mesh-helm-lib-chart
+maintainers:
+- name: Anker Tsaur
+  email: anker.tsaur@broadcom.com
+  url: https://github.gwd.broadcom.net/SED/titan-mesh-helm-lib-chart
+- name: Ajit Verma
+  email: ajit.verma@broadcom.com
+  url: https://github.gwd.broadcom.net/SED/titan-mesh-helm-lib-chart

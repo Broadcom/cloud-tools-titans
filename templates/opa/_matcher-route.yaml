@@ -1,0 +1,42 @@
+{{- define "titan-mesh-helm-lib-chart.opa.matcher-route" }}
+  {{- $route := .route }}
+  {{- if $route.prefix }}
+  startswith(request.path, {{ $route.prefix | quote }})
+  {{- else if $route.regex }}
+  regex.match({{ $route.regex | quote }}, request.path)
+  {{- end }}
+  {{- if $route.method }}
+  request.method == {{ $route.method | quote }}
+  {{- else if $route.notMethod }}
+  request.method != {{ $route.notMethod | quote }}
+  {{- end }}
+  {{- range $route.headers }}
+    {{- $header := . }}
+    {{- $headerName := printf "request.headers[%s]" ($header.key | quote) }}
+    {{- if $header.eq }}
+  {{ $headerName }} == {{ $header.eq | quote }}
+    {{- else if $header.neq }}
+  {{ $headerName }} != {{ $header.neq | quote }}
+    {{- else if $header.sw }}
+  startswith({{ $headerName }}, {{ $header.sw | quote }})
+    {{- else if $header.nsw }}
+  not startswith({{ $headerName }}, {{ $header.nsw | quote }})
+    {{- else if $header.ew }}
+  endswith({{ $headerName }}, {{ $header.ew | quote }})
+    {{- else if $header.new }}
+  not endswith({{ $headerName }}, {{ $header.new | quote }})
+    {{- else if $header.co }}
+  contains({{ $headerName }}, {{ $header.co | quote }})
+    {{- else if $header.nco }}
+  not contains({{ $headerName }}, {{ $header.nco | quote }})
+    {{- else if $header.lk }}
+  regex.match({{ $header.lk | quote }}, {{ $headerName }})
+    {{- else if $header.nlk }}
+  not regex.match({{ $header.nlk | quote }}, {{ $headerName }})
+    {{- else if $header.pr }}
+  {{ $headerName }}
+    {{- else if $header.npr }}
+  not {{ $headerName }}
+    {{- end }}
+  {{- end }}
+{{- end }}

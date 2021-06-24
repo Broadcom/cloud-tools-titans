@@ -1,0 +1,14 @@
+{{- define "titan-mesh-helm-lib-chart.configs.envoy-sds" }}
+  {{- $global := $.Values.global  }}
+  {{- $globalTitanSideCars := deepCopy ($global.titanSideCars | default dict)  }}
+  {{- $titanSideCars := mergeOverwrite $globalTitanSideCars ($.Values.titanSideCars | default dict)  }}
+  {{- $envoy := $titanSideCars.envoy  }}
+envoy-sds.yaml: |
+  resources:
+  - "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
+    tls_certificate:
+      certificate_chain:
+        filename: {{ printf "%s/tls.crt" ($envoy.secretsFolder | default "/secrets") | quote }}
+      private_key:
+        filename: {{ printf "%s/tls.key" ($envoy.secretsFolder | default "/secrets") | quote }}
+{{- end }}

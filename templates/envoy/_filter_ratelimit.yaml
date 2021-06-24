@@ -1,0 +1,28 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.ratelimit" }}
+  {{- $appName := .appName }}
+  {{- $titanSideCars := .titanSideCars }}
+  {{- $ratelimitSidecar := .ratelimit }}
+  {{- $routes := .routes }}
+  {{- $ratelimitSidecarEnabled := eq (include "titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
+  {{- $hasRatelimit := false }}
+  {{- range $routes }}
+    {{- $ratelimit := .ratelimit }}
+    {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
+  {{- end }}
+  {{- if and $hasRatelimit (not $ratelimitSidecarEnabled) }}
+    {{- fail "invalid config - ratelimiting requires ratelimit sidecar, disable .Values.titanSideCars.ingress.routes[].ratelimit or enable .Values.titanSideCars.ratelimit" }}
+  {{- end }}
+  {{- if $hasRatelimit }}
+- name: envoy.filters.http.ratelimit
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
+    domain: {{ $appName }}
+    failure_mode_deny: false
+    rate_limit_service:
+      grpc_service:
+        google_grpc:
+          target_uri: {{ printf "127.0.0.1:%s" ($ratelimitSidecar.port | default "8081") }}
+          stat_prefix: ratelimit          
+        timeout: 0.5s
+  {{- end }}
+{{- end }}

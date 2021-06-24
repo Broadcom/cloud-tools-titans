@@ -1,0 +1,7 @@
+*.md
+images/
+docs/
+.gitignore
+tmp/
+.git/
+scripts/

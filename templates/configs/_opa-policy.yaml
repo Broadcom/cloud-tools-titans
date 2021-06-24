@@ -1,0 +1,12 @@
+{{- define "titan-mesh-helm-lib-chart.configs.opa-policy" }}
+  {{- $global := $.Values.global -}}
+  {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
+  {{- $opa := $titanSideCars.opa -}}
+  {{- $ingress := $titanSideCars.ingress -}}
+policy-main.rego: |
+  package authz.main
+  import data.authz.ingress as ingress
+
+  allow = ingress.allow
+
+{{- end }}
