@@ -10,6 +10,7 @@
 - ### Managed Security, Visibility and Stability
   - #### End-to-end encryption with auto TLS cert management
   - #### Zero Trust Security built-in
+  - #### TLS with FIPS 140-2 compliance
   - #### App's REST API protection with simple configuration
   - #### Configurable App API's operational metrics
   - #### Advanced error handling and global ratelimiting 
