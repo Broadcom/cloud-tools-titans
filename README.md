@@ -1,4 +1,4 @@
-# [Project Titans](https://github.gwd.broadcom.net/SED/icds-mesh-helm-lib-chart)
+# [Project Titans](https://github.gwd.broadcom.net/SED/titan-mesh-helm-lib-chart)
 # Enable Service Mesh On SaaS Natively Without Sweating
 
 ## Value Proposition 
@@ -63,10 +63,10 @@
 
   ```yaml
   apiVersion: v2
-  name: tokentool
-  version: 1.0.2
+  name: delta
+  version: 1.0.0
   kubeVersion: ">=1.10.0-0"
-  description: Helm chart for ICDS Token Tool Service - OpenID Connect client
+  description: Helm chart for delta Service
   home: https://github.gwd.broadcom.net/SED/icds-legacy-oidc-client
   sources:
   - https://github.gwd.broadcom.net/SED/icds-legacy-oidc-client
@@ -86,31 +86,31 @@
 <details>
   <summary>Click to expand!</summary>
   
-    Edit your `deployment.yaml` to include `icds-mesh-helm-lib-chart.containers`  function under `spec.template.spec.containers`. See example below
+    Edit your `deployment.yaml` to include `titan-mesh-helm-lib-chart.containers`  function under `spec.template.spec.containers`. See example below
 
   ```yaml
       containers:
-  {{ include "icds-mesh-helm-lib-chart.containers" . | indent 6 }}
+  {{ include "titan-mesh-helm-lib-chart.containers" . | indent 6 }}
   ```
 
-    Include `icds-mesh-helm-lib-chart.volumes` function under `spec.template.spec.volumes`. See example below
+    Include `titan-mesh-helm-lib-chart.volumes` function under `spec.template.spec.volumes`. See example below
 
   ```yaml
       volumes:
-  {{ include "icds-mesh-helm-lib-chart.volumes" . | indent 6 }}
+  {{ include "titan-mesh-helm-lib-chart.volumes" . | indent 6 }}
   ```
 
-    Edit your `service.yaml` to include `icds-mesh-helm-lib-chart.ports` function under `spec.ports`. See example below
+    Edit your `service.yaml` to include `titan-mesh-helm-lib-chart.ports` function under `spec.ports`. See example below
 
   ```yaml
   ports:
-  {{ include "icds-mesh-helm-lib-chart.ports" . | indent 2 }}
+  {{ include "titan-mesh-helm-lib-chart.ports" . | indent 2 }}
   ```
 
-    Append to your `configmap.yaml` to include `icds-mesh-helm-lib-chart.configmap` function. See example below
+    Append to your `configmap.yaml` to include `titan-mesh-helm-lib-chart.configmap` function. See example below
 
   ```yaml
-  {{ include "icds-mesh-helm-lib-chart.configmap" . }}
+  {{ include "titan-mesh-helm-lib-chart.configmap" . }}
   ```
   #### Note: Cert-Manager Dependency (Optional)
   1. The following step is to use cert-manager to create the kubernetes TLS secret for your app's envoy sidecar. 
@@ -118,9 +118,9 @@
       * The name of required TLS secret will be *<app_service_name>-envoy-tls-cert*, e.g. **tokentool-envoy-tls-cert**. 
       * You can add this kuebrnetes TLS secret into the release namespace without using cert-manager. 
 
-  2. Create a new `certificate.yaml` to include `icds-mesh-helm-lib-chart.ports` function. See example below
+  2. Create a new `certificate.yaml` to include `titan-mesh-helm-lib-chart.ports` function. See example below
   ```yaml
-  {{ include "icds-mesh-helm-lib-chart.certificate" . }}
+  {{ include "titan-mesh-helm-lib-chart.certificate" . }}
   ```
 </details>
 
