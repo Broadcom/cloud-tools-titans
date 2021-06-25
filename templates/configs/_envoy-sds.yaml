@@ -6,6 +6,7 @@
 envoy-sds.yaml: |
   resources:
   - "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
+    name: tls_sds
     tls_certificate:
       certificate_chain:
         filename: {{ printf "%s/tls.crt" ($envoy.secretsFolder | default "/secrets") | quote }}
