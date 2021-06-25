@@ -33,6 +33,13 @@ envoy.yaml: |
         address: 0.0.0.0
         port_value:  {{ $envoyAdminPort }}
   static_resources:
+    secrets:
+    - name: tls_sds
+      tls_certificate:
+        certificate_chain:
+          filename: {{ printf "%s/tls.crt" ($envoy.secretsFolder | default "/secrets") | quote }}
+        private_key:
+          filename: {{ printf "%s/tls.key" ($envoy.secretsFolder | default "/secrets") | quote }}
   {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" .Release.Namespace "chartName" $.Chart.Name) }}  
   {{- if and $ingress (not $ingress.enabled) }}
     listeners:
@@ -114,7 +121,7 @@ envoy.yaml: |
             "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
             common_tls_context:
               tls_certificate_sds_secret_configs:
-                name: client_cert
+                name: tls_sds
                 sds_config:
                   path: {{ printf "%s/envoy-sds.yaml" ($envoy.configFolder | default "/envoy") }}
               validation_context: {}
