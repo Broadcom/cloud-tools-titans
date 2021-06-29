@@ -25,8 +25,10 @@ data:
 {{ include "titan-mesh-helm-lib-chart.configs.opa-policy-tokenspec" . | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa-policy-ingress" . | indent 2 }}
         {{- range $k, $v := $opa.customPolicies }}
+          {{- if ne $k "tokenSpec" }}
   {{ printf "policy-%s.rego: |" $k }}
 {{ $v | indent 4 }}
+          {{- end }}
         {{- end }}
       {{- end }}
       {{- if $ratelimitEnabled }}
