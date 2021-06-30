@@ -77,27 +77,29 @@ titanSideCars:
   egress:
     routes:
     - match:
-        prefix: /fruits/orange
+        prefix: /devices
+        method: GET
       metrics:
-        name: fruits_orange
+        name: get_devices
     - match:
-        prefix: /fruits/apple
+        prefix: /devices
+        method: POST
       metrics:
-        name: fruits_apple
+        name: create_devices
     - metrics:
-        name: chocolates
+        name: users
       route:
-        cluster: chocolates
+        cluster: directory
 ```
 
 Above configuration will generate metrics with following prefixes
 ```
-vhost.demoapp-egress.vcluster.fruits_orange.xxx
-vhost.demoapp-egress.vcluster.fruits_apple.xxx
-vhost.demoapp-egress.vcluster.chocolates.xxx
+vhost.demoapp-egress.vcluster.get_devices.xxx
+vhost.demoapp-egress.vcluster.create_devices.xxx
+vhost.demoapp-egress.vcluster.users.xxx
 ```
 
-In above example, the first two routes explicitly specifiy the route match. For third route entry, the route definiton(s) will be picked from the `chocolates` cluster defintion.
+In above example, the first two routes explicitly specifiy the route match. For third route entry, the route definiton(s) will be picked from the `directory` cluster defintion.
 
 A request is matched against all entries in the routes array and a request will contribute to the metrics bucket of each route entry that it matches. 
 
