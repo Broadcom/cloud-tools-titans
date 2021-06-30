@@ -75,7 +75,7 @@ For matching requests, following will add header `x-header-sink` to the request 
 
 ### Example 5
 
-Lets see an example of route independent request enrichment
+Lets see an example of route independent request enrichment with global injection capability
 
 ```yaml
 titanSideCars:
