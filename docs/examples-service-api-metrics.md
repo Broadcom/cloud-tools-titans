@@ -21,7 +21,7 @@ Each namespace includes the followings metrics
 | upstream_rq_timeout |Counter | Total requests that timed out waiting for a response |
 | upstream_rq_total |Counter | Total requests initiated by the router to the upstream |
 
-Related envoy can be found [here](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-virtualcluster) and [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/router_filter#virtual-clusters)
+Related envoy documentation can be found [here](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-virtualcluster) and [here](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/router_filter#virtual-clusters)
 
 
 
