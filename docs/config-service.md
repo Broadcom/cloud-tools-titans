@@ -1,6 +1,85 @@
 
 
 
+## Ingress
+
+```yaml
+# titanSideCars.ingress.
+  tokenCheck:     bool
+  accessPolicy:   IngressAccessPolicy
+  routes:         []IngressRoute
+```
+
+### tokenCheck
+(bool, default false) Controls token validation. If set to true, token validation is performed on all incoming requests. Token validation can be skipped on a per route basis. If set to false, token validation is skipped by default unless enabled for specific requests on a per route basis.
+
+### accessPolicy
+([IngressAccessPolicy](), optional)
+
+### routes
+([][IngressRoute](), optional)
+
+
+## IngressRoute
+
+```yaml
+# titanSideCars.ingress.routes[]
+
+  # route definition
+  match:            RouteMatch
+
+  # per route actions
+  tokenCheck:       bool
+  metrics:          PerRouteMetrics
+  accessPolicy:     PerRouteAccessPolicy
+  ratelimit:        PerRouteRatelimit
+  route:            RoutingAction
+```
+
+### match
+([RouteMatch](), required) Route matching parameters. 
+
+### tokenCheck
+(bool, optional) Controls enablement of token validation for matching requests. This flag works in conjunction with `titanSideCars.ingress.tokenCheck` flag. <br />
+If ingress level flag is set to true then setting this to false with disable token validation for matching requests. <br />
+If ingress level flag is set to false then setting this to true with enable token validation for matching requests.
+
+### metrics
+([RouteMetrics](), optional) If supplied, triggers metrics for matching requests
+
+### accessPolicy
+([RouteAccessPolicy](), optional) If supplied, triggers access policy enforcement for matching requests.
+
+### ratelimit
+([RouteRatelimit](), optional) If supplied, triggers ratelimit policy enforcement for matching requests.
+
+### route
+([RoutingAction](), optional) Specifies routing destination for matching requests. If un-specified, matching requests are routed to  `local-myapp`
+
+---
+
+## RoutingAction
+
+```yaml
+# titanSideCars.ingress.routes[].route.
+# titanSideCars.egress.routes[].route.
+
+  cluster: string
+  prefixRewrite: string
+```
+
+### cluster
+(string, required) Cluster name to route the request to
+
+### prefixRewrite
+(string, optional) 
+
+
+
+**TODO - INCOMPLETE**
+
+---
+
 ## PerRouteMetrics
 
 ```yaml
@@ -14,7 +93,7 @@
 (bool, default true) Controls generation of metrics for corresponding route definition
 
 ### name
-(string, required) Metric name. Metrics are output in `vhost.<service-name>-ingress.vcluster.<metrics-name>.` and `vhost.<service-name>-egress.vcluster.<metrics-name>.` namespaces for requests in `ingress` and `egress` paths respectively. 
+(string, required) Metric name. Metrics are output in `vhost.<service-name>-ingress.vcluster.<metric-name>.` and `vhost.<service-name>-egress.vcluster.<metrics-name>.` namespaces for requests in `ingress` and `egress` paths respectively. 
 
 ---
 
