@@ -2,6 +2,33 @@
 
 
 
+## RouteMatch
+
+```yaml
+  prefix:       string
+  regex:        string
+  method:       string
+  notMethod:    string
+  headers:      []HeaderMatch
+```
+
+### prefix | regex
+(string, optional oneof) Specifies type of match to be performed on url path
+- **prefix**: Prefix matching `:path` header. The `:path` header contains entire url path including the query params.
+- **regex**: Regex matching entire `:path` header. The regex must constructed to include query parameters. Regex string must adhere to documented [syntax](https://github.com/google/re2/wiki/Syntax)
+
+If neither `prefix` nor `regex` is supplied then match is performed on `/` prefix
+
+### method | notMethod
+(string, optional oneof)
+- **method**: Request must match supplied value like GET, POST etc. 
+- **notMethod**: Request must not match supplied value
+
+
+### headers
+([][HeaderMatch](), optional) List of http headers to match
+
+---
 
 ## HeaderMatch
 
