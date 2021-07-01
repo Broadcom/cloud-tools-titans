@@ -339,6 +339,16 @@
 ## Documentaion
 ### Configuration - incoming
 
+  | Config Item | Description | Config Reference| Examples |
+| --- | --- | --- | --- |
+| Ingress | | [Ingress]() |  |
+|   |   |   |   |
+| Token Check  |   |  [Ingress level token check policy]() <br /> [Per route token check policy]() |   |
+| API Metrics |   | [Per route metrics]()  |   |
+| Global Ratelimit || [Per route ratelimit]()| [Examples](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/examples-global-ratelimiting.md) |
+| Access Policy  |   |  [Ingress access policy]() <br /> [Ingress per route access policy]() |   |
+|   |   |   |   |
+
 ---
 ## Project Creator
 * **Anker Tsaur** - *anker.tsaur@broadcom.com*
