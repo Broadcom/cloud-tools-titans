@@ -1,6 +1,22 @@
 
 
 
+## PerRouteMetrics
+
+```yaml
+# titanSideCars.ingress.routes[].metrics.
+# titanSideCars.egress.routes[].metrics.
+
+  enabled:  bool
+  name:     string
+```
+### enabled
+(bool, default true) Controls generation of metrics for corresponding route definition
+
+### name
+(string, required) Metric name. Metrics are output in `vhost.<service-name>-ingress.vcluster.<metrics-name>.` and `vhost.<service-name>-egress.vcluster.<metrics-name>.` namespaces for requests in `ingress` and `egress` paths respectively. 
+
+---
 
 ## PerRouteRatelimit
 
