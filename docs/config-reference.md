@@ -1,5 +1,91 @@
+## TitanSideCars (root)
+
+```yaml
+# titanSideCars.
+
+  imageRegistry:  string
+
+  envoy:          Envoy
+  opa:            OPA
+  ratelimit:      Ratelimit
+  ingress:        Ingress
+  egress:         Egress
+```
+
+### imageRegistry
+(string, required) Common docker image registry path.
+
+### envoy
+([Envoy](), required) Section to enable and configure Envoy sidecar	
+
+### opa
+([OPA](), optional) Section to enable and configure OPA sidecar
+
+### ratelimit
+([Ratelimit](), optional) Section to enable and configure global ratelimiting sidecar	
+
+### ingress
+([Ingress](), optional) Section to configure processing http inbound requests
+
+### Egress
+([Egress](), optional) Section to configure processing http outbound requests
 
 
+---
+
+## Envoy
+High level envoy settings
+
+```yaml
+# titanSideCars.envoy.
+
+  enabled:        bool
+  imageRegistry:  string
+```
+### enabled
+(bool, default true) Set to false to disable envoy sidecar
+
+### imageRegistry
+(string, optional) Override docker image registry path used for envoy sidecar	
+
+---
+
+
+## OPA
+High level settings related to opa sidecar
+
+```yaml
+# titanSideCars.opa.
+
+  enabled:        bool
+  imageRegistry:  string
+```
+
+### enabled
+(bool, default true) Set to false to disable opa sidecar
+
+### imageRegistry
+(string, optional) Override docker image registry path used for opa sidecar	
+
+---
+
+## Ratelimit
+High level settings related to ratelimit sidecar
+
+```yaml
+# titanSideCars.ratelimit.
+
+  enabled:        bool
+  imageRegistry:  string
+```
+
+### enabled
+(bool, default true) Set to false to disable ratelimit sidecar
+
+### imageRegistry
+(string, optional) Override docker image registry path used for ratelimit sidecar	
+
+---
 
 ## Ingress
 
@@ -14,7 +100,7 @@
 (bool, default false) Controls token validation. If set to true, token validation is performed on all incoming requests. Token validation can be skipped on a per route basis. If set to false, token validation is skipped by default unless enabled for specific requests on a per route basis.
 
 ### accessPolicy
-([IngressAccessPolicy](), optional)
+([IngressAccessPolicy](), optional) Configures the default access check behaviour for all incoming requests
 
 ### routes
 ([][IngressRoute](), optional)
