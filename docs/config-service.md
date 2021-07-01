@@ -2,6 +2,104 @@
 
 
 
+## PerRouteRatelimit
+
+```yaml
+# titanSideCars.ingress.routes[].ratelimit.
+
+  enabled:  bool
+  actions:  []RatelimitAction
+```
+
+### enabled
+(bool, default true) Controls enforcement of supplied ratelimit actions
+
+### actions
+([]RatelimitAction, required) One or more ratelimit actions on request that match corresponding route definiton. Request is matched against all actions and each matching action is evaluated independently.  
+
+---
+
+### RatelimitAction
+
+```yaml
+# titanSideCars.ingress.routes[].ratelimit.actions[].
+
+  descriptors: []RatelimitDescriptor
+  limit: string
+```
+
+### descriptors
+([][RatelimitDescriptor](), optional) List of descriptors that define the attributes to ratelimit on. Corresponding route definition is an implicit descriptor. Incoming request must match all descriptors to be considered for ratelimiting. The ordering of descriptors is not relevant.
+
+### limit
+(string, required) Ratelimit value in `<ratelimit-per-unit>/<unit>` format. Supported units are `second` `minute` `hour` and `day`.
+
+Example: *5/second*, *50/minute*, *100/hour*, *10/day*
+
+Instead of supplying a hard-coded limit, limit can also refer to a key from `titanSideCars.ratelimit.limits` key-value pairs as in example below. This pattern allows for easy configuration of limits on a per environment basis.
+
+<details>
+  <summary>Click to expand!</summary>
+  
+```yaml
+titanSideCars:
+  ratelimit:
+    limits:
+      small: 100/day
+  ingress:
+    routes:
+    - match: /
+      ratelimit:
+        actions:
+        - limit: small
+```
+</details>
+
+---
+
+### RatelimitDescriptor
+
+```yaml
+# titanSideCars.ingress.routes[].ratelimit.actions[].descriptors[].
+
+  key:    string
+
+  # comparison operators
+  eq:     string          # equals
+  sw:     string          # starts-with
+  ew:     string          # ends-with 
+  co:     string          # contains
+  lk:     string          # like
+  pr:     bool            # present
+  neq:    string          # not equals
+  nsw:    string          # not starts-with
+  new:    string          # not ends-with
+  nco:    string          # not contains
+  nlk:    string          # not like
+  npr:    bool            # not present
+```
+
+#### key
+(string, required) Attribute to rate-limit on. If no comparison operator is specified, ratelimit is performed on each unique value of the attribute. Key may refer to a header, token claim or an attribute from json payload.
+
+A header may be referenced via `header.` notation. Example: `header.x-request-id` <br />
+A token claim may be referenced via `token.` notation. Example: `token.sub.scope` <br />
+A payload attribute may be referenced via `payload.` notation. Example: `payload.userType` <br />
+
+#### eq | sw | ew | co | lk | pr | neq | nsw | new | nco | nlk | npr
+(oneof optional) Comparison operator. When specified, the ratelimit is performed on result of comparision. <br />
+For binary operators, the operator value indicates the right hand operand and should be a string. 
+
+The supported operators are
+- **eq/neq**: Exact string match
+- **sw/nsw**: String prefix match
+- **ew/new**: String suffix match
+- **co/nco**: Substring match
+- **lk/nlk**: Regex match. Regex syntax is documented [here](https://github.com/google/re2/wiki/Syntax)
+- **pr/npr**: Unary operator. Indicates if key is present or not. Only `true` value is used. Use `pr` to test presence and `npr` to test non presence.
+
+---
+
 ## IngressAccessPolicy
 
 ```yaml
