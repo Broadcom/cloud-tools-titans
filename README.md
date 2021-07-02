@@ -343,10 +343,10 @@
 | --- | --- | --- | --- |
 | Ingress | | [Ingress]() |  |
 |   |   |   |   |
-| Token Check  |   |  [Ingress level token check policy]() <br /> [Per route token check policy]() |   |
-| API Metrics |   | [Per route metrics]()  |   |
-| Global Ratelimit || [Per route ratelimit]()| [Examples](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/examples-global-ratelimiting.md) |
-| Access Policy  |   |  [Ingress access policy]() <br /> [Ingress per route access policy]() |   |
+| Token Validation  |   |  [Ingress level token validation policy](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#tokencheck) <br /> [Per route token validation policy](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#tokencheck-1) | [Examples](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/examples-token-validation.md)  |
+| API Metrics |   | [Per route metrics config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#perroutemetrics)  |  [Example](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/examples-service-api-metrics.md) |
+| Global Ratelimit || [Ratelimit sidecar config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#ratelimit-1) <br /> [OPA sidecar config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#opa-1) <br /> [Per route ratelimit config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#perrouteratelimit)| [Examples](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/examples-global-ratelimiting.md) |
+| Access Policy  |   |  [OPA sidecar config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#opa-1) <br /> [Default access policy config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#ingressaccesspolicy) <br /> [Per route access policy config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#perrouteaccesspolicy) | [Examples](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/examples-access-policy.md)  |
 |   |   |   |   |
 
 ---
