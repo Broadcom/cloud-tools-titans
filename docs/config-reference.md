@@ -1,46 +1,42 @@
-## TitanSideCars (root)
+## TitanSideCars
 
 ```yaml
-# titanSideCars.
-
-  imageRegistry:  string
-
-  envoy:          Envoy
-  opa:            OPA
-  ratelimit:      Ratelimit
-  ingress:        Ingress
-  egress:         Egress
+titanSideCars:
+    imageRegistry:  string
+    envoy:          Envoy
+    opa:            OPA
+    ratelimit:      Ratelimit
+    ingress:        Ingress
+    egress:         Egress
 ```
 
 ### imageRegistry
-(string, required) Common docker image registry path.
+(string) Common docker image registry path.
 
 ### envoy
-([Envoy](), required) Section to enable and configure Envoy sidecar	
+([Envoy]()) Section to enable and configure Envoy sidecar	
 
 ### opa
-([OPA](), optional) Section to enable and configure OPA sidecar
+([OPA]()) Section to enable and configure OPA sidecar
 
 ### ratelimit
-([Ratelimit](), optional) Section to enable and configure global ratelimiting sidecar	
+([Ratelimit]()) Section to enable and configure global Ratelimiting sidecar	
 
 ### ingress
-([Ingress](), optional) Section to configure processing http inbound requests
+([Ingress]()) Section to configure processing of http inbound requests
 
 ### Egress
-([Egress](), optional) Section to configure processing http outbound requests
+([Egress]()) Section to configure processing of http outbound requests
 
 
 ---
 
 ## Envoy
-High level envoy settings
-
 ```yaml
-# titanSideCars.envoy.
-
-  enabled:        bool
-  imageRegistry:  string
+titanSideCars.envoy:
+    enabled:        bool
+    imageRegistry:  string
+    clusters:       Clusters
 ```
 ### enabled
 (bool, default true) Set to false to disable envoy sidecar
@@ -48,8 +44,135 @@ High level envoy settings
 ### imageRegistry
 (string, optional) Override docker image registry path used for envoy sidecar	
 
+### clusters
+([Clusters]())
+
 ---
 
+## Clusters
+
+```yaml
+titanSideCars.envoy.clusters:
+  local-myapp:    Cluster
+  remote-myapp:   Cluster
+
+  local-xxx:      Cluster
+```
+
+### local-myapp
+([Cluster]())
+
+### remote-myapp
+([Cluster]())
+
+### local-xxx
+([Cluster]())
+
+---
+
+## Cluster
+
+```yaml
+  external:               bool
+  port:                   integer
+  address:                string
+  namespace:              string
+  scheme:                 enum
+  httpOptions:            object
+  connectionTimeout:      duration
+  healthyPanicThreshold:  integer
+  circuitBreakers:        object
+  healthChecks:           object
+  sniValidation:          bool
+```
+
+### port
+(integer)
+
+### scheme
+(enum) Valid values are
+
+- HTTP: 
+- HTTP2: 
+- H2C:
+- HTTPS:
+
+### httpOptions
+([httpOptions]())
+
+### connectionTimeout
+(duration)
+
+### healthyPanicThreshold
+(integer)
+
+### circuitBreakers
+([circuitBreakers], optional)
+
+### healthChecks
+([healthChecks])
+
+---
+
+## titanSideCars.envoy.clusters.{cluster-name}.httpOptions.
+```yaml
+  maxConcurrentStreams: integer
+```
+### maxConcurrentStreams
+(integer)
+
+---
+
+## titanSideCars.envoy.clusters.{clusterName}.circuitBreakers.
+
+```yaml
+  maxConnections:     integer
+  maxRequests:        integer
+  maxPendingRequests: integer
+  maxRetries:         integer
+```
+
+### maxConnections
+(integer, default 1024) Specifies the maximum number of connections that Envoy will make to upstream cluster. In practice, this is more applicable to HTTP/1.1 than HTTP/2
+
+### maxRequests
+(integer, default 1024) Specifies the maximum number of parallel outstanding requests to an upstream cluster. In practice, this is more applicable to HTTP/2 than HTTP/1.1.
+
+### maxPendingRequests
+(integer, default 1024) Specifies the maximum number of requests that will be queued while waiting for a connection. In practice, this is more applicable to HTTP/1.1 than HTTP/2.
+
+### maxRetries
+(integer, default 3) Specifies the maximum number of parallel retries allowed to an upstream cluster.
+
+
+---
+
+## titanSideCars.envoy.clusters.{clusterName}.healthChecks.
+
+```yaml
+  path:                 string
+  interval:             duration
+  timeout:              duration
+  healthyThreshold:     string
+  unhealthyThreahold:   string
+```
+
+### path
+(string) 
+
+### interval
+(duration)
+
+### timeout
+(duration)
+
+### healthyThreshold
+(integer)
+
+### unhealthyThreahold
+(integer)
+
+---
 
 ## OPA
 High level settings related to opa sidecar
@@ -105,6 +228,7 @@ High level settings related to ratelimit sidecar
 ### routes
 ([][IngressRoute](), optional)
 
+---
 
 ## IngressRoute
 
@@ -412,7 +536,7 @@ If neither `prefix` nor `regex` is supplied then match is performed on `/` prefi
 
 
 ### headers
-([][HeaderMatch](), optional) List of http headers to match
+([][header](), optional) List of http headers to match
 
 ---
 
