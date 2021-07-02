@@ -114,152 +114,145 @@ titanSideCars.envoy.clusters:
 
 ---
 
-## Cluster
-
-```yaml
-  external:               bool
-  port:                   integer
-  address:                string
-  namespace:              string
-  scheme:                 enum
-  httpOptions:            HttpOptions
-  connectionTimeout:      duration
-  healthyPanicThreshold:  integer
-  circuitBreakers:        CircuitBreakers
-  healthChecks:           HealthChecks
-  sniValidation:          bool
-```
-
-### port
-(integer)
-
-### scheme
-(enum) Valid values are
-
-- HTTP: 
-- HTTP2: 
-- H2C:
-- HTTPS:
-
-### httpOptions
-([HttpOptions]())
-
-### connectionTimeout
-(duration)
-
-### healthyPanicThreshold
-(integer)
-
-### circuitBreakers
-([CircuitBreakers], optional)
-
-### healthChecks
-([HealthChecks])
-
----
-
-## HttpOptions
-```yaml
-  maxConcurrentStreams: integer
-```
-### maxConcurrentStreams
-(integer)
-
----
-
-## CircuitBreakers
-
-```yaml
-    maxConnections:     integer
-    maxRequests:        integer
-    maxPendingRequests: integer
-    maxRetries:         integer
-```
-
-### maxConnections
-(integer, default 1024) Specifies the maximum number of connections that envoy will make to upstream cluster. In practice, this is more applicable to HTTP/1.1 than HTTP/2
-
-### maxRequests
-(integer, default 1024) Specifies the maximum number of parallel outstanding requests to an upstream cluster. In practice, this is more applicable to HTTP/2 than HTTP/1.1.
-
-### maxPendingRequests
-(integer, default 1024) Specifies the maximum number of requests that will be queued while waiting for a connection. In practice, this is more applicable to HTTP/1.1 than HTTP/2.
-
-### maxRetries
-(integer, default 3) Specifies the maximum number of parallel retries allowed to an upstream cluster.
-
----
-
-## HealthChecks
-
-```yaml
-  path:                 string
-  interval:             duration
-  timeout:              duration
-  healthyThreshold:     string
-  unhealthyThreahold:   string
-```
-
-### path
-(string) 
-
-### interval
-(duration)
-
-### timeout
-(duration)
-
-### healthyThreshold
-(integer)
-
-### unhealthyThreahold
-(integer)
-
----
-
 ## OPA
-High level settings related to opa sidecar
-
 ```yaml
-# titanSideCars.opa.
+titanSideCars.opa:
+    enabled:                    bool
 
-  enabled:        bool
-  imageRegistry:  string
+    imageRegistry:              string
+    imageName:                  string
+    imageTag:                   string
+    cpu:
+      request:                  string
+      limit:                    string
+    memory:
+      request:                  string
+      limit:                    string
+    ephemeralStorage:
+      request:                  string
+      limit:                    string
+    livenessFailureThreshold:   integer
+    readinessFailureThreshold:  integer
+
+    customPolicies:
+      tokenSpec:                string
 ```
 
 ### enabled
 (bool, default true) Set to false to disable opa sidecar
 
 ### imageRegistry
-(string, optional) Override docker image registry path used for opa sidecar	
+(string, optional) Docker image registry path used for OPA sidecar. Overrides `titanSideCars.imageRegistry`
+
+### imageName
+(string, default `opa`)
+
+### imageTag
+(string, default `latest`)
+
+### cpu.request
+(string, default `250m`)
+
+### cpu.limit
+(string, default `1`)
+
+### memory.request
+(string, default `256Mi`)
+
+### memory.limit
+(string, default `1Gi`)
+
+### ephemeralStorage.request
+(string, default `100Mi`)
+
+### ephemeralStorage.limit
+(string, default `500Mi`)
+
+### livenessFailureThreshold
+(integer, default 50)
+
+### readinessFailureThreshold
+(integer, default 100)
+
+### customPolicies.tokenSpec
+(string, optional)
 
 ---
 
 ## Ratelimit
-High level settings related to ratelimit sidecar
-
 ```yaml
-# titanSideCars.ratelimit.
+titanSideCars.ratelimit:
+    enabled:                    bool
+    imageRegistry:              string
+    imageName:                  string
+    imageTag:                   string
+    cpu:
+      request:                  string
+      limit:                    string
+    memory:
+      request:                  string
+      limit:                    string
+    ephemeralStorage:
+      request:                  string
+      limit:                    string
+    livenessFailureThreshold:   integer
+    readinessFailureThreshold:  integer
 
-  enabled:        bool
-  imageRegistry:  string
+    logLevel:                   string
+    redisUrl:                   string 
 ```
 
 ### enabled
 (bool, default true) Set to false to disable ratelimit sidecar
 
 ### imageRegistry
-(string, optional) Override docker image registry path used for ratelimit sidecar	
+(string, optional) Docker image registry path used for ratelimit sidecar. Overrides `titanSideCars.imageRegistry`
+
+### imageName
+(string, default `opa`)
+
+### imageTag
+(string, default `latest`)
+
+### cpu.request
+(string, default `250m`)
+
+### cpu.limit
+(string, default `1`)
+
+### memory.request
+(string, default `256Mi`)
+
+### memory.limit
+(string, default `1Gi`)
+
+### ephemeralStorage.request
+(string, default `100Mi`)
+
+### ephemeralStorage.limit
+(string, default `500Mi`)
+
+### livenessFailureThreshold
+(integer, default 50)
+
+### readinessFailureThreshold
+(integer, default 100)
+
+### logLevel
+(string, default INFO)
+
+### redisUrl
+(string)
 
 ---
 
 ## Ingress
 
 ```yaml
-# titanSideCars.ingress.
-  tokenCheck:     bool
-  accessPolicy:   IngressAccessPolicy
-  routes:         []IngressRoute
+titanSideCars.ingress:
+    tokenCheck:     bool
+    accessPolicy:   IngressAccessPolicy
+    routes:         []IngressRoute
 ```
 
 ### tokenCheck
@@ -615,5 +608,108 @@ The supported operators are
 - **co/nco**: Substring match
 - **lk/nlk**: Regex match. Regex syntax is documented [here](https://github.com/google/re2/wiki/Syntax)
 - **pr/npr**: Unary operator. Indicates if key is present or not. Only `true` value is used. Use `pr` to test presence and `npr` to test non presence.
+
+---
+
+## Cluster
+
+```yaml
+  external:               bool
+  port:                   integer
+  address:                string
+  namespace:              string
+  scheme:                 enum
+  httpOptions:            HttpOptions
+  connectionTimeout:      duration
+  healthyPanicThreshold:  integer
+  circuitBreakers:        CircuitBreakers
+  healthChecks:           HealthChecks
+  sniValidation:          bool
+```
+
+### port
+(integer)
+
+### scheme
+(enum) Valid values are
+
+- HTTP: 
+- HTTP2: 
+- H2C:
+- HTTPS:
+
+### httpOptions
+([HttpOptions]())
+
+### connectionTimeout
+(duration)
+
+### healthyPanicThreshold
+(integer)
+
+### circuitBreakers
+([CircuitBreakers](), optional)
+
+### healthChecks
+([HealthChecks]())
+
+---
+
+## CircuitBreakers
+
+```yaml
+    maxConnections:     integer
+    maxRequests:        integer
+    maxPendingRequests: integer
+    maxRetries:         integer
+```
+
+### maxConnections
+(integer, default 1024) Specifies the maximum number of connections that envoy will make to upstream cluster. In practice, this is more applicable to HTTP/1.1 than HTTP/2
+
+### maxRequests
+(integer, default 1024) Specifies the maximum number of parallel outstanding requests to an upstream cluster. In practice, this is more applicable to HTTP/2 than HTTP/1.1.
+
+### maxPendingRequests
+(integer, default 1024) Specifies the maximum number of requests that will be queued while waiting for a connection. In practice, this is more applicable to HTTP/1.1 than HTTP/2.
+
+### maxRetries
+(integer, default 3) Specifies the maximum number of parallel retries allowed to an upstream cluster.
+
+---
+
+## HealthChecks
+
+```yaml
+  path:                 string
+  interval:             duration
+  timeout:              duration
+  healthyThreshold:     string
+  unhealthyThreahold:   string
+```
+
+### path
+(string) 
+
+### interval
+(duration)
+
+### timeout
+(duration)
+
+### healthyThreshold
+(integer)
+
+### unhealthyThreahold
+(integer)
+
+---
+
+## HttpOptions
+```yaml
+  maxConcurrentStreams: integer
+```
+### maxConcurrentStreams
+(integer)
 
 ---
