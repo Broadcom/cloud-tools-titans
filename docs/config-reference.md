@@ -8,7 +8,6 @@ titanSideCars:
     ratelimit:        Ratelimit
     ingress:          Ingress
     egress:           Egress
-    logs:             Logs  # TODO
 ```
 
 ### imageRegistry
@@ -29,8 +28,6 @@ titanSideCars:
 ### egress
 ([Egress]()) Section to configure processing of http outbound requests
 
-### logs
-([Logs]()) **TODO**
 ---
 
 ## Envoy
@@ -502,23 +499,22 @@ A request a said to `match` the ruleset if it matches `all-of` the rules in the 
 ## AcessRule
 
 ```yaml
-# titanSideCars.ingress.routes[].accessPolicy.oneOf[].allOf[].
+titanSideCars.ingress.routes[].accessPolicy.oneOf[].allOf[]:
+    key:    string              # left operand
 
-  key:    string              # left operand
-
-  # operator + right operand
-  eq:     string              # equals
-  sw:     string              # starts-with
-  ew:     string              # ends-with 
-  co:     string              # contains
-  lk:     string              # like
-  pr:     bool                # present (unary)
-  neq:    string              # not equals
-  nsw:    string              # not starts-with
-  new:    string              # not ends-with
-  nco:    string              # not contains
-  nlk:    string              # not like
-  npr:    bool                # not present (unary)
+    # operator + right operand
+    eq:     string              # equals
+    sw:     string              # starts-with
+    ew:     string              # ends-with 
+    co:     string              # contains
+    lk:     string              # like
+    pr:     bool                # present (unary)
+    neq:    string              # not equals
+    nsw:    string              # not starts-with
+    new:    string              # not ends-with
+    nco:    string              # not contains
+    nlk:    string              # not like
+    npr:    bool                # not present (unary)
 ```
 An access rule is a simple expression of the form `'left-operand operator right-operand'` and follows standard rules of expression evaluation. The expression is capable of comparing headers, claim from token, json payload attributes, and raw text values.
 
