@@ -2,47 +2,92 @@
 
 ```yaml
 titanSideCars:
-    imageRegistry:  string
-    envoy:          Envoy
-    opa:            OPA
-    ratelimit:      Ratelimit
-    ingress:        Ingress
-    egress:         Egress
+    imageRegistry:    string
+    envoy:            Envoy
+    opa:              OPA
+    ratelimit:        Ratelimit
+    ingress:          Ingress
+    egress:           Egress
+    logs:             Logs  # TODO
 ```
 
 ### imageRegistry
 (string) Common docker image registry path.
 
 ### envoy
-([Envoy]()) Section to enable and configure Envoy sidecar	
+([Envoy]()) Section to enable and configure envoy sidecar	
 
 ### opa
 ([OPA]()) Section to enable and configure OPA sidecar
 
 ### ratelimit
-([Ratelimit]()) Section to enable and configure global Ratelimiting sidecar	
+([Ratelimit]()) Section to enable and configure ratelimit sidecar
 
 ### ingress
 ([Ingress]()) Section to configure processing of http inbound requests
 
-### Egress
+### egress
 ([Egress]()) Section to configure processing of http outbound requests
 
-
+### logs
+([Logs]()) **TODO**
 ---
 
 ## Envoy
 ```yaml
 titanSideCars.envoy:
-    enabled:        bool
-    imageRegistry:  string
-    clusters:       Clusters
+    enabled:                    bool
+    imageRegistry:              string
+    imageName:                  string
+    imageTag:                   string
+    cpu:
+      request:                  string
+      limit:                    string
+    memory:
+      request:                  string
+      limit:                    string
+    ephemeralStorage:
+      request:                  string
+      limit:                    string
+    livenessFailureThreshold:   integer
+    readinessFailureThreshold:  integer
+    clusters:                   Clusters
 ```
 ### enabled
 (bool, default true) Set to false to disable envoy sidecar
 
 ### imageRegistry
-(string, optional) Override docker image registry path used for envoy sidecar	
+(string, optional) Docker image registry path used for envoy sidecar. Overrides `titanSideCars.imageRegistry`
+
+### imageName
+(string, default `envoy`)
+
+### imageTag
+(string, default `latest`)
+
+### cpu.request
+(string, default `250m`)
+
+### cpu.limit
+(string, default `1`)
+
+### memory.request
+(string, default `256Mi`)
+
+### memory.limit
+(string, default `1Gi`)
+
+### ephemeralStorage.request
+(string, default `100Mi`)
+
+### ephemeralStorage.limit
+(string, default `500Mi`)
+
+### livenessFailureThreshold
+(integer, default 50)
+
+### readinessFailureThreshold
+(integer, default 100)
 
 ### clusters
 ([Clusters]())
@@ -55,7 +100,6 @@ titanSideCars.envoy:
 titanSideCars.envoy.clusters:
   local-myapp:    Cluster
   remote-myapp:   Cluster
-
   local-xxx:      Cluster
 ```
 
@@ -78,11 +122,11 @@ titanSideCars.envoy.clusters:
   address:                string
   namespace:              string
   scheme:                 enum
-  httpOptions:            object
+  httpOptions:            HttpOptions
   connectionTimeout:      duration
   healthyPanicThreshold:  integer
-  circuitBreakers:        object
-  healthChecks:           object
+  circuitBreakers:        CircuitBreakers
+  healthChecks:           HealthChecks
   sniValidation:          bool
 ```
 
@@ -98,7 +142,7 @@ titanSideCars.envoy.clusters:
 - HTTPS:
 
 ### httpOptions
-([httpOptions]())
+([HttpOptions]())
 
 ### connectionTimeout
 (duration)
@@ -107,14 +151,14 @@ titanSideCars.envoy.clusters:
 (integer)
 
 ### circuitBreakers
-([circuitBreakers], optional)
+([CircuitBreakers], optional)
 
 ### healthChecks
-([healthChecks])
+([HealthChecks])
 
 ---
 
-## titanSideCars.envoy.clusters.{cluster-name}.httpOptions.
+## HttpOptions
 ```yaml
   maxConcurrentStreams: integer
 ```
@@ -123,17 +167,17 @@ titanSideCars.envoy.clusters:
 
 ---
 
-## titanSideCars.envoy.clusters.{clusterName}.circuitBreakers.
+## CircuitBreakers
 
 ```yaml
-  maxConnections:     integer
-  maxRequests:        integer
-  maxPendingRequests: integer
-  maxRetries:         integer
+    maxConnections:     integer
+    maxRequests:        integer
+    maxPendingRequests: integer
+    maxRetries:         integer
 ```
 
 ### maxConnections
-(integer, default 1024) Specifies the maximum number of connections that Envoy will make to upstream cluster. In practice, this is more applicable to HTTP/1.1 than HTTP/2
+(integer, default 1024) Specifies the maximum number of connections that envoy will make to upstream cluster. In practice, this is more applicable to HTTP/1.1 than HTTP/2
 
 ### maxRequests
 (integer, default 1024) Specifies the maximum number of parallel outstanding requests to an upstream cluster. In practice, this is more applicable to HTTP/2 than HTTP/1.1.
@@ -144,10 +188,9 @@ titanSideCars.envoy.clusters:
 ### maxRetries
 (integer, default 3) Specifies the maximum number of parallel retries allowed to an upstream cluster.
 
-
 ---
 
-## titanSideCars.envoy.clusters.{clusterName}.healthChecks.
+## HealthChecks
 
 ```yaml
   path:                 string
