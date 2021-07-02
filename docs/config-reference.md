@@ -1,7 +1,8 @@
 ## TitanSideCars
 
 ```yaml
-titanSideCars:
+# parent: titanSideCars
+
     imageRegistry:    string
     envoy:            Envoy
     opa:              OPA
@@ -32,7 +33,8 @@ titanSideCars:
 
 ## Envoy
 ```yaml
-titanSideCars.envoy:
+# parent: titanSideCars.envoy
+
     enabled:                    bool
     imageRegistry:              string
     imageName:                  string
@@ -94,10 +96,11 @@ titanSideCars.envoy:
 ## Clusters
 
 ```yaml
-titanSideCars.envoy.clusters:
-  local-myapp:    Cluster
-  remote-myapp:   Cluster
-  local-xxx:      Cluster
+# parent: itanSideCars.envoy.clusters
+
+    local-myapp:    Cluster
+    remote-myapp:   Cluster
+    local-xxx:      Cluster
 ```
 
 ### local-myapp
@@ -113,7 +116,8 @@ titanSideCars.envoy.clusters:
 
 ## OPA
 ```yaml
-titanSideCars.opa:
+# parent: titanSideCars.opa
+
     enabled:                    bool
 
     imageRegistry:              string
@@ -178,7 +182,8 @@ titanSideCars.opa:
 
 ## Ratelimit
 ```yaml
-titanSideCars.ratelimit:
+# parent: titanSideCars.ratelimit
+
     enabled:                    bool
     imageRegistry:              string
     imageName:                  string
@@ -246,7 +251,8 @@ titanSideCars.ratelimit:
 ## Ingress
 
 ```yaml
-titanSideCars.ingress:
+# parent: titanSideCars.ingress
+
     tokenCheck:     bool
     accessPolicy:   IngressAccessPolicy
     routes:         []IngressRoute
@@ -263,10 +269,19 @@ titanSideCars.ingress:
 
 ---
 
+## Egress
+
+```yaml
+# parent: titanSideCars.egress
+
+```
+
+---
+
 ## IngressRoute
 
 ```yaml
-# titanSideCars.ingress.routes[]
+# parent: titanSideCars.ingress.routes[]
 
   # route definition
   match:            RouteMatch
@@ -276,6 +291,7 @@ titanSideCars.ingress:
   metrics:          PerRouteMetrics
   accessPolicy:     PerRouteAccessPolicy
   ratelimit:        PerRouteRatelimit
+
   route:            RoutingAction
 ```
 
@@ -304,11 +320,12 @@ If ingress level flag is set to false then setting this to true with enable toke
 ## RoutingAction
 
 ```yaml
-# titanSideCars.ingress.routes[].route.
-# titanSideCars.egress.routes[].route.
+# parents:
+  # titanSideCars.ingress.routes[].route
+  # titanSideCars.egress.routes[].route
 
-  cluster: string
-  prefixRewrite: string
+    cluster: string
+    prefixRewrite: string
 ```
 
 ### cluster
@@ -317,8 +334,6 @@ If ingress level flag is set to false then setting this to true with enable toke
 ### prefixRewrite
 (string, optional) 
 
-
-
 **TODO - INCOMPLETE**
 
 ---
@@ -326,11 +341,12 @@ If ingress level flag is set to false then setting this to true with enable toke
 ## PerRouteMetrics
 
 ```yaml
-# titanSideCars.ingress.routes[].metrics.
-# titanSideCars.egress.routes[].metrics.
+# parents:
+  # titanSideCars.ingress.routes[].metrics
+  # titanSideCars.egress.routes[].metrics
 
-  enabled:  bool
-  name:     string
+    enabled:  bool
+    name:     string
 ```
 ### enabled
 (bool, default true) Controls generation of metrics for corresponding route definition
@@ -343,7 +359,7 @@ If ingress level flag is set to false then setting this to true with enable toke
 ## PerRouteRatelimit
 
 ```yaml
-# titanSideCars.ingress.routes[].ratelimit.
+# parent: titanSideCars.ingress.routes[].ratelimit
 
   enabled:  bool
   actions:  []RatelimitAction
@@ -360,10 +376,10 @@ If ingress level flag is set to false then setting this to true with enable toke
 ### RatelimitAction
 
 ```yaml
-# titanSideCars.ingress.routes[].ratelimit.actions[].
+# parent: titanSideCars.ingress.routes[].ratelimit.actions[]
 
-  descriptors: []RatelimitDescriptor
-  limit: string
+    descriptors: []RatelimitDescriptor
+    limit: string
 ```
 
 ### descriptors
@@ -398,23 +414,23 @@ titanSideCars:
 ### RatelimitDescriptor
 
 ```yaml
-# titanSideCars.ingress.routes[].ratelimit.actions[].descriptors[].
+# parent: titanSideCars.ingress.routes[].ratelimit.actions[].descriptors[]
 
-  key:    string
+    key:    string
 
-  # comparison operators
-  eq:     string          # equals
-  sw:     string          # starts-with
-  ew:     string          # ends-with 
-  co:     string          # contains
-  lk:     string          # like
-  pr:     bool            # present
-  neq:    string          # not equals
-  nsw:    string          # not starts-with
-  new:    string          # not ends-with
-  nco:    string          # not contains
-  nlk:    string          # not like
-  npr:    bool            # not present
+    # comparison operators
+    eq:     string          # equals
+    sw:     string          # starts-with
+    ew:     string          # ends-with 
+    co:     string          # contains
+    lk:     string          # like
+    pr:     bool            # present
+    neq:    string          # not equals
+    nsw:    string          # not starts-with
+    new:    string          # not ends-with
+    nco:    string          # not contains
+    nlk:    string          # not like
+    npr:    bool            # not present
 ```
 
 #### key
@@ -441,9 +457,9 @@ The supported operators are
 ## IngressAccessPolicy
 
 ```yaml
-# titanSideCars.ingress.accessPolicy.
+# parent: titanSideCars.ingress.accessPolicy
 
-  defaultAction:  enum
+    defaultAction:  enum
 ```
 
 ### defaultAction
@@ -461,11 +477,11 @@ An http status code `403 (Forbidden)` is returned on denial.
 ## PerRouteAccessPolicy
 
 ```yaml
-# titanSideCars.ingress.routes[].accessPolicy.
+# parent: titanSideCars.ingress.routes[].accessPolicy
 
-  enabled:  bool
-  name:     string
-  oneOf:    []AccessRuleSet  
+    enabled:  bool
+    name:     string
+    oneOf:    []AccessRuleSet  
 ```
 
 ### enabled
@@ -484,9 +500,9 @@ A request a said to `match` the policy if it matches atleast `one-of` the rulese
 ## AccessRuleSet
 
 ```yaml
-# titanSideCars.ingress.routes[].accessPolicy.oneOf[].
+# parent: titanSideCars.ingress.routes[].accessPolicy.oneOf[]
 
-  allOf: []AccessRule
+    allOf: []AccessRule
 ```
 
 #### allOf
@@ -499,22 +515,23 @@ A request a said to `match` the ruleset if it matches `all-of` the rules in the 
 ## AcessRule
 
 ```yaml
-titanSideCars.ingress.routes[].accessPolicy.oneOf[].allOf[]:
-    key:    string              # left operand
+# parent: titanSideCars.ingress.routes[].accessPolicy.oneOf[].allOf[]
 
-    # operator + right operand
-    eq:     string              # equals
-    sw:     string              # starts-with
-    ew:     string              # ends-with 
-    co:     string              # contains
-    lk:     string              # like
-    pr:     bool                # present (unary)
-    neq:    string              # not equals
-    nsw:    string              # not starts-with
-    new:    string              # not ends-with
-    nco:    string              # not contains
-    nlk:    string              # not like
-    npr:    bool                # not present (unary)
+      key:    string              # left operand
+
+      # operator + right operand
+      eq:     string              # equals
+      sw:     string              # starts-with
+      ew:     string              # ends-with 
+      co:     string              # contains
+      lk:     string              # like
+      pr:     bool                # present (unary)
+      neq:    string              # not equals
+      nsw:    string              # not starts-with
+      new:    string              # not ends-with
+      nco:    string              # not contains
+      nlk:    string              # not like
+      npr:    bool                # not present (unary)
 ```
 An access rule is a simple expression of the form `'left-operand operator right-operand'` and follows standard rules of expression evaluation. The expression is capable of comparing headers, claim from token, json payload attributes, and raw text values.
 
