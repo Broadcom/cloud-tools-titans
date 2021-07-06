@@ -6,31 +6,31 @@
   - name: {{ .key }}
     {{- if or .eq .sw .ew .co .lk }}
       {{- if .eq }}
-    exact_match: {{ .eq }}
+    exact_match: {{ .eq | squote }}
       {{- else if .sw }}
-    prefix_match: {{ .sw }}
+    prefix_match: {{ .sw | squote  }}
       {{- else if .ew }}
-    suffic_match: {{ .ew }}
+    suffic_match: {{ .ew | squote  }}
       {{- else if .co }}
-    contains_match: {{ .co }}
+    contains_match: {{ .co | squote  }}
       {{- else if .lk }}
     safe_regex_match:
       google_re2: {}
-      regex: {{ .lk | quote }}
+      regex: {{ .lk | squote }}
       {{- end }}
     {{- else if or .neq .nsw .new .nco .nlk }}
       {{- if .neq }}
-    exact_match: {{ .neq }}
+    exact_match: {{ .neq | squote  }}
       {{- else if .nsw }}
-    prefix_match: {{ .nsw }}
+    prefix_match: {{ .nsw | squote  }}
       {{- else if .new }}
-    suffix_match: {{ .new }}
+    suffix_match: {{ .new | squote  }}
       {{- else if .nco }}
-    contains_match: {{ .nco }}
+    contains_match: {{ .nco | squote }}
       {{- else if .nlk }}
     safe_regex_match:
       google_re2: {}
-      regex: {{ .nlk | quote }}
+      regex: {{ .nlk | squote }}
       {{- end }}
     invert_match: true
     {{- else if .pr }}
