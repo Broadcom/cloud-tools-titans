@@ -585,7 +585,7 @@ If neither `prefix` nor `regex` is supplied then match is performed on `/` prefi
 
 
 ### headers
-([][header](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#headermatch), optional) List of http headers to match
+([][HeaderMatch](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#headermatch), optional) List of http headers to match
 
 ---
 
