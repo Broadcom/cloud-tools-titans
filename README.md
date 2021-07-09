@@ -337,7 +337,7 @@
 
 ---
 ## Documentaion
-### [titansSideCars](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md) - In progress
+### [titanSideCars](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md) - In progress
 
   | Feature | Description | Config Reference| Examples |
 | --- | --- | --- | --- |
