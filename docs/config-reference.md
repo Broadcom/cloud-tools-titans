@@ -15,19 +15,19 @@
 (string) Common docker image registry path.
 
 ### envoy
-([Envoy]()) Section to enable and configure envoy sidecar	
+([Envoy](#envoy)) Section to enable and configure envoy sidecar	
 
 ### opa
-([OPA]()) Section to enable and configure OPA sidecar
+([OPA](#opa)) Section to enable and configure OPA sidecar
 
 ### ratelimit
-([Ratelimit]()) Section to enable and configure ratelimit sidecar
+([Ratelimit](#ratelimit)) Section to enable and configure ratelimit sidecar
 
 ### ingress
-([Ingress]()) Section to configure processing of http inbound requests
+([Ingress](#ingress)) Section to configure processing of http inbound requests
 
 ### egress
-([Egress]()) Section to configure processing of http outbound requests
+([Egress](#egress)) Section to configure processing of http outbound requests
 
 ---
 

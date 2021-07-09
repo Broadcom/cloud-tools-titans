@@ -337,12 +337,10 @@
 
 ---
 ## Documentaion
-### Configuration - incoming
+### [titansSideCars](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md) - In progress
 
-  | Config Item | Description | Config Reference| Examples |
+  | Feature | Description | Config Reference| Examples |
 | --- | --- | --- | --- |
-| Ingress | | [Ingress]() |  |
-|   |   |   |   |
 | Token Validation  |   |  [Ingress level token validation policy](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#tokencheck) <br /> [Per route token validation policy](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#tokencheck-1) | [Examples](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/examples-token-validation.md)  |
 | API Metrics |   | [Per route metrics config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#perroutemetrics)  |  [Example](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/examples-service-api-metrics.md) |
 | Global Ratelimit || [Ratelimit sidecar config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#ratelimit-1) <br /> [OPA sidecar config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#opa-1) <br /> [Per route ratelimit config](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#perrouteratelimit)| [Examples](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/examples-global-ratelimiting.md) |
