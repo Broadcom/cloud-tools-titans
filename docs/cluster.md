@@ -9,7 +9,7 @@
 ```
 
 ### local-myapp
-([Cluster](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/cluster.md#cluster))
+([Cluster](https://github.com/Broadcom/cloud-tools-titans/blob/develop/docs/cluster.md#cluster))
 
 ### remote-myapp
-([Cluster](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/cluster.md#cluster))
+([Cluster](https://github.com/Broadcom/cloud-tools-titans/blob/develop/docs/cluster.md#cluster))

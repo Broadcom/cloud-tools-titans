@@ -56,4 +56,4 @@
 (integer, default 100)
 
 ### clusters
-([Clusters](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/cluster.md))
+([Clusters](https://github.com/Broadcom/cloud-tools-titans/blob/develop/docs/cluster.md))
