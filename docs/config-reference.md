@@ -15,19 +15,19 @@
 (string) Common docker image registry path.
 
 ### envoy
-([Envoy](#envoy)) Section to enable and configure envoy sidecar	
+([Envoy](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/envoy.md)) Section to enable and configure envoy sidecar	
 
 ### opa
-([OPA](#opa)) Section to enable and configure OPA sidecar
+([OPA](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#opa)) Section to enable and configure OPA sidecar
 
 ### ratelimit
-([Ratelimit](#ratelimit)) Section to enable and configure ratelimit sidecar
+([Ratelimit](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#ratelimit)) Section to enable and configure ratelimit sidecar
 
 ### ingress
-([Ingress](#ingress)) Section to configure processing of http inbound requests
+([Ingress](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#ingress)) Section to configure processing of http inbound requests
 
 ### egress
-([Egress](#egress)) Section to configure processing of http outbound requests
+([Egress](https://github.com/Broadcom/cloud-tools-titans/blob/master/docs/config-reference.md#egress)) Section to configure processing of http outbound requests
 
 ---
 
@@ -100,16 +100,13 @@
 
     local-myapp:    Cluster
     remote-myapp:   Cluster
-    local-xxx:      Cluster
+    <define your own external cluster>: Cluster
 ```
 
 ### local-myapp
 ([Cluster]())
 
 ### remote-myapp
-([Cluster]())
-
-### local-xxx
 ([Cluster]())
 
 ---
