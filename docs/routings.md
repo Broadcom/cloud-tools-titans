@@ -16,7 +16,7 @@
 ```
 
 ### match
-([RouteMatch](), required) Route matching parameters. 
+([RouteMatch](#routematch), required) Route matching parameters. 
 
 ### tokenCheck
 (bool, optional) Controls enablement of token validation for matching requests. This flag works in conjunction with `titanSideCars.ingress.tokenCheck` flag. <br />
@@ -24,16 +24,16 @@ If ingress level flag is set to true then setting this to false with disable tok
 If ingress level flag is set to false then setting this to true with enable token validation for matching requests.
 
 ### metrics
-([RouteMetrics](), optional) If supplied, triggers metrics for matching requests
+([RouteMetrics](#perroutemetrics), optional) If supplied, triggers metrics for matching requests
 
 ### accessPolicy
-([RouteAccessPolicy](), optional) If supplied, triggers access policy enforcement for matching requests.
+([RouteAccessPolicy](#perrouteaccesspolicy), optional) If supplied, triggers access policy enforcement for matching requests.
 
 ### ratelimit
-([RouteRatelimit](), optional) If supplied, triggers ratelimit policy enforcement for matching requests.
+([RouteRatelimit](#perrouteratelimit), optional) If supplied, triggers ratelimit policy enforcement for matching requests.
 
 ### route
-([RoutingAction](), optional) Specifies routing destination for matching requests. If un-specified, matching requests are routed to  `local-myapp`
+([RoutingAction](#routingaction), optional) Specifies routing destination for matching requests. If un-specified, matching requests are routed to  `local-myapp`
 
 ---
 
@@ -103,7 +103,7 @@ If ingress level flag is set to false then setting this to true with enable toke
 ```
 
 ### descriptors
-([][RatelimitDescriptor](), optional) List of descriptors that define the attributes to ratelimit on. Corresponding route definition is an implicit descriptor. Incoming request must match all descriptors to be considered for ratelimiting. The ordering of descriptors is not relevant.
+([][RatelimitDescriptor](#ratelimitdescriptor), optional) List of descriptors that define the attributes to ratelimit on. Corresponding route definition is an implicit descriptor. Incoming request must match all descriptors to be considered for ratelimiting. The ordering of descriptors is not relevant.
 
 ### limit
 (string, required) Ratelimit value in `<ratelimit-per-unit>/<unit>` format. Supported units are `second` `minute` `hour` and `day`.
@@ -341,50 +341,6 @@ The supported operators are
 - **co/nco**: Substring match
 - **lk/nlk**: Regex match. Regex syntax is documented [here](https://github.com/google/re2/wiki/Syntax)
 - **pr/npr**: Unary operator. Indicates if key is present or not. Only `true` value is used. Use `pr` to test presence and `npr` to test non presence.
-
----
-
-## Cluster
-
-```yaml
-  external:               bool
-  port:                   integer
-  address:                string
-  namespace:              string
-  scheme:                 enum
-  httpOptions:            HttpOptions
-  connectionTimeout:      duration
-  healthyPanicThreshold:  integer
-  circuitBreakers:        CircuitBreakers
-  healthChecks:           HealthChecks
-  sniValidation:          bool
-```
-
-### port
-(integer)
-
-### scheme
-(enum) Valid values are
-
-- HTTP: 
-- HTTP2: 
-- H2C:
-- HTTPS:
-
-### httpOptions
-([HttpOptions]())
-
-### connectionTimeout
-(duration)
-
-### healthyPanicThreshold
-(integer)
-
-### circuitBreakers
-([CircuitBreakers](), optional)
-
-### healthChecks
-([HealthChecks]())
 
 ---
 
