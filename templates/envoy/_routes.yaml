@@ -7,6 +7,10 @@
   {{- $clusters := $envoy.clusters }}
   {{- $remoteMyApp:= index $clusters "remote-myapp" }}
   {{- $routes := ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
+  {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
+  {{- if $additionalRoutes }}
+    {{- $routes = concat $additionalRoutes $routes }}
+  {{- end }}
                 routes:
   {{- range $routes }}
     {{- $route := .route }}
