@@ -14,16 +14,18 @@
     clusters:
   {{- range $cluster, $value := $clusters }}
     {{- if eq $cluster "local-myapp" }}
+      {{- $gateway := ternary $value.gateway false (hasKey $value "gateway") }}
+      {{- if not $gateway }}
     - name: local-myapp
       type: STATIC
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
-      {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $localApp.scheme  "cluster" $localApp "addSocket" true) | nindent 6 }}
+        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $localApp.scheme  "cluster" $localApp "addSocket" true) | nindent 6 }}
       connect_timeout: {{ $localApp.connectionTimeout | default "0.25s" }}
       common_lb_config:
         healthy_panic_threshold:
           value: {{ $localApp.healthyPanicThreshold | default "25" }} 
-      {{- $circuitBreakers := mergeOverwrite ($circuitLocal | default dict) ( $localApp.circuitBreakers | default dict) }}
+        {{- $circuitBreakers := mergeOverwrite ($circuitLocal | default dict) ( $localApp.circuitBreakers | default dict) }}
       circuit_breakers:
         thresholds:
         - max_connections: {{ $circuitBreakers.maxConnections | default "1024" }}
@@ -46,6 +48,7 @@
                 socket_address:
                   address: 127.0.0.1
                   port_value: {{  $localApp.port | default "8080" }}
+      {{- end }}
     {{- else }}
       {{- $setupCluster := false  }}
       {{- range $egress.routes }}

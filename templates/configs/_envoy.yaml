@@ -15,8 +15,8 @@
   {{- if not (index $clusters "local-myapp") }}
     {{- fail ".Values.titanSideCars.envoy.clusters.local-myapp is required" }}
   {{- end }}
-  {{- $localMyApp:= index $clusters "local-myapp" }}
-  {{- $remoteMyApp:= index $clusters "remote-myapp" }}
+  {{- $localMyApp := index $clusters "local-myapp" }}
+  {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $envoyIngressPort := $remoteMyApp.port | default "9443"  }}
   {{- $envoyEgressPort := $egress.port | default "9565"  }}
   {{- $envoyAdminPort := $envoy.adminPort | default "10000"  }}
