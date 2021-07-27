@@ -1,3 +1,7 @@
+{{- define "titan-mesh-helm-lib-chart.containers.envoy.containerName" -}}
+{{- print "titan-envoy" -}}
+{{- end }}
+
 {{- define "titan-mesh-helm-lib-chart.containers.envoy" -}}
 {{- $titanSideCars := .titanSideCars -}}
 {{- if $titanSideCars }}
@@ -17,7 +21,7 @@
   {{- $imageRegistry := $envoy.imageRegistry | default $titanSideCars.imageRegistry -}}
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
   {{- if $envoyEnabled }}
-- name: titan-envoy
+- name: {{include "titan-mesh-helm-lib-chart.containers.envoy.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($envoy.imageName | default "envoy") ($envoy.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
   command: 

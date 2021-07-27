@@ -1,3 +1,6 @@
+{{- define "titan-mesh-helm-lib-chart.containers.opa.containerName" -}}
+{{- print "titan-envoy" -}}
+{{- end }}
 {{- define "titan-mesh-helm-lib-chart.containers.opa" -}}
 {{- $titanSideCars := . -}}
 {{- if $titanSideCars }}
@@ -10,7 +13,7 @@
   {{- $imageRegistry := $opa.imageRegistry | default $titanSideCars.imageRegistry -}}
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
   {{- if and $envoyEnabled $opaEnabled}}
-- name: opa
+- name: {{include "titan-mesh-helm-lib-chart.containers.opa.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($opa.imageName | default "opa") ($opa.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
   args:

@@ -1,3 +1,6 @@
+{{- define "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" -}}
+{{- print "titan-envoy" -}}
+{{- end }}
 {{- define "titan-mesh-helm-lib-chart.containers.ratelimit" -}}
 {{- $titanSideCars := . -}}
 {{- if $titanSideCars }}
@@ -11,7 +14,7 @@
   {{- $imageRegistry := $ratelimit.imageRegistry | default $titanSideCars.imageRegistry -}}
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
   {{- if and $envoyEnabled $ratelimitEnabled }}
-- name: ratelimit
+- name: {{include "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($ratelimit.imageName | default "ratelimit") ($ratelimit.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
   command:
