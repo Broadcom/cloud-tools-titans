@@ -18,6 +18,31 @@
   - #### Use kubernetes as the control plane
   - #### Configure desired features in the your own App's Helm Chart
 
+## Implementation
+> The entire titans solution is delivered using a single helm libary chart to be included into your app's helm chart
+
+## Planned functionalities
+| Function | Description | Sidecar
+| :------- |:----------- |:-------
+| Proxy | Rich uri routing with rewrite capability | Envoy
+| | Configurable retries on specific errors |
+| | Configurable circuit breaker |
+| | TLS 1.2+ communication with auto cert management |
+| | Configurable Upstream Health Check to reduce downtime |
+| | Configurable Access Logging |
+| Authentication | Peer identiy authentication - SNI validation |
+| | JWT token validation |
+| | Provide OAuth2 authentication for your app with simple configuration |
+| Authorization | Enforce authorization check to protect App APIs based on RBAC policy | OPA + Envoy
+| | Auto generated RBAC policy from API registration defined in the App helm chart values.yaml |
+| Metrics | App API operational metrics with RBAC protection status | + Collectd
+| | Easy Dashboad integration, e.g. Grafana, AIOP |
+| Global Ratelimit | Global API level ratelimiting | + Ratelimit
+| | Easy integration with redis compatible key/value backend, e.g. Google Memorystore |
+| Custom functionalities | Unlimited capabilities with Open Standard tool sets | Envoy + OPA + WASM
+
+---
+
 ## [Documentation](https://github.com/Broadcom/cloud-tools-titans/wiki)
 
 ---
