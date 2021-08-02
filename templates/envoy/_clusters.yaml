@@ -172,4 +172,14 @@
         unhealthy_threshold: {{ $healthCheck.unhealthyThreahold | default "1" }}
     {{- end }}
   {{- end }}
+  {{- $customTpls := $titanSideCars.customTpls }}
+  {{- $customEnvoyTpls := $customTpls.envoy }}
+  {{- range $customEnvoyTpls.clusters }}
+    {{- $customClusters := include .name $ }}
+    {{- range $customClusters }} 
+      {{- if not (hasKey $myClusters .name) }}
+    - {{ . }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
 {{- end }}

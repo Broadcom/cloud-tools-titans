@@ -77,7 +77,7 @@
       name: titan-configs
       subPath: envoy-sds.yaml
     - mountPath: /logs/
-      name: titan-logs
+      name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" . }}
     - mountPath: /secrets
       name: titan-secrets-tls
   {{- end }}
