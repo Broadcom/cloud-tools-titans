@@ -1,5 +1,5 @@
 {{- define "titan-mesh-helm-lib-chart.containers.opa.containerName" -}}
-{{- print "titan-envoy" -}}
+{{- print "opa" -}}
 {{- end }}
 {{- define "titan-mesh-helm-lib-chart.containers.opa" -}}
 {{- $titanSideCars := . -}}

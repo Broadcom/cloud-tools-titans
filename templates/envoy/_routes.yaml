@@ -97,7 +97,7 @@
   {{- if eq $direction "ingress" }}
     {{- $cluster := index $envoy.clusters "local-myapp" }}
     {{- $retryPolicy := $cluster.retryPolicy }}
-    {{- $gatewayOnly := ternary $cluster.gateway false (hasKey $cluster "gateway") -}}
+    {{- $gatewayOnly := ternary $cluster.gateway false (hasKey $cluster "gateway") }}
                 - match:
                     prefix: /
     {{- if $gatewayOnly }}
