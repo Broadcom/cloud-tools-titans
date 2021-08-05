@@ -20,6 +20,7 @@
   {{- $envoyIngressPort := $remoteMyApp.port | default "9443"  }}
   {{- $envoyEgressPort := $egress.port | default "9565"  }}
   {{- $envoyAdminPort := $envoy.adminPort | default "10000"  }}
+  {{- $envoyStatsPort := $envoy.statsPort | default "8126"  }}
   {{- $opaPort := $opa.port | default "9191"  }}
   {{- $ingressIdleTimeout := $remoteMyApp.idleTimeout }}
   {{- $customTpls := $titanSideCars.customTpls }}
@@ -32,6 +33,16 @@ envoy.yaml: |
       socket_address:
         address: 0.0.0.0
         port_value:  {{ $envoyAdminPort }}
+  stats_flush_interval: 30s
+  stats_sinks:
+    - name: envoy.stat_sinks.statsd
+      typed_config:
+        "@type": type.googleapis.com/envoy.config.metrics.v3.StatsdSink
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: {{ $envoyStatsPort }}
+            protocol: UDP
   static_resources:
   {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" .Release.Namespace "chartName" $.Chart.Name) }}  
   {{- if and $ingress (not $ingress.enabled) }}
