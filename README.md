@@ -21,7 +21,7 @@
 ## Implementation
 > The entire titans solution is delivered using a single helm libary chart to be included into your app's helm chart
 
-## Planned functionalities
+## Supported/Planned functionalities
 | Function | Description | Sidecar
 | :------- |:----------- |:-------
 | Proxy | Rich uri routing with rewrite capability | Envoy
@@ -39,6 +39,8 @@
 | | Easy Dashboad integration, e.g. Grafana, AIOP |
 | Global Ratelimit | Global API level ratelimiting | + Ratelimit
 | | Easy integration with redis compatible key/value backend, e.g. Google Memorystore |
+| Gateway only mode | Ingress gateway option | Envoy
+| | Deployed as the ingress gateway of the service mesh |
 | Custom functionalities | Unlimited capabilities with Open Standard tool sets | Envoy + OPA + WASM
 
 ---
