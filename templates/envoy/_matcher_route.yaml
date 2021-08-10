@@ -14,6 +14,8 @@
   {{- else }}
     {{- if $route.prefix }}
       {{- $headers = append $headers (dict "key" ":path" "sw" $route.prefix) }}
+    {{- else if $route.path }}
+      {{- $headers = append $headers (dict "key" ":path" "eq" $route.path) }}
     {{- else if $route.regex }}
       {{- $headers = append $headers (dict "key" ":path" "lk" $route.regex) }}
     {{- else }}
