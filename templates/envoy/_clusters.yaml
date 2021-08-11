@@ -79,9 +79,10 @@
       {{- if $setupCluster }}
         {{- $_ := set $myClusters $cluster "created"  }}
     - name: {{ $cluster }}
-        {{- $serviceName := printf "%s%s" $cluster (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
+        {{- $serviceName := $value.alias | default $cluster }}
+        {{- $serviceName = printf "%s%s" $serviceName (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
         {{- if $value.external }}
-          {{- $serviceName = $cluster }}
+          {{- $serviceName = $value.alias | default $cluster }}
         {{- end }}
         {{- $clusterAddress := $value.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($value.namespace | default $releaseNamespace )) }}
       connect_timeout: {{ $value.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
