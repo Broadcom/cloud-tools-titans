@@ -4,6 +4,8 @@
   {{- if .routing }}
     {{- if $route.prefix }}
   prefix: {{ $route.prefix | quote }}
+    {{- else if $route.path }}
+  path: {{ $route.path | quote }}
     {{- else if $route.regex }}
   safe_regex:
     google_re2: {}
