@@ -56,7 +56,11 @@
           {{- if $route.prefixRewrite }}
                     prefix_rewrite: {{ $route.prefixRewrite }}
           {{- else if $route.regexRewrite }}
-                    regex_rewrite: {{ $route.regexRewrite }}
+                    regex_rewrite:
+                      pattern:
+                        google_re2: {}
+                        regex: {{ $route.regexRewrite.pattern }}
+                      substitution: {{ $route.regexRewrite.substitution }}
           {{- end }}
           {{- if eq $direction "egress"}}
                     auto_host_rewrite: true
