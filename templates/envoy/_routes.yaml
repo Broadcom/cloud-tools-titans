@@ -37,6 +37,15 @@
                 - match:
           {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
                   route:
+          {{- if $route.prefixRewrite }}
+                    prefix_rewrite: {{ $route.prefixRewrite }}
+          {{- else if $route.regexRewrite }}
+                    regex_rewrite:
+                      pattern:
+                        google_re2: {}
+                        regex: {{ $route.regexRewrite.pattern }}
+                      substitution: {{ $route.regexRewrite.substitution }}
+          {{- end }}
                     cluster: {{ $route.cluster }}
           {{- if eq $direction "egress"}}
                     auto_host_rewrite: true
