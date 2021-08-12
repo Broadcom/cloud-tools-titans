@@ -37,7 +37,7 @@
     {{- end }}
     {{- if (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
       {{- range $ratelimit.actions }}
-        {{- range .match }}
+        {{- range .descriptors }}
           {{- $hasAdvancedRatelimit = or $hasAdvancedRatelimit (hasPrefix "payload." .key) (hasPrefix "token." .key) }}
           {{- $processPayload = or $processPayload (hasPrefix "payload." .key) }}
         {{- end }}
