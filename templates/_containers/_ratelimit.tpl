@@ -1,5 +1,5 @@
 {{- define "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" -}}
-{{- print "titan-envoy" -}}
+{{- print "titan-ratelimit" -}}
 {{- end }}
 {{- define "titan-mesh-helm-lib-chart.containers.ratelimit" -}}
 {{- $titanSideCars := . -}}

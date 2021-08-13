@@ -1,7 +1,7 @@
 {{/*ports to be added to the application's "Deployment" Kubernetes object under "spec.template.spec.volumes" */}}
 {{- define "titan-mesh-helm-lib-chart.volumes.logsVolumeName" -}}
 {{- $logs := .logs -}}
-{{- print $logs.volumeName | default "titan-logs" -}}
+{{- printf "%s" ($logs.volumeName | default "titan-logs") -}}
 {{- end }}
 {{- define "titan-mesh-helm-lib-chart.volumes" -}}
 {{- $global := $.Values.global -}}
