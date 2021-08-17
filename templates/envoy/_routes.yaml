@@ -48,7 +48,7 @@
                       substitution: {{ $clusterRoute.regexRewrite.substitution }}
           {{- end }}
                     cluster: {{ $route.cluster }}
-          {{- if eq $direction "egress" }}
+          {{- if or (eq $direction "egress") $cluster.autoHostRewrite }}
                     auto_host_rewrite: true
           {{- end }}
                     retry_policy:
@@ -72,7 +72,7 @@
                         regex: {{ $route.regexRewrite.pattern }}
                       substitution: {{ $route.regexRewrite.substitution }}
           {{- end }}
-          {{- if eq $direction "egress"}}
+          {{- if or (eq $direction "egress") $cluster.autoHostRewrite }}
                     auto_host_rewrite: true
           {{- end }}
                     retry_policy:
