@@ -36,11 +36,11 @@ mkdir -p tmp
 
 chartresponse=$(helm package . -d tmp)
 
-response=$(curl -X PUT -H "X-JFrog-Art-Api:$apikey" -T tmp/$chartname-$chartver.tgz --write-out '%{http_code}' https://artifactory-lvn.broadcom.net/artifactory/sbo-sps-helm-release-local/$chartname/$chartname-$chartver.tgz)
+response=$(curl -O -H "X-JFrog-Art-Api:$apikey" --write-out '%{http_code}' https://artifactory-lvn.broadcom.net/artifactory/sbo-sps-helm-release-local/$chartname/$chartname-$chartver.tgz)
 
 if [ "$response" != "200" ]
 then
     echo "Got" $response
 else 
-    echo "Upload $chartname-$chartver.tgz successfully"
+    echo "Download $chartname-$chartver.tgz successfully"
 fi
