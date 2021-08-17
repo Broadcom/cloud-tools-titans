@@ -5,7 +5,7 @@
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
-  {{- $remoteMyApp:= index $clusters "remote-myapp" }}
+  {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $routes := ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
   {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
   {{- if and $additionalRoutes $routes }}
@@ -48,7 +48,7 @@
                       substitution: {{ $clusterRoute.regexRewrite.substitution }}
           {{- end }}
                     cluster: {{ $route.cluster }}
-          {{- if eq $direction "egress"}}
+          {{- if eq $direction "egress" }}
                     auto_host_rewrite: true
           {{- end }}
                     retry_policy:
