@@ -26,16 +26,30 @@ filter:
     - not_health_check_filter: {}
     - or_filter:
         filters:
+        - and_filter:
+            filters:
+            - status_code_filter:
+                comparison:
+                  op: GE
+                  value:
+                    default_value: 400
+                    runtime_key: {{ $accessLog.runtimeKey | default "not-defined" }}
+            - status_code_filter:
+                comparison:
+                  op: LE
+                  value:
+                    default_value: 428
+                    runtime_key: {{ $accessLog.runtimeKey | default "not-defined" }}
         - status_code_filter:
             comparison:
               op: GE
-              value: 
-                default_value: 400
+              value:
+                default_value: 430
                 runtime_key: {{ $accessLog.runtimeKey | default "not-defined" }}
         - status_code_filter:
             comparison:
               op: LE
-              value: 
+              value:
                 default_value: 199
                 runtime_key: {{ $accessLog.runtimeKey | default "not-defined" }}
       {{- if $accessLog.responseFlags }}
