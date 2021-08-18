@@ -63,7 +63,7 @@
             {{- if .match }}
               {{- if .match.prefix }}
     - match:
-        prefix: {{ .match.prefix }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 8 }}
       requires:
                 {{- if eq (len $providers) 1 }}
         provider_name: {{ first $providers }}
@@ -87,7 +87,7 @@
             {{- if .match }}
               {{- if .match.prefix }}
     - match:
-        prefix: {{ .match.prefix }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 8 }}
               {{- end }}
             {{- end }}
           {{- end }}
