@@ -163,7 +163,7 @@ policy-ingress.rego: |
       {{- $route := .match }}
       {{- range $ratelimit.actions }}
         {{- $l2hash := . | toString | sha1sum }}
-        {{- range .descriptors }}
+        {{- range .match }}
           {{- if or (hasPrefix "payload." .key) (hasPrefix "token." .key) }}
             {{ $header := printf "x-tint-%s" ((printf "%s:%s:%s" $l1hash $l2hash (. | toString)) |  sha1sum | trunc $hashLen) }}
             {{- $headerId := printf "header_%s" ($header | replace "-" "_")}}
