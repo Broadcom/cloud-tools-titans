@@ -1,0 +1,9 @@
+{{- define "titan-mesh-helm-lib-chart-legacy.configs.ratelimit" }}
+  {{- $global := $.Values.global -}}
+  {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
+  {{- $appName := include "titan-mesh-helm-lib-chart-legacy.app-name" . -}}
+  {{- $routes := $titanSideCars.ingress.routes }}
+ratelimit_config.yaml: |
+  domain: {{ $appName }}
+  {{- include "titan-mesh-helm-lib-chart-legacy.ratelimit.descriptors" (dict "routes" $routes) | nindent 0 }}
+{{- end }}

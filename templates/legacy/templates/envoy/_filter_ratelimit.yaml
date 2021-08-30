@@ -1,4 +1,4 @@
-{{- define "titan-mesh-helm-lib-chart.envoy.filter.ratelimit" }}
+{{- define "titan-mesh-helm-lib-chart-legacy.envoy.filter.ratelimit" }}
   {{- $appName := .appName }}
   {{- $titanSideCars := .titanSideCars }}
   {{- $ratelimitSidecar := .ratelimit }}
