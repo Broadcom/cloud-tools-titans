@@ -1,0 +1,13 @@
+{{- define "titan-mesh-helm-lib-chart-legacy.configs.opa" }}
+  {{- $global := $.Values.global -}}
+  {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
+  {{- $opa := $titanSideCars.opa -}}
+  {{- $opaPort := $opa.port | default "9191" -}}
+opa.yaml: |
+  plugins:
+    envoy_ext_authz_grpc:
+      addr: {{ printf ":%s" $opaPort }}
+      path: authz/main/allow
+  decision_logs:
+    console: true
+{{- end }}

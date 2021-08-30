@@ -1,7 +1,7 @@
-{{- define "titan-mesh-helm-lib-chart.containers.opa.containerName" -}}
+{{- define "titan-mesh-helm-lib-chart-legacy.containers.opa.containerName" -}}
 {{- print "titan-opa" -}}
 {{- end }}
-{{- define "titan-mesh-helm-lib-chart.containers.opa" -}}
+{{- define "titan-mesh-helm-lib-chart-legacy.containers.opa" -}}
 {{- $titanSideCars := . -}}
 {{- if $titanSideCars }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
@@ -13,7 +13,7 @@
   {{- $imageRegistry := $opa.imageRegistry | default $titanSideCars.imageRegistry -}}
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
   {{- if and $envoyEnabled $opaEnabled}}
-- name: {{include "titan-mesh-helm-lib-chart.containers.opa.containerName" . }}
+- name: {{include "titan-mesh-helm-lib-chart-legacy.containers.opa.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($opa.imageName | default "opa") ($opa.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
   args:
@@ -75,7 +75,7 @@
     name: titan-configs
     subPath: opa.yaml
   - mountPath: /logs/
-    name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
+    name: {{ include "titan-mesh-helm-lib-chart-legacy.volumes.logsVolumeName" $titanSideCars }}
   {{- end }}
 {{- end }}
 {{- end }}

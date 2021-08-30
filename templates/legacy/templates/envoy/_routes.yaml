@@ -1,0 +1,134 @@
+{{- define "titan-mesh-helm-lib-chart-legacy.envoy.filter.routes" }}
+  {{- $titanSideCars := .titanSideCars }}
+  {{- $direction := .direction -}}
+  {{- $ingress := $titanSideCars.ingress }}
+  {{- $egress := $titanSideCars.egress }}
+  {{- $envoy := $titanSideCars.envoy }}
+  {{- $clusters := $envoy.clusters }}
+  {{- $remoteMyApp := index $clusters "remote-myapp" }}
+  {{- $routes := ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
+  {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
+  {{- if and $additionalRoutes $routes }}
+    {{- $routes = concat $additionalRoutes $routes }}
+  {{- end }}
+                routes:
+  {{- range $routes }}
+    {{- $route := .route }}
+    {{- $clusterName := $route.cluster }}
+    {{- if not $clusterName }}
+      {{- if eq $direction "ingress" }}
+        {{- if $route }}
+          {{- $clusterName = "local-myapp" }}
+        {{- else }}
+          {{- $clusterName = "" }}
+        {{- end }}
+      {{- else if or .directResponse .redirect }}
+        {{- $clusterName = "" }}
+      {{- else }}
+        {{- fail "egress route requires cluster name"}}
+      {{- end }}
+    {{- end }}
+    {{- $cluster := ternary (index $clusters $clusterName) .empty (ne $clusterName "") }}
+    {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
+    {{- if or $cluster (or .directResponse .redirect) }}
+      {{- if not .match }}
+        {{- $retryOn := ternary "reset,connect-failure,refused-stream" "reset,connect-failure,refused-stream,gateway-error" (hasPrefix "local-" $clusterName) }}
+        {{- range $cluster.routes }}
+          {{- $clusterRoute := .route }}
+                - match:
+          {{- include "titan-mesh-helm-lib-chart-legacy.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
+                  route:
+          {{- if $clusterRoute.prefixRewrite }}
+                    prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
+          {{- else if $clusterRoute.regexRewrite }}
+                    regex_rewrite:
+                      pattern:
+                        google_re2: {}
+                        regex: {{ $clusterRoute.regexRewrite.pattern }}
+                      substitution: {{ $clusterRoute.regexRewrite.substitution }}
+          {{- end }}
+                    cluster: {{ $route.cluster }}
+          {{- if or (eq $direction "egress") $cluster.autoHostRewrite }}
+                    auto_host_rewrite: true
+          {{- end }}
+                    retry_policy:
+                      num_retries: {{ coalesce $retryPolicy.numRetries "3" }}
+                      retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
+                    timeout: {{ coalesce $route.timeout $clusterRoute.timeout (ternary $remoteMyApp.timeout $cluster.timeout (eq $direction "egress")) "15s" }}
+        {{- end  }}
+      {{- else }}
+                - match:
+          {{- include "titan-mesh-helm-lib-chart-legacy.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
+        {{- if ne $clusterName "" }}
+          {{- $retryOn := ternary "reset,connect-failure,refused-stream" "reset,connect-failure,refused-stream,gateway-error" (hasPrefix "local-" $clusterName) }}
+                  route:
+                    cluster: {{ $clusterName }} 
+          {{- if $route.prefixRewrite }}
+                    prefix_rewrite: {{ $route.prefixRewrite }}
+          {{- else if $route.regexRewrite }}
+                    regex_rewrite:
+                      pattern:
+                        google_re2: {}
+                        regex: {{ $route.regexRewrite.pattern }}
+                      substitution: {{ $route.regexRewrite.substitution }}
+          {{- end }}
+          {{- if or (eq $direction "egress") $cluster.autoHostRewrite }}
+                    auto_host_rewrite: true
+          {{- end }}
+                    retry_policy:
+                      num_retries: {{ coalesce $retryPolicy.numRetries "3" }}
+                      retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
+                    timeout: {{ coalesce $route.timeout (ternary $remoteMyApp.timeout $cluster.timeout (eq $direction "egress")) "15s" }}
+          {{- if or $route.idleTimeout $cluster.idleTimeout }}
+                    idle_timeout: {{ coalesce $route.idleTimeout $cluster.idleTimeout }}
+          {{- end }}
+        {{- else if .directResponse }}
+                  direct_response:
+                    status: {{ .directResponse.status }}
+          {{- if .directResponse.body }}
+                    body:
+                      inline_string: {{ .directResponse.body | squote }}
+          {{- end }}
+        {{- else if .redirect }}
+                  redirect:
+          {{- if eq .redirect.action "regex_rewrite" }}
+                    regex_rewrite:
+                      pattern:
+                        google_re2: 
+                          max_program_size: {{ .redirect.maxlen }}
+                        regex: {{ .redirect.regex | squote }}
+                      substitution: {{ .redirect.value | squote }}
+          {{- else }}
+                    {{ .redirect.action }}: {{ .redirect.value }}
+          {{- end }}
+          {{- if .redirect.responseCode }}
+                    response_code: {{ .redirect.responseCode }}  
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- if eq $direction "ingress" }}
+    {{- $cluster := index $envoy.clusters "local-myapp" }}
+    {{- $retryPolicy := $cluster.retryPolicy }}
+    {{- $gatewayOnly := ternary $cluster.gateway false (hasKey $cluster "gateway") }}
+                - match:
+                    prefix: /
+    {{- if $gatewayOnly }}
+                  direct_response:
+                    status: {{ $cluster.directResponseCode | default "404" }}
+                   body:
+                      inline_string: {{ ($cluster.directResponseMessage | default "No matching route") | squote }}
+    {{- else }}
+                  route:
+                    cluster: local-myapp
+                    retry_policy:
+                      num_retries: {{ coalesce $retryPolicy.numRetries "3" }}
+                      retry_on: {{ coalesce $retryPolicy.retryOn "reset,connect-failure,refused-stream" }}
+                    timeout: {{ coalesce $cluster.timeout "15s" }}
+      {{- if $cluster.idleTimeout }}
+                    idle_timeout: {{ $cluster.idleTimeout }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}

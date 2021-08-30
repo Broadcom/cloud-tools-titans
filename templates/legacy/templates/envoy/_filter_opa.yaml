@@ -1,4 +1,4 @@
-{{- define "titan-mesh-helm-lib-chart.envoy.filter.opa" }}
+{{- define "titan-mesh-helm-lib-chart-legacy.envoy.filter.opa" }}
   {{- $titanSideCars := .titanSideCars }}
   {{- $opaSidecar := .opa }}
   {{- $ingress := .ingress }}

@@ -1,20 +1,20 @@
 {{/*ports to be added to the application's "Deployment" Kubernetes object under "spec.template.spec.volumes" */}}
-{{- define "titan-mesh-helm-lib-chart.volumes.logsVolumeName" -}}
+{{- define "titan-mesh-helm-lib-chart-legacy.volumes.logsVolumeName" -}}
 {{- $titanSideCars := .titanSideCars -}}
 {{- $logs := $titanSideCars.logs | default .logs -}}
 {{- $logs.volumeName | default "titan-logs" -}}
 {{- end }}
-{{- define "titan-mesh-helm-lib-chart.volumes" -}}
+{{- define "titan-mesh-helm-lib-chart-legacy.volumes" -}}
 {{- $global := $.Values.global -}}
 {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
 {{- $_ := set $ "titanSideCars" $titanSideCars }}
 {{- if $titanSideCars }}
   {{- $envoy := $titanSideCars.envoy -}}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
-  {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
+  {{- $appName := include "titan-mesh-helm-lib-chart-legacy.app-name" . -}}
   {{- if $envoyEnabled }}
-    {{- if eq (include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $ ) "titan-logs" }}
-- name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $ }}
+    {{- if eq (include "titan-mesh-helm-lib-chart-legacy.volumes.logsVolumeName" $ ) "titan-logs" }}
+- name: {{ include "titan-mesh-helm-lib-chart-legacy.volumes.logsVolumeName" $ }}
   emptyDir: {}
     {{- end }}
 - name: titan-secrets-tls

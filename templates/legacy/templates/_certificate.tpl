@@ -1,11 +1,11 @@
-{{- define "titan-mesh-helm-lib-chart.certificate" -}}
+{{- define "titan-mesh-helm-lib-chart-legacy.certificate" -}}
 {{- $global := $.Values.global -}}
 {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
 {{- if $titanSideCars }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- if $envoyEnabled }}
     {{- $envoy := $titanSideCars.envoy -}}
-    {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
+    {{- $appName := include "titan-mesh-helm-lib-chart-legacy.app-name" . -}}
     {{- $cert := $titanSideCars.cert -}}
     {{- $certDuration := $cert.certDuration | default "8640h" }}
     {{- $certRenewBefore := $cert.certRenewBefore | default "240h" }}

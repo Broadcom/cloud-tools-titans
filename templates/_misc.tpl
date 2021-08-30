@@ -29,24 +29,73 @@
 {{- default (printf "%s%s" .Chart.Name (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars)) .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "titan-mesh-helm-lib-chart.enabled" -}}
+{{- define "static.titan-mesh-helm-lib-chart.enabled" -}}
 {{- if . -}}{{- ternary .enabled "true" (hasKey . "enabled") -}}{{- else -}}false{{- end -}}
 {{- end -}}
 
 {{/* usage:
 {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
-{{- $envoyEnabled := eq (include "titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
+{{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
 */}}
-{{- define "titan-mesh-helm-lib-chart.envoyEnabled" -}}{{- include "titan-mesh-helm-lib-chart.enabled" .envoy -}}{{- end -}}
-{{- define "titan-mesh-helm-lib-chart.opaEnabled" -}}{{- include "titan-mesh-helm-lib-chart.enabled" .opa -}}{{- end -}}
-{{- define "titan-mesh-helm-lib-chart.ratelimitEnabled" -}}{{- include "titan-mesh-helm-lib-chart.enabled" .ratelimit -}}{{- end -}}
+{{- define "static.titan-mesh-helm-lib-chart.envoyEnabled" -}}{{- include "static.titan-mesh-helm-lib-chart.enabled" .envoy -}}{{- end -}}
+{{- define "static.titan-mesh-helm-lib-chart.opaEnabled" -}}{{- include "static.titan-mesh-helm-lib-chart.enabled" .opa -}}{{- end -}}
+{{- define "static.titan-mesh-helm-lib-chart.ratelimitEnabled" -}}{{- include "static.titan-mesh-helm-lib-chart.enabled" .ratelimit -}}{{- end -}}
 
 {{/* usage:
   returns true if any of the titan sidecars are enabled
-{{- $hasTitanSidecar := eq (include "titan-mesh-helm-lib-chart.anyTitanSidecarEnabled" .) "true" -}}
+{{- $hasTitanSidecar := eq (include "static.titan-mesh-helm-lib-chart.anyTitanSidecarEnabled" .) "true" -}}
 */}}
-{{- define "titan-mesh-helm-lib-chart.anyTitanSidecarEnabled" -}}
+{{- define "static.titan-mesh-helm-lib-chart.anyTitanSidecarEnabled" -}}
 {{- $global := .Values.global -}}
 {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
-  {{- or (eq (include "titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true") (eq (include "titan-mesh-helm-lib-chart.opaEnabled" $titanSideCars) "true") (eq (include "titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true") -}}
+  {{- or (eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true") (eq (include "static.titan-mesh-helm-lib-chart.opaEnabled" $titanSideCars) "true") (eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true") -}}
 {{- end -}}
+
+
+{{/* vim: set filetype=mustache: */}}
+{{/*
+generates the library ID for applying versioned templates within dependent charts, only functions allowed to break
+*/}}
+{{- define "meta.titan-mesh-helm-lib-chart.libId" -}}
+{{- $version := "invalid" }}
+{{- $versionFct := include "meta.titan-mesh-helm-lib-chart.getVersionFunction" . }}
+{{- $vals := $.Values }}
+{{- if not (hasKey $ "Values") }}
+{{- $version := "legacy" }}
+{{- else }}
+{{- if hasKey $vals "titanVersionFunction" }}
+{{- $version = include $.Values.titanVersionFunction .   }}
+{{- else if $versionFct }}
+{{- $version = include $versionFct .   }}
+{{- else }}
+  {{- $global := $vals.global }}
+  {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
+  {{- if hasKey $titanSideCars "versionFunction" }}
+    {{- $version = include $titanSideCars.versionFunction .   }}
+    {{- $_ := set $vals "titanVersionFunction" $titanSideCars.versionFunction }}
+  {{- end }}
+{{- end }}
+{{- if and (eq $version "invalid") (hasKey $vals "titan-mesh-helm-lib-chart") }}
+  {{- $meshVals := (get $vals "titan-mesh-helm-lib-chart") }}
+    {{- $version = $meshVals.chartVersion | default "invalid" }}
+{{- end }}
+{{- if eq $version "invalid" }}
+  {{- range .Chart.Dependencies }}
+    {{- if eq .Name "titan-mesh-helm-lib-chart" }}
+      {{- $version = .Version | default "invalid" }}
+    {{- end}}
+  {{- end}}
+{{- end }}
+{{- end }}
+
+{{- if eq $version "invalid" }}
+  {{- $version = "legacy" }}
+{{- end }}
+{{- printf "titan-mesh-helm-lib-chart-%s" $version -}}
+{{- end -}}
+
+
+{{- define "meta.titan-mesh-helm-lib-chart.getVersionFunction" -}}
+{{- "" -}}
+{{- end -}}
+

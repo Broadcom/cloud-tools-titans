@@ -5,3 +5,4 @@ docs/
 tmp/
 .git/
 scripts/
+titan-mesh-helm-lib-chart-*.tgz
