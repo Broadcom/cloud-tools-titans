@@ -2,8 +2,11 @@
   {{- $appName := .appName }}
   {{- $titanSideCars := .titanSideCars }}
   {{- $ratelimitSidecar := .ratelimit }}
-  {{- $routes := .routes }}
+  {{- $ingress := .ingress }}
+  {{- $routes := $ingress.routes }}
   {{- $ratelimitSidecarEnabled := eq (include "titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
+  {{- $ingressRatelimit := $ingress.ratelimit }}
+  {{- $ratelimitEnabled := (ternary $ingressRatelimit.enabled "true" (hasKey $ingressRatelimit "enabled")) }}
   {{- $hasRatelimit := false }}
   {{- range $routes }}
     {{- $ratelimit := .ratelimit }}
@@ -12,7 +15,7 @@
   {{- if and $hasRatelimit (not $ratelimitSidecarEnabled) }}
     {{- fail "invalid config - ratelimiting requires ratelimit sidecar, disable .Values.titanSideCars.ingress.routes[].ratelimit or enable .Values.titanSideCars.ratelimit" }}
   {{- end }}
-  {{- if $hasRatelimit }}
+  {{- if and $ratelimitEnabled $hasRatelimit }}
 - name: envoy.filters.http.ratelimit
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit

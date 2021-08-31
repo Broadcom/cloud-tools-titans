@@ -1,13 +1,17 @@
 {{- define "titan-mesh-helm-lib-chart.ratelimit.descriptors" }}
-  {{- $routes := .routes }}
+  {{- $ingress := .ingress }}
+  {{- $routes := $ingress.routes }}
   {{- $clusters := .clusters }}
+  {{- $ingressRatelimit := $ingress.ratelimit }}
+  {{- $ratelimitEnabled := (ternary $ingressRatelimit.enabled "true" (hasKey $ingressRatelimit "enabled")) }}
+  {{- $limits := $ingressRatelimit.limits }}
   {{- $hashLen := 16 }}
-  {{- $enabled := false }}
+  {{- $hasRatelimit := false }}
   {{- range $routes }}
     {{- $ratelimit := .ratelimit }}
-    {{- $enabled = or $enabled (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
+    {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
   {{- end }}
-  {{- if $enabled }}
+  {{- if and $ratelimitEnabled $hasRatelimit }}
   descriptors:
     {{- range $routes }}
       {{- $ratelimit := .ratelimit }}
@@ -50,7 +54,11 @@
   {{ $indent }}- key: {{ printf "key_%s" ((printf "%s:%s:%s" $l1hash $l2hash (. | toString)) |  sha1sum  | trunc $hashLen) }}
               {{- end }}
             {{- end }}
-            {{- $limit := (regexSplit "/" $action.limit -1) }}
+            {{- $actionLimit := $action.limit }}
+            {{- if not (contains "/" $actionLimit) }}
+              {{- $actionLimit = index $limits $actionLimit }}
+            {{- end }}
+            {{- $limit := (regexSplit "/" $actionLimit -1) }}
   {{ $indent }}  rate_limit:
   {{ $indent }}    unit: {{ index $limit 1 }}
   {{ $indent }}    requests_per_unit: {{ index $limit 0 }}

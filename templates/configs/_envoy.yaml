@@ -95,7 +95,7 @@ envoy.yaml: |
         {{- include .name $ | nindent 12 }}
       {{- end }}
     {{- end }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.ratelimit" (dict "titanSideCars" $titanSideCars "ratelimit" $ratelimit "routes" $ingress.routes "appName" $appName) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.ratelimit" (dict "titanSideCars" $titanSideCars "ratelimit" $ratelimit "ingress" $ingress "appName" $appName) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "" }}
@@ -117,7 +117,7 @@ envoy.yaml: |
               - domains: '*'
                 name: {{ $appName }}-ingress
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "routes" $ingress.routes "clusters" $clusters ) | nindent 14 }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "routes" $ingress.routes "clusters" $clusters ) | nindent 14 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "ingress" $ingress "clusters" $clusters ) | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress") }}
         transport_socket:
           name: envoy.transport_sockets.tls
