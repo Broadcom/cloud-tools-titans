@@ -1,8 +1,8 @@
-{{- define "titan-mesh-helm-lib-chart.containers.envoy.containerName" -}}
+{{- define "titan-mesh-helm-lib-chart-legacy.containers.envoy.containerName" -}}
 {{- print "titan-envoy" -}}
 {{- end }}
 
-{{- define "titan-mesh-helm-lib-chart.containers.envoy" -}}
+{{- define "titan-mesh-helm-lib-chart-legacy.containers.envoy" -}}
 {{- $titanSideCars := .titanSideCars -}}
 {{- if $titanSideCars }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
@@ -21,7 +21,7 @@
   {{- $imageRegistry := $envoy.imageRegistry | default $titanSideCars.imageRegistry -}}
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
   {{- if $envoyEnabled }}
-- name: {{include "titan-mesh-helm-lib-chart.containers.envoy.containerName" . }}
+- name: {{include "titan-mesh-helm-lib-chart-legacy.containers.envoy.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($envoy.imageName | default "envoy") ($envoy.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
   command: 
@@ -81,7 +81,7 @@
       name: titan-configs
       subPath: envoy-sds.yaml
     - mountPath: /logs/
-      name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
+      name: {{ include "titan-mesh-helm-lib-chart-legacy.volumes.logsVolumeName" $titanSideCars }}
     - mountPath: /secrets
       name: titan-secrets-tls
   {{- end }}

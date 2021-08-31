@@ -1,5 +1,5 @@
 {{/*ports to be added to the application's "Service" Kubernetes object under "spec.ports"*/}}
-{{- define "titan-mesh-helm-lib-chart.ports" }}
+{{- define "titan-mesh-helm-lib-chart-legacy.ports" }}
 {{- $global := $.Values.global -}}
 {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
 {{- if $titanSideCars }}

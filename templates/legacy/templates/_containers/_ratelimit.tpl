@@ -1,7 +1,7 @@
-{{- define "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" -}}
+{{- define "titan-mesh-helm-lib-chart-legacy.containers.ratelimit.containerName" -}}
 {{- print "titan-ratelimit" -}}
 {{- end }}
-{{- define "titan-mesh-helm-lib-chart.containers.ratelimit" -}}
+{{- define "titan-mesh-helm-lib-chart-legacy.containers.ratelimit" -}}
 {{- $titanSideCars := . -}}
 {{- if $titanSideCars }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
@@ -14,7 +14,7 @@
   {{- $imageRegistry := $ratelimit.imageRegistry | default $titanSideCars.imageRegistry -}}
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
   {{- if and $envoyEnabled $ratelimitEnabled }}
-- name: {{include "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" . }}
+- name: {{include "titan-mesh-helm-lib-chart-legacy.containers.ratelimit.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($ratelimit.imageName | default "ratelimit") ($ratelimit.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
   command:
@@ -93,7 +93,7 @@
       name: titan-configs
       subPath: ratelimit_config.yaml
     - mountPath: /logs/
-      name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}    
+      name: {{ include "titan-mesh-helm-lib-chart-legacy.volumes.logsVolumeName" $titanSideCars }}    
     {{- end }}
 {{- end }}
 {{- end }}

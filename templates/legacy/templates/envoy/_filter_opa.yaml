@@ -1,12 +1,10 @@
-{{- define "titan-mesh-helm-lib-chart.envoy.filter.opa" }}
+{{- define "titan-mesh-helm-lib-chart-legacy.envoy.filter.opa" }}
   {{- $titanSideCars := .titanSideCars }}
   {{- $opaSidecar := .opa }}
   {{- $ingress := .ingress }}
   {{- $routes := $ingress.routes }}
   {{- $opaSidecarEnabled := eq (include "static.titan-mesh-helm-lib-chart.opaEnabled" $titanSideCars) "true" -}}
   {{- $ingressRequestEnrichment := $ingress.requestEnrichment }}
-  {{- $ingressRatelimit := $ingress.ratelimit }}
-  {{- $ratelimitEnabled := (ternary $ingressRatelimit.enabled "true" (hasKey $ingressRatelimit "enabled")) }}
   {{- $hasAccessPolicy := false }}
   {{- $hasRequestEnrichment := false }}
   {{- $hasAdvancedRatelimit := false }}
@@ -37,7 +35,7 @@
         {{- end }}
       {{- end }}
     {{- end }}
-    {{- if and ($ratelimitEnabled) (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
+    {{- if (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
       {{- range $ratelimit.actions }}
         {{- range .match }}
           {{- $hasAdvancedRatelimit = or $hasAdvancedRatelimit (hasPrefix "payload." .key) (hasPrefix "token." .key) }}
@@ -67,11 +65,7 @@
       max_request_bytes: 1048576
       allow_partial_message: true
     {{- end }}
-    {{- if $hasAccessPolicy }}
     failure_mode_allow: false
-    {{- else }}
-    failure_mode_allow: true
-    {{- end }}
     transport_api_version: V3
     grpc_service:
       google_grpc:

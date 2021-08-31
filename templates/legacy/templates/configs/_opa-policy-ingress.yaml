@@ -1,0 +1,233 @@
+
+{{- define "titan-mesh-helm-lib-chart-legacy.configs.opa-policy-ingress" }}
+  {{- $global := $.Values.global -}}
+  {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
+  {{- $ingress := $titanSideCars.ingress -}}
+policy-ingress.rego: |
+  package authz.ingress
+  import input.attributes.request.http as request
+  import data.authz.token as token
+
+  {{- $hashLen := 16 }}
+  {{- range $ingress.routes }}
+    {{- $route := .match }}
+    {{- $policy := .accessPolicy }}
+    {{- if (ternary $policy.enabled ($policy | default false) (hasKey $policy "enabled")) }}
+      {{- $policyName := ternary (printf "policy_%s" $policy.name) (printf "policy_%s" (. | toString | sha1sum | trunc $hashLen)) (hasKey $policy "name")}}
+      {{- $ruleSets := ternary $policy.oneOf (list (dict "allOf" (list (dict "key" "header.:path" "pr" true)))) (hasKey $policy "oneOf") }}
+      {{- range $ruleSets }}
+        {{- $ruleSet := .allOf }}
+  {{ $policyName }} {
+        {{- include "titan-mesh-helm-lib-chart-legacy.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+        {{- range $ruleSet }}
+          {{- $rule := . }}
+          {{- $lop := $rule.key | default "nolop" }}
+          {{- $rop := "norop" }}
+          {{- $op := "noop" }}
+          {{- if or (hasKey $rule "eq") (hasKey $rule "neq") }}
+            {{- $rop = ternary $rule.eq $rule.neq (hasKey $rule "eq") }}
+            {{- $op = ternary "==" "!=" (hasKey $rule "eq") }}
+          {{- else if or (hasKey $rule "sw") (hasKey $rule "nsw")}}
+            {{- $rop = ternary $rule.sw $rule.nsw (hasKey $rule "sw") }}
+            {{- $op = ternary "startswith" "not startswith" (hasKey $rule "sw") }}
+          {{- else if or (hasKey $rule "ew") (hasKey $rule "new")}}
+            {{- $rop = ternary $rule.ew $rule.new (hasKey $rule "ew") }}
+            {{- $op = ternary "endswith" "not endswith" (hasKey $rule "ew") }}
+          {{- else if or (hasKey $rule "lk") (hasKey $rule "nlk")}}
+            {{- $rop = ternary $rule.lk $rule.nlk (hasKey $rule "lk") }}
+            {{- $op = ternary "regex.match" "not regex.match" (hasKey $rule "lk") }}
+          {{- else if or (hasKey $rule "co") (hasKey $rule "nco")}}
+            {{- $rop = ternary $rule.co $rule.nco (hasKey $rule "co") }}
+            {{- $op = ternary "contains" "not contains" (hasKey $rule "co") }}
+          {{- end }}
+          {{- if hasPrefix "token." $lop }}
+            {{- $lop = printf "token.%s" $lop }}
+          {{- else if hasPrefix "header." $lop }}
+            {{- $lop = printf "request.headers[%s]"  ((trimPrefix "header." $lop) | quote) }}
+          {{- else if hasPrefix "payload." $lop }}
+            {{- $lop = printf "input.parsed_body[%s]"  ((trimPrefix "payload." $lop) | quote) }}
+          {{- else }}
+            {{- $lop = $lop | quote }}
+          {{- end }}
+          {{- if hasPrefix "token." $rop }}
+            {{- $rop = printf "token.%s" $rop }}
+          {{- else if hasPrefix "header." $rop }}
+            {{- $rop = printf "request.headers[%s]"  ((trimPrefix "header." $rop) | quote) }}
+          {{- else if hasPrefix "payload." $rop }}
+            {{- $rop = printf "input.parsed_body[%s]"  ((trimPrefix "payload." $rop) | quote) }}
+          {{- else }}
+            {{- $rop = $rop | quote }}
+          {{- end }}
+          {{- if or (hasKey $rule "eq") (hasKey $rule "neq") }}
+    {{ $lop }} {{ $op }} {{ $rop }}
+          {{- else if or (hasKey $rule "lk") (hasKey $rule "nlk")}}
+    {{ $op }}({{ $rop }}, {{ $lop }})
+          {{- else if $rule.pr }}
+    {{ $lop }}
+          {{- else if $rule.npr }}
+    not {{ $lop }}
+          {{- else }}
+    {{ $op }}({{ $lop }}, {{ $rop }})
+          {{- end }}       
+        {{- end }}
+  }
+        {{- $policyName = "else" }}
+      {{- end }}
+    {{- end }}
+  {{ end }}
+
+  {{- $headersToInject := dict }}
+  {{- if $ingress.requestEnrichment }}
+    {{- if (ternary $ingress.requestEnrichment.enabled ($ingress.requestEnrichment | default false) (hasKey $ingress.requestEnrichment "enabled")) }}
+      {{- $route := dict "prefix" "/" }}
+      {{- range $ingress.requestEnrichment.headers }}
+        {{- $replace := ternary (not .retain) true (hasKey . "retain")}}
+        {{- $header := trimPrefix "header." .key }}
+        {{- $headerId := printf "header_%s" ($header | replace "-" "_")}}
+        {{ $_ := set $headersToInject $header $headerId }}
+        {{- if $replace }}
+  {{ $headerId }} = value {
+    {{- include "titan-mesh-helm-lib-chart-legacy.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+          {{- if hasPrefix "token." .value }}
+    value := {{ printf "token.%s" .value }}
+          {{- else if hasPrefix "header." .value }}
+    value := {{ printf "request.headers[%s]"  ((trimPrefix "header." .value) | quote) }}
+          {{- else }}
+    value := {{ .value | quote }}
+          {{- end }}
+  }  else = value {
+    value := {{ printf "request.headers[%s]" ($header | quote)}}
+  } else = ""
+        {{- else }}
+  {{ $headerId }} = value {
+    value := {{ printf "request.headers[%s]" ($header | quote)}}
+  } else = value {
+    {{- include "titan-mesh-helm-lib-chart-legacy.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+          {{- if hasPrefix "token." .value }}
+    value := {{ printf "token.%s" .value }}
+          {{- else if hasPrefix "header." .value }}
+    value := {{ printf "request.headers[%s]"  ((trimPrefix "header." .value) | quote) }}
+          {{- else }}
+    value := {{ .value | quote }}
+          {{- end }} 
+  } else = ""
+        {{- end }}
+      {{ end }} 
+    {{- end }}
+  {{- end }}
+
+  {{- range $ingress.routes }}
+    {{- $route := .match }}
+    {{- $requestEnrichment := .requestEnrichment }}
+    {{- if (ternary $requestEnrichment.enabled ($requestEnrichment | default false) (hasKey $requestEnrichment "enabled")) }}
+      {{- range $requestEnrichment.headers }}
+        {{- $replace := ternary (not .retain) true (hasKey . "retain")}}
+        {{- $header := trimPrefix "header." .key }}
+        {{- $headerId := printf "header_%s" ($header | replace "-" "_")}}
+        {{ $_ := set $headersToInject $header $headerId }}
+        {{- if $replace }}
+  {{ $headerId }} = value {
+    {{- include "titan-mesh-helm-lib-chart-legacy.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+          {{- if hasPrefix "token." .value }}
+    value := {{ printf "token.%s" .value }}
+          {{- else if hasPrefix "header." .value }}
+    value := {{ printf "request.headers[%s]"  ((trimPrefix "header." .value) | quote) }}
+          {{- else }}
+    value := {{ .value | quote }}
+          {{- end }}
+  }  else = value {
+    value := {{ printf "request.headers[%s]" ($header | quote)}}
+  } else = ""
+        {{- else }}
+  {{ $headerId }} = value {
+    value := {{ printf "request.headers[%s]" ($header | quote)}}
+  } else = value {
+    {{- include "titan-mesh-helm-lib-chart-legacy.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+          {{- if hasPrefix "token." .value }}
+    value := {{ printf "token.%s" .value }}
+          {{- else if hasPrefix "header." .value }}
+    value := {{ printf "request.headers[%s]"  ((trimPrefix "header." .value) | quote) }}
+          {{- else }}
+    value := {{ .value | quote }}
+          {{- end }} 
+  } else = ""
+        {{- end }}
+      {{ end }}
+    {{- end }}
+  {{- end }}
+
+  {{- range $ingress.routes }}
+    {{ $ratelimit := .ratelimit }}
+    {{- if (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
+      {{- $l1hash := . | toString | sha1sum }}
+      {{- $route := .match }}
+      {{- range $ratelimit.actions }}
+        {{- $l2hash := . | toString | sha1sum }}
+        {{- range .match }}
+          {{- if or (hasPrefix "payload." .key) (hasPrefix "token." .key) }}
+            {{ $header := printf "x-tint-%s" ((printf "%s:%s:%s" $l1hash $l2hash (. | toString)) |  sha1sum | trunc $hashLen) }}
+            {{- $headerId := printf "header_%s" ($header | replace "-" "_")}}
+            {{ $_ := set $headersToInject $header $headerId }}
+  {{ $headerId }} = value {
+    {{- include "titan-mesh-helm-lib-chart-legacy.opa.matcher-route" (dict "route" $route) | nindent 2 }}
+    {{- if hasPrefix "payload." .key }}
+    value := {{ printf "input.parsed_body[%s]"  ((trimPrefix "payload." .key) | quote) }}
+    {{- else if hasPrefix "token." .key }}
+    value := {{ printf "token.%s" .key}}
+    {{- end }}
+  } else = "nil"
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+
+  destination_headers = {
+    {{- range $header, $headerId := $headersToInject }}
+   {{ printf "%s: %s," ($header | quote) $headerId }} 
+    {{- end }}
+   "x-titan-opa-allow": "yes"
+  }
+
+  {{- $defaultAction := "allow" }}
+  {{- if $ingress.accessPolicy }}
+    {{- $defaultAction = ternary ($ingress.accessPolicy.defaultAction | lower) $defaultAction (hasKey  $ingress.accessPolicy "defaultAction")}}
+  {{- end }}
+
+  default allow = {}
+
+  allow_response = {
+    "allowed": true,
+    "http_status": 200,
+    "headers": destination_headers
+  }
+
+  deny_response = {
+    "allowed": false,
+    "http_status": 403,
+    "headers": {"x-titan-opa-allow": "no"},
+  {{- if eq $defaultAction "allow" }}
+    "body": "Forbidden - Matching DENY policy found"
+  {{- else }}
+    "body": "Forbidden - No matching ALLOW policy found"
+  {{- end }}
+  }
+
+  {{- $allow := "allow" }}
+  {{- range $ingress.routes }}
+    {{- $policy := .accessPolicy }}
+    {{- if (ternary $policy.enabled ($policy | default false) (hasKey $policy "enabled")) }}
+      {{- $policyName := ternary (printf "policy_%s" $policy.name) (printf "policy_%s" (. | toString | sha1sum | trunc $hashLen)) (hasKey $policy "name")}}
+  {{ $allow }} = response {
+    {{ $policyName }}
+      {{- $responseType := ternary "deny" "allow" (eq $defaultAction "allow")}}
+    response := {{ $responseType }}_response
+  }
+      {{- $allow = "else" }}
+    {{- end }}
+  {{- end }}
+  {{ $allow }} = response {
+    response := {{ $defaultAction }}_response
+  }
+
+{{- end }}

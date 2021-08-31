@@ -1,0 +1,123 @@
+{{- define "titan-mesh-helm-lib-chart-legacy.envoy.filter.jwt" }}
+  {{- $requests := .requests  }}
+  {{- $issuers := .issuers  }}
+  {{- $providers := list  }}
+  {{- $tokenValidation := false  }}
+  {{- $tokenValidationBypass := false  }}
+  {{- range $requests.routes  }}
+    {{- $tokenCheck := ternary .tokenCheck (default ($requests.tokenCheck | default false)) (hasKey . "tokenCheck")  }}
+    {{- $tokenBypass := ternary (not .tokenCheck) (ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck")) (hasKey . "tokenCheck")  }}
+    {{- if $tokenCheck  }}
+      {{- $tokenValidation = true  }}
+    {{- end  }}
+    {{- if $tokenBypass  }}
+      {{- $tokenValidationBypass = true  }}
+    {{- end  }}
+  {{- end  }}
+  {{- if $tokenValidation }}
+- name: envoy.filters.http.jwt_authn
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
+    providers:
+    {{- range $issuers }}
+      {{- $provider := printf "provider-%s" (adler32sum .issuer)  }}
+      {{- $providers = append $providers $provider  }}
+      {{ $provider }}:
+        forward: true
+        issuer: {{ required "value 'titanSideCars.issuers[].issuer' is required" .issuer }}
+        from_headers:
+        - name: Authorization
+          value_prefix: "Bearer "
+      {{- if .locations  }}
+        {{- range .locations.fromHeaders }}
+          {{- if and (ne .name "Authorization") (ne .valuePrefix "Bearer ") }}
+        - name: {{ .name }}
+              {{- if .valuePrefix }}
+          value_prefix: {{ .valuePrefix | quote }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- if .locations.fromParams }}
+        from_params:
+          {{- range .locations.fromParams }}
+        - {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+        remote_jwks:
+          cache_duration:
+            seconds: {{ .cacheDuration | default "31556952" }} 
+          http_uri:
+            uri: {{ required "value 'titanSideCars.issuers[].jwks' is required to retrieve issuer's public keys" .jwks }}
+            cluster: {{ .cluster }}
+            timeout:
+              seconds: {{ .timeout | default "1" }}
+    {{- end }}
+    rules:
+    {{- if $tokenValidationBypass }}
+      {{- $allBypass := ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck") }}
+      {{- if $allBypass }}
+        {{- range $requests.routes  }}
+          {{- $tokenCheck := ternary .tokenCheck false (hasKey . "tokenCheck") }}
+          {{- if $tokenCheck }}
+            {{- if .match }}
+              {{- if .match.prefix }}
+    - match:
+                {{- include "titan-mesh-helm-lib-chart-legacy.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
+      requires:
+                {{- if eq (len $providers) 1 }}
+        provider_name: {{ first $providers }}
+                {{- else }}
+        requires_any:
+          requirements:
+                  {{- range $providers }}
+          - provider_name: {{ . }}
+                  {{- end }}              
+                {{- end }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+    - match:
+        prefix: /
+      {{- else }}
+        {{- range $requests.routes  }}
+          {{- $tokenBypass := ternary (not .tokenCheck) false (hasKey . "tokenCheck") }}
+          {{- if $tokenBypass }}
+            {{- if .match }}
+              {{- if .match.prefix }}
+    - match:
+                {{- include "titan-mesh-helm-lib-chart-legacy.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+    - match:
+        prefix: /
+      requires:
+        {{- if eq (len $providers) 1 }}
+        provider_name: {{ first $providers }}
+        {{- else }}
+        requires_any:
+          requirements:
+          {{- range $providers }}
+          - provider_name: {{ . }}
+          {{- end }}              
+        {{- end }}
+      {{- end }}
+    {{- else }}
+    - match:
+        prefix: /
+      requires:
+        {{- if eq (len $providers) 1 }}
+        provider_name: {{ first $providers }}
+        {{- else }}
+        requires_any:
+          requirements:
+          {{- range $providers }}
+          - provider_name: {{ . }}
+          {{- end }}              
+        {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
