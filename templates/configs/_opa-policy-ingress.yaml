@@ -156,9 +156,11 @@ policy-ingress.rego: |
     {{- end }}
   {{- end }}
 
+  {{- $ingressRatelimit := $ingress.ratelimit }}
+  {{- $ratelimitEnabled := (ternary $ingressRatelimit.enabled "true" (hasKey $ingressRatelimit "enabled")) }}
   {{- range $ingress.routes }}
     {{ $ratelimit := .ratelimit }}
-    {{- if (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
+    {{- if and ($ratelimitEnabled) (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
       {{- $l1hash := . | toString | sha1sum }}
       {{- $route := .match }}
       {{- range $ratelimit.actions }}
