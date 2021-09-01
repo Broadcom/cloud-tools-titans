@@ -4,7 +4,12 @@
   {{- $providers := list  }}
   {{- $tokenValidation := false  }}
   {{- $tokenValidationBypass := false  }}
-  {{- range $requests.routes  }}
+  {{- $routes := $requests.routes }}
+  {{- $additionalRoutes := $requests.additionalRoutes }}
+  {{- if and $additionalRoutes $routes }}
+    {{- $routes = concat $additionalRoutes $routes }}
+  {{- end }}
+  {{- range $routes  }}
     {{- $tokenCheck := ternary .tokenCheck (default ($requests.tokenCheck | default false)) (hasKey . "tokenCheck")  }}
     {{- $tokenBypass := ternary (not .tokenCheck) (ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck")) (hasKey . "tokenCheck")  }}
     {{- if $tokenCheck  }}
@@ -54,70 +59,48 @@
               seconds: {{ .timeout | default "1" }}
     {{- end }}
     rules:
-    {{- if $tokenValidationBypass }}
-      {{- $allBypass := ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck") }}
+    {{- $allBypass := ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck") }}
+    {{- range $routes }}
+      {{- $tokenCheck := false }}
       {{- if $allBypass }}
-        {{- range $requests.routes  }}
-          {{- $tokenCheck := ternary .tokenCheck false (hasKey . "tokenCheck") }}
-          {{- if $tokenCheck }}
-            {{- if .match }}
-              {{- if or .match.prefix  .match.regex }}
-    - match:
-                {{- include "titan-mesh-helm-lib-chart-legacy.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
-      requires:
-                {{- if eq (len $providers) 1 }}
-        provider_name: {{ first $providers }}
-                {{- else }}
-        requires_any:
-          requirements:
-                  {{- range $providers }}
-          - provider_name: {{ . }}
-                  {{- end }}              
-                {{- end }}
-              {{- end }}
-            {{- end }}
-          {{- end }}
-        {{- end }}
-    - match:
-        prefix: /
+        {{- $tokenCheck = ternary .tokenCheck false (hasKey . "tokenCheck") }}
       {{- else }}
-        {{- range $requests.routes  }}
-          {{- $tokenBypass := ternary (not .tokenCheck) false (hasKey . "tokenCheck") }}
-          {{- if $tokenBypass }}
-            {{- if .match }}
-              {{- if or .match.prefix  .match.regex }}
+        {{- $tokenCheck = ternary .tokenCheck true (hasKey . "tokenCheck") }}
+      {{- end }}
+      {{- if .match }}
+        {{- if or .match.prefix  .match.regex }}
+          {{- if or (and $allBypass $tokenCheck) (and (not $allBypass) (not $tokenCheck)) }}
     - match:
-                {{- include "titan-mesh-helm-lib-chart-legacy.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
+            {{- include "titan-mesh-helm-lib-chart-1.1.1.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
+            {{- if $tokenCheck }}
+      requires:
+              {{- if eq (len $providers) 1 }}
+        provider_name: {{ first $providers }}
+              {{- else }}
+        requires_any:
+          requirements:
+                {{- range $providers }}
+          - provider_name: {{ . }}
+                {{- end }}              
               {{- end }}
             {{- end }}
           {{- end }}
-        {{- end }}
-    - match:
-        prefix: /
-      requires:
-        {{- if eq (len $providers) 1 }}
-        provider_name: {{ first $providers }}
-        {{- else }}
-        requires_any:
-          requirements:
-          {{- range $providers }}
-          - provider_name: {{ . }}
-          {{- end }}              
         {{- end }}
       {{- end }}
-    {{- else }}
+    {{- end }}
     - match:
         prefix: /
+    {{- if not $allBypass }}
       requires:
-        {{- if eq (len $providers) 1 }}
+      {{- if eq (len $providers) 1 }}
         provider_name: {{ first $providers }}
-        {{- else }}
+      {{- else }}
         requires_any:
           requirements:
-          {{- range $providers }}
+        {{- range $providers }}
           - provider_name: {{ . }}
-          {{- end }}              
-        {{- end }}
+        {{- end }}              
+      {{- end }}
     {{- end }}
   {{- end }}
 {{- end }}
