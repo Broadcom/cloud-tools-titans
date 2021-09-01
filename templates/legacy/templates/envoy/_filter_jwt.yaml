@@ -61,7 +61,7 @@
           {{- $tokenCheck := ternary .tokenCheck false (hasKey . "tokenCheck") }}
           {{- if $tokenCheck }}
             {{- if .match }}
-              {{- if .match.prefix }}
+              {{- if or .match.prefix  .match.regex }}
     - match:
                 {{- include "titan-mesh-helm-lib-chart-legacy.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
       requires:
@@ -85,7 +85,7 @@
           {{- $tokenBypass := ternary (not .tokenCheck) false (hasKey . "tokenCheck") }}
           {{- if $tokenBypass }}
             {{- if .match }}
-              {{- if .match.prefix }}
+              {{- if or .match.prefix  .match.regex }}
     - match:
                 {{- include "titan-mesh-helm-lib-chart-legacy.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
               {{- end }}
