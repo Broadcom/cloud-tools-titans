@@ -71,7 +71,7 @@
         {{- if or .match.prefix  .match.regex }}
           {{- if or (and $allBypass $tokenCheck) (and (not $allBypass) (not $tokenCheck)) }}
     - match:
-            {{- include "titan-mesh-helm-lib-chart-1.1.1.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
+            {{- include "titan-mesh-helm-lib-chart-legacy.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
             {{- if $tokenCheck }}
       requires:
               {{- if eq (len $providers) 1 }}
