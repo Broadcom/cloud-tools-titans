@@ -1,5 +1,5 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.metrics" }}
-  {{- $requests : .requests }}
+  {{- $requests := .requests }}
   {{- $routes := $requests.routes }}
   {{- $clusters := .clusters }}
   {{- $direction := .direction }}
