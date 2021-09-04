@@ -81,7 +81,7 @@ envoy.yaml: |
         {{- include .name $ | nindent 12 }}
       {{- end }}
     {{- end }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.ingress "issuers" $titanSideCars.issuers) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.ingress "issuers" $titanSideCars.issuers "localMyApp" $localMyApp) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "AccessCheck" }}
@@ -116,7 +116,7 @@ envoy.yaml: |
               virtual_hosts:
               - domains: '*'
                 name: {{ $appName }}-ingress
-    {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "routes" $ingress.routes "clusters" $clusters ) | nindent 14 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requets" $ingress "clusters" $clusters "direction" "ingress") | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "ingress" $ingress "clusters" $clusters ) | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress") }}
         transport_socket:
@@ -167,7 +167,7 @@ envoy.yaml: |
               virtual_hosts:
               - name: {{ $appName }}-egress
                 domains: '*'
-    {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "routes" $egress.routes "clusters" $clusters) | nindent 14 }}  
+    {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requets" $egress "clusters" $clusters "direction" "egress") | nindent 14 }}  
                 rate_limits: []
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress") }}
   {{- end }}

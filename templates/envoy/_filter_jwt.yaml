@@ -1,10 +1,16 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.jwt" }}
   {{- $requests := .requests  }}
   {{- $issuers := .issuers  }}
+  {{- $localMyApp := .localMyApp  }}
   {{- $providers := list  }}
   {{- $tokenValidation := false  }}
   {{- $tokenValidationBypass := false  }}
   {{- $routes := $requests.routes }}
+  {{- if and $localMyApp (not $routes) }}
+    {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
+      {{ $routes = $localMyApp.routes }}
+    {{- end }}
+  {{- end }}  
   {{- $additionalRoutes := $requests.additionalRoutes }}
   {{- if and $additionalRoutes $routes }}
     {{- $routes = concat $additionalRoutes $routes }}

@@ -1,6 +1,14 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.metrics" }}
-  {{- $routes := .routes }}
+  {{- $requests : .requests }}
+  {{- $routes := $requests.routes }}
   {{- $clusters := .clusters }}
+  {{- $direction := .direction }}
+  {{- $localMyApp := index $clusters "local-myapp" }}
+  {{- if and (eq "ingress" $direction) (not $routes) }}
+    {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
+      {{ $routes = $localMyApp.routes }}
+    {{- end }}
+  {{- end }}  
   {{- $enabled := false }}
   {{- range $routes }}
     {{- $metrics := .metrics }}
