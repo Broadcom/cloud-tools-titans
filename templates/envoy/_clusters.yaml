@@ -10,12 +10,19 @@
   {{- $circuitRemote := $envoy.remoteCircuitBreakers  }}
   {{- $clusters := $envoy.clusters }}
   {{- $localApp := index $clusters "local-myapp" }}
+  {{- $gatewayEnable := false }}
+  {{- $defaultBackend := "local-myapp" }}
   {{- $myClusters := dict }}
     clusters:
   {{- range $cluster, $value := $clusters }}
     {{- if eq $cluster "local-myapp" }}
-      {{- $gateway := ternary $value.gateway false (hasKey $value "gateway") }}
-      {{- if not $gateway }}
+      {{- if $value.gateway  -}}
+        {{- $gatewayEnable = ternary $value.gateway.enabled true (hasKey $value.gateway "enabled") }}
+        {{- if $gatewayEnable }}
+          {{- $defaultBackend = ternary $value.gateway.defaultBackend "local-myapp" (hasKey $value.gateway "defaultBackend") }}
+        {{- end }}
+      {{- end }}
+      {{- if eq $defaultBackend "local-myapp" }}
     - name: local-myapp
       type: STATIC
       dns_lookup_family: V4_ONLY
@@ -50,29 +57,32 @@
                   port_value: {{  $localApp.port | default "8080" }}
       {{- end }}
     {{- else }}
-      {{- $setupCluster := false  }}
-      {{- range $egress.routes }}
-        {{- if .route }}
-          {{- if .route.cluster }} 
-            {{- if eq .route.cluster $cluster }}
-              {{- $setupCluster = true  }}
-            {{- end }}
-          {{- end }}           
+      {{- $setupCluster := true }}
+      {{- if not $gatewayEnable }}
+        {{- $setupCluster = false }}
+        {{- range $egress.routes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $cluster }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}           
+          {{- end }}
         {{- end }}
-      {{- end }}
-      {{- range $ingress.routes }}
-        {{- if .route }}
-          {{- if .route.cluster }} 
-            {{- if eq .route.cluster $cluster }}
-              {{- $setupCluster = true  }}
-            {{- end }}
-          {{- end }}           
+        {{- range $ingress.routes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $cluster }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}           
+          {{- end }}
         {{- end }}
-      {{- end }}
-      {{- if and (hasPrefix "local-" $cluster) (not $setupCluster) }}
-        {{- if hasKey $value "enabled" }}
-          {{- if $value.enabled }}
-            {{- $setupCluster = true -}}
+        {{- if and (hasPrefix "local-" $cluster) (not $setupCluster) }}
+          {{- if hasKey $value "enabled" }}
+            {{- if $value.enabled }}
+              {{- $setupCluster = true -}}
+            {{- end }}
           {{- end }}
         {{- end }}
       {{- end }}

@@ -7,17 +7,37 @@
   {{- $clusters := $envoy.clusters }}
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $localMyApp := index $clusters "local-myapp" }}
-  {{- $routes := ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
-  {{- if and (eq "ingress" $direction) (not $routes) }}
-    {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
-      {{ $routes = $localMyApp.routes }}
+  {{- $gatewayEnable := false }}
+  {{- $defaultBackend := "local-myapp" }}
+  {{- if $localMyApp.gateway  -}}
+    {{- $gatewayEnable = ternary $localMyApp.gateway.enabled true (hasKey $localMyApp.gateway "enabled") }}
+    {{- if $gatewayEnable }}
+      {{- $defaultBackend = ternary $localMyApp.gateway.defaultBackend "local-myapp" (hasKey $localMyApp.gateway "defaultBackend") }}
     {{- end }}
   {{- end }}
-  {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
-  {{- if and $additionalRoutes $routes }}
-    {{- $routes = concat $additionalRoutes $routes }}
-  {{- end }}
                 routes:
+  {{- $routes := list }}
+  {{- if $gatewayEnable }}
+    {{- range $cn, $cv := $clusters }}
+      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
+        {{- range $cv.routes }}
+          {{- $newcluster := dict "cluster" $cn }}
+          {{- $routes = append $routes (dict "match" .match "route" $newcluster) }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- else }}
+    {{- $routes = ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
+    {{- if and (eq "ingress" $direction) (not $routes) }}
+      {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
+        {{ $routes = $localMyApp.routes }}
+      {{- end }}
+    {{- end }}
+    {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
+    {{- if and $additionalRoutes $routes }}
+      {{- $routes = concat $additionalRoutes $routes }}
+    {{- end }} 
+  {{- end }}
   {{- range $routes }}
     {{- $route := .route }}
     {{- $clusterName := $route.cluster }}
@@ -117,17 +137,16 @@
   {{- if eq $direction "ingress" }}
     {{- $cluster := index $envoy.clusters "local-myapp" }}
     {{- $retryPolicy := $cluster.retryPolicy }}
-    {{- $gatewayOnly := ternary $cluster.gateway false (hasKey $cluster "gateway") }}
                 - match:
                     prefix: /
-    {{- if $gatewayOnly }}
+    {{- if eq $defaultBackend "" }}
                   direct_response:
                     status: {{ $cluster.directResponseCode | default "404" }}
                    body:
                       inline_string: {{ ($cluster.directResponseMessage | default "No matching route") | squote }}
     {{- else }}
                   route:
-                    cluster: local-myapp
+                    cluster: {{ $defaultBackend }}
                     retry_policy:
                       num_retries: {{ coalesce $retryPolicy.numRetries "3" }}
                       retry_on: {{ coalesce $retryPolicy.retryOn "reset,connect-failure,refused-stream" }}
