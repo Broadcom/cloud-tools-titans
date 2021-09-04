@@ -6,7 +6,13 @@
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
+  {{- $localMyApp := index $clusters "local-myapp" }}
   {{- $routes := ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
+  {{- if and (eq "ingress" $direction) (not $routes) }}
+    {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
+      {{ $routes = $localMyApp.routes }}
+    {{- end }}
+  {{- end }}
   {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
   {{- if and $additionalRoutes $routes }}
     {{- $routes = concat $additionalRoutes $routes }}

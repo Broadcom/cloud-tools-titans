@@ -1,7 +1,17 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" }}
   {{- $ingress := .ingress }}
-  {{- $routes := $ingress.routes }}
   {{- $clusters := .clusters }}
+  {{- $localMyApp := index $clusters "local-myapp" }}
+  {{- $routes := $ingress.routes }}
+  {{- if and $ingress (not $routes) }}
+    {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
+      {{ $routes = $localMyApp.routes }}
+    {{- end }}
+  {{- end }}
+  {{- $additionalRoutes := $ingress.additionalRoutes }}
+  {{- if and $additionalRoutes $routes }}
+    {{- $routes = concat $additionalRoutes $routes }}
+  {{- end }}
   {{- $ingressRatelimit := $ingress.ratelimit }}
   {{- $ratelimitEnabled := (ternary $ingressRatelimit.enabled "true" (hasKey $ingressRatelimit "enabled")) }}
   {{- $hashLen := 16 }}

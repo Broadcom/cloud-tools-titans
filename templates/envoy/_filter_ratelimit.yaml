@@ -1,9 +1,21 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.ratelimit" }}
   {{- $appName := .appName }}
   {{- $titanSideCars := .titanSideCars }}
+  {{- $envoy := $titanSideCars.envoy }}
+  {{- $clusters := $envoy.clusters }}
+  {{- $localMyApp := index $clusters "local-myapp" }}
   {{- $ratelimitSidecar := .ratelimit }}
   {{- $ingress := .ingress }}
   {{- $routes := $ingress.routes }}
+  {{- if and $ingress (not $routes) }}
+    {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
+      {{ $routes = $localMyApp.routes }}
+    {{- end }}
+  {{- end }}
+  {{- $additionalRoutes := $ingress.additionalRoutes }}
+  {{- if and $additionalRoutes $routes }}
+    {{- $routes = concat $additionalRoutes $routes }}
+  {{- end }}
   {{- $ratelimitSidecarEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
   {{- $ingressRatelimit := $ingress.ratelimit }}
   {{- $ratelimitEnabled := (ternary $ingressRatelimit.enabled "true" (hasKey $ingressRatelimit "enabled")) }}

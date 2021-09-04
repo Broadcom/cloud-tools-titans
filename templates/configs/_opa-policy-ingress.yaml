@@ -3,13 +3,27 @@
   {{- $global := $.Values.global -}}
   {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
   {{- $ingress := $titanSideCars.ingress -}}
+  {{- $envoy := $titanSideCars.envoy }}
+  {{- $clusters := $envoy.clusters }}
+  {{- $localMyApp := index $clusters "local-myapp" }}
+  {{- $routes := $ingress.routes }}
+  {{- if and $ingress (not $routes) }}
+    {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
+      {{ $routes = $localMyApp.routes }}
+    {{- end }}
+  {{- end }}
+  {{- $additionalRoutes := $ingress.additionalRoutes }}
+  {{- if and $additionalRoutes $routes }}
+    {{- $routes = concat $additionalRoutes $routes }}
+  {{- end }}
+
 policy-ingress.rego: |
   package authz.ingress
   import input.attributes.request.http as request
   import data.authz.token as token
 
   {{- $hashLen := 16 }}
-  {{- range $ingress.routes }}
+  {{- range $routes }}
     {{- $route := .match }}
     {{- $policy := .accessPolicy }}
     {{- if (ternary $policy.enabled ($policy | default false) (hasKey $policy "enabled")) }}
@@ -116,7 +130,7 @@ policy-ingress.rego: |
     {{- end }}
   {{- end }}
 
-  {{- range $ingress.routes }}
+  {{- range $routes }}
     {{- $route := .match }}
     {{- $requestEnrichment := .requestEnrichment }}
     {{- if (ternary $requestEnrichment.enabled ($requestEnrichment | default false) (hasKey $requestEnrichment "enabled")) }}
@@ -158,7 +172,7 @@ policy-ingress.rego: |
 
   {{- $ingressRatelimit := $ingress.ratelimit }}
   {{- $ratelimitEnabled := (ternary $ingressRatelimit.enabled "true" (hasKey $ingressRatelimit "enabled")) }}
-  {{- range $ingress.routes }}
+  {{- range $routes }}
     {{ $ratelimit := .ratelimit }}
     {{- if and ($ratelimitEnabled) (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
       {{- $l1hash := . | toString | sha1sum }}
@@ -216,7 +230,7 @@ policy-ingress.rego: |
   }
 
   {{- $allow := "allow" }}
-  {{- range $ingress.routes }}
+  {{- range $routes }}
     {{- $policy := .accessPolicy }}
     {{- if (ternary $policy.enabled ($policy | default false) (hasKey $policy "enabled")) }}
       {{- $policyName := ternary (printf "policy_%s" $policy.name) (printf "policy_%s" (. | toString | sha1sum | trunc $hashLen)) (hasKey $policy "name")}}

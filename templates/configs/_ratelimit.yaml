@@ -3,7 +3,10 @@
   {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
   {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
   {{- $ingress := $titanSideCars.ingress }}
+  {{- $envoy := $titanSideCars.envoy }}
+  {{- $clusters := $envoy.clusters }}
+
 ratelimit_config.yaml: |
   domain: {{ $appName }}
-  {{- include "titan-mesh-helm-lib-chart.ratelimit.descriptors" (dict "ingress" $ingress) | nindent 0 }}
+  {{- include "titan-mesh-helm-lib-chart.ratelimit.descriptors" (dict "ingress" $ingress "clusters" $clusters) | nindent 0 }}
 {{- end }}
