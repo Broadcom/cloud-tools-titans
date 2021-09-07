@@ -41,6 +41,8 @@
 | | Easy integration with redis compatible key/value backend, e.g. Google Memorystore |
 | Gateway only mode | Ingress gateway option | Envoy
 | | Deployed as the ingress gateway of the service mesh |
+| Support mixed versions | Support mixed titans version in the umbrella deployment model | 
+| | Deployed as the ingress gateway of the service mesh |
 | Custom functionalities | Unlimited capabilities with Open Standard tool sets | Envoy + OPA + WASM
 
 ---
