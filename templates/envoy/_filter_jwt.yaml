@@ -12,9 +12,13 @@
     {{- end }}
   {{- end }}  
   {{- $additionalRoutes := $requests.additionalRoutes }}
-  {{- if and $additionalRoutes $routes }}
-    {{- $routes = concat $additionalRoutes $routes }}
-  {{- end }}
+  {{- if $additionalRoutes }}
+    {{- if $routes }}
+      {{- $routes = concat $additionalRoutes $routes }}
+    {{- else }}
+      {{- $routes = $additionalRoutes }}
+    {{- end }}
+  {{- end }} 
   {{- range $routes  }}
     {{- $tokenCheck := ternary .tokenCheck (default ($requests.tokenCheck | default false)) (hasKey . "tokenCheck")  }}
     {{- $tokenBypass := ternary (not .tokenCheck) (ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck")) (hasKey . "tokenCheck")  }}

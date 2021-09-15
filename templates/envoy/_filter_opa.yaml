@@ -12,8 +12,12 @@
     {{- end }}
   {{- end }}
   {{- $additionalRoutes := $ingress.additionalRoutes }}
-  {{- if and $additionalRoutes $routes }}
-    {{- $routes = concat $additionalRoutes $routes }}
+  {{- if $additionalRoutes }}
+    {{- if $routes }}
+      {{- $routes = concat $additionalRoutes $routes }}
+    {{- else }}
+      {{- $routes = $additionalRoutes }}
+    {{- end }}
   {{- end }}  
   {{- $opaSidecarEnabled := eq (include "static.titan-mesh-helm-lib-chart.opaEnabled" $titanSideCars) "true" -}}
   {{- $ingressRequestEnrichment := $ingress.requestEnrichment }}
