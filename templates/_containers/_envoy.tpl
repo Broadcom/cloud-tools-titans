@@ -56,7 +56,7 @@
         command:
           - sh
           - -c
-          - wget --post-data="" -O - http://127.0.0.1:10000/healthcheck/fail || true
+          - wget --post-data="" -O - http://127.0.0.1:10000/healthcheck/fail && sleep {{ $envoy.connectionDrainDuration | default "5" }} || true
   livenessProbe:
     httpGet:
       path: {{ $envoyHealthChecksPath }}
