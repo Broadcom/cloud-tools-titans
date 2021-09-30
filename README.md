@@ -47,6 +47,13 @@
 
 ---
 
+## Build
+Build the titan-mesh-helm-lib-chart under cloud-tools-titans directory
+```
+cd  cloud-tools-titans
+sh ./scripts/package.sh
+```
+
 ## [Documentation](https://github.com/Broadcom/cloud-tools-titans/wiki)
 
 ---
