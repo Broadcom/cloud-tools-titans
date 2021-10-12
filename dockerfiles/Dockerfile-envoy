@@ -1,0 +1,5 @@
+FROM envoyproxy/envoy:v1.18.3
+
+RUN apt-get update -y && apt-get install -y wget curl --no-install-recommends && rm -rf /var/cache/apt/*
+
+
