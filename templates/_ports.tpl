@@ -16,8 +16,10 @@
   {{- if $envoyEnabled }}
     {{- $port := $remoteMyApp.port | default "9443" }}
     {{- $tport := $remoteMyApp.targetPort | default "9443" }}
+    {{- $protocol := $remoteMyApp.protocol | default "TCP" }}
 - port: {{ $port }}
   targetPort: {{ $tport | default $port }}
+  protocol: {{ $protocol }}
   name: titan-https-port
   {{- end }}
 {{- end }}
