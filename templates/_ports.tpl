@@ -15,8 +15,9 @@
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- if $envoyEnabled }}
     {{- $port := $remoteMyApp.port | default "9443" }}
+    {{- $tport := $remoteMyApp.targetPort | default "9443" }}
 - port: {{ $port }}
-  targetPort: {{ $port }}
+  targetPort: {{ $tport | default $port }}
   name: titan-https-port
   {{- end }}
 {{- end }}
