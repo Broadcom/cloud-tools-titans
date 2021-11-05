@@ -15,6 +15,7 @@
       {{- if and (ne $k "local-myapp") (ne $k "remote-myapp") }}
       {{ printf "%s:" $k }}
         {{ printf "value: %d" $minHealth }}
+      {{- end }}
     {{- end }}
   {{- else }}
       local-myapp:
