@@ -136,23 +136,25 @@
   {{- end }}
   {{- if eq $direction "ingress" }}
     {{- $cluster := index $envoy.clusters "local-myapp" }}
-    {{- $retryPolicy := $cluster.retryPolicy }}
+    {{- if ne $defaultBackend "none" }}
+      {{- $retryPolicy := $cluster.retryPolicy }}
                 - match:
                     prefix: /
-    {{- if eq $defaultBackend "" }}
+      {{- if eq $defaultBackend "" }}
                   direct_response:
                     status: {{ $cluster.directResponseCode | default "404" }}
                    body:
                       inline_string: {{ ($cluster.directResponseMessage | default "No matching route") | squote }}
-    {{- else }}
+      {{- else }}
                   route:
                     cluster: {{ $defaultBackend }}
                     retry_policy:
                       num_retries: {{ coalesce $retryPolicy.numRetries "3" }}
                       retry_on: {{ coalesce $retryPolicy.retryOn "reset,connect-failure,refused-stream" }}
                     timeout: {{ coalesce $cluster.timeout "15s" }}
-      {{- if $cluster.idleTimeout }}
+        {{- if $cluster.idleTimeout }}
                     idle_timeout: {{ $cluster.idleTimeout }}
+        {{- end }}
       {{- end }}
     {{- end }}
   {{- end }}

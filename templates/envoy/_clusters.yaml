@@ -82,7 +82,7 @@
         {{- end }}
       {{- end }}
       {{- if $setupCluster }}
-        {{- if or (not $gatewayEnable) (and $gatewayEnable (eq $cluster "remote-myapp")) -}}
+        {{- if or (not $gatewayEnable) (and $gatewayEnable (and (ne $cluster "remote-myapp") (ne $cluster "none"))) }}
           {{- $_ := set $myClusters $cluster "created"  }}
     - name: {{ $cluster }}
           {{- $serviceName := $value.alias | default $cluster }}
