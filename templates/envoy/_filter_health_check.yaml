@@ -14,7 +14,7 @@
     {{- range $k, $v := $clusters }}
       {{- if and (ne $k "local-myapp") (ne $k "remote-myapp") }}
       {{ printf "%s:" $k }}
-        {{ printf "value: %d" $minHealth }}
+        {{ printf "value: %s" $minHealth }}
       {{- end }}
     {{- end }}
   {{- else }}
