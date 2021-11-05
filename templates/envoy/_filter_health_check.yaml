@@ -1,12 +1,25 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" }}
-  {{- $cluster := .cluster -}}
-  {{- $healthChecks := $cluster.healthChecks  }}
+  {{- $clusters := .clusters -}}
+  {{- $remoteApp := index $clusters "remote-myapp" -}}
+  {{- $localApp := index $clusters "local-myapp" }}
+  {{- $gateway := $localApp.gateway }}
+  {{- $gatewayEnable := $gateway.enabled }}
+  {{- $healthChecks := $remoteApp.healthChecks  }}
 - name: envoy.filters.http.health_check
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.health_check.v3.HealthCheck
     cluster_min_healthy_percentages:
+  {{- if $gatewayEnable }}
+    {{- $minHealth := $gateway.minHealthRatio | default "25" -}}
+    {{- range $k, $v := $clusters }}
+      {{- if and (ne $k "local-myapp") (ne $k "remote-myapp") }}
+      {{ printf "%s:" $k }}
+        {{ printf "value: %d" $minHealth }}
+    {{- end }}
+  {{- else }}
       local-myapp:
         value: 100
+  {{- end }}
     headers:
     - name: :path
       exact_match: {{ $healthChecks.path | default "/healthz" }}

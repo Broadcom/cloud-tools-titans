@@ -74,7 +74,7 @@ envoy.yaml: |
         {{- include .name $ | nindent 12 }}
       {{- end }}
     {{- end }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" (dict "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" (dict "clusters" $clusters)) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "TokenValidation" }}
