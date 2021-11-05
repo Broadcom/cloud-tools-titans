@@ -1,6 +1,7 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.routes" }}
   {{- $titanSideCars := .titanSideCars }}
   {{- $direction := .direction -}}
+  {{- $chartName := .chartName -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
@@ -20,6 +21,10 @@
   {{- if $gatewayEnable }}
     {{- range $cn, $cv := $clusters }}
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
+        {{- $reserseProxy := $cv.reverseProxy | default "" -}}
+        {{- if eq $reserseProxy $chartName }}
+          {{- $cn = "local-myapp" -}}
+        {{- end }}
         {{- range $cv.routes }}
           {{- $newcluster := dict "cluster" $cn }}
           {{- $routes = append $routes (dict "match" .match "route" $newcluster) }}

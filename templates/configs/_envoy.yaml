@@ -4,6 +4,7 @@
   {{- $envoy := $titanSideCars.envoy  }}
   {{- $logs := $titanSideCars.logs  }}
   {{- $opa := $titanSideCars.opa  }}
+  {{- $chartName := $.Chart.Name -}}
   {{- $ratelimit := $titanSideCars.ratelimit  }}
   {{- $ingress := $titanSideCars.ingress  }}
   {{- $egress := $titanSideCars.egress  }}
@@ -118,7 +119,7 @@ envoy.yaml: |
                 name: {{ $appName }}-ingress
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $ingress "clusters" $clusters "direction" "ingress") | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "ingress" $ingress "clusters" $clusters ) | nindent 14 }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress") }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress" "chartName" $chartName) }}
         transport_socket:
           name: envoy.transport_sockets.tls
           typed_config:
@@ -169,6 +170,6 @@ envoy.yaml: |
                 domains: '*'
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $egress "clusters" $clusters "direction" "egress") | nindent 14 }}  
                 rate_limits: []
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress") }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress" "chartName" $chartName) }}
   {{- end }}
 {{- end }}
