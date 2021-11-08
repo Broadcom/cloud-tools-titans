@@ -12,7 +12,10 @@
   {{- $localApp := index $clusters "local-myapp" }}
   {{- $gateway := $localApp.gateway }}
   {{- $gatewayEnable := $gateway.enabled }}
-  {{- $defaultBackend := $gateway.defaultBackend | default "local-myapp" }}
+  {{- $defaultBackend := "local-myapp" }}
+  {{- if $gatewayEnable }} 
+    {{- $defaultBackend = $gateway.defaultBackend | default "" }}  
+  {{- end }}
   {{- $myClusters := dict }}
     clusters:
   {{- range $cluster, $value := $clusters }}
@@ -82,7 +85,7 @@
         {{- end }}
       {{- end }}
       {{- if $setupCluster }}
-        {{- if or (not $gatewayEnable) (and $gatewayEnable (and (ne $cluster "remote-myapp") (ne $cluster "none"))) }}
+        {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp")) }}
           {{- $_ := set $myClusters $cluster "created"  }}
     - name: {{ $cluster }}
           {{- $serviceName := $value.alias | default $cluster }}
