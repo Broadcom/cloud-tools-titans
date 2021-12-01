@@ -1,0 +1,11 @@
+FROM sbo-saas-docker-release-local.artifactory-lvn.broadcom.net/broadcom-images/approved/redhat/ubi-minimal:8
+
+USER root
+
+ENV MICRODNF_ARGS=--disableplugin=subscription-manager\ --disablerepo=*\ --enablerepo=ubi-8-appstream\ --enablerepo=ubi-8-baseos
+
+RUN microdnf $MICRODNF_ARGS -y install wget -enablerepo=rhel-7-server-rpms && microdnf clean all
+
+RUN apt-get update -y && apt-get install -y wget curl --no-install-recommends && rm -rf /var/cache/apt/*
+
+

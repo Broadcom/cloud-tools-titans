@@ -142,7 +142,7 @@
     {{- if eq $defaultBackend "" }}
                   direct_response:
                     status: {{ $cluster.directResponseCode | default "404" }}
-                   body:
+                    body:
                       inline_string: {{ ($cluster.directResponseMessage | default "No matching route") | squote }}
     {{- else }}
                   route:
