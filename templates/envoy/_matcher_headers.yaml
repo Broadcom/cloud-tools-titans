@@ -10,7 +10,7 @@
       {{- else if .sw }}
     prefix_match: {{ .sw | squote  }}
       {{- else if .ew }}
-    suffic_match: {{ .ew | squote  }}
+    suffix_match: {{ .ew | squote  }}
       {{- else if .co }}
     contains_match: {{ .co | squote  }}
       {{- else if .lk }}
