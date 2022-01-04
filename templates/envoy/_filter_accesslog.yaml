@@ -21,6 +21,9 @@ typed_config:
 filter:
   {{- if or (eq $logsLevel "error") (hasPrefix $logsLevel "warn") }}
     {{- $accessLog := $logs.accessLog }}
+    {{- if $accessLog.rawFilter }}
+      {{- $accessLog.rawFilter | toYaml | nindent 2 }}
+    {{- else }}
   and_filter:
     filters:
     - not_health_check_filter: {}
@@ -59,6 +62,7 @@ filter:
               invert_match: {{ .invert }}
         {{- end }}
       {{- end }}
+    {{- end }}
     {{- end }}
   {{- else }}
   not_health_check_filter: {}
