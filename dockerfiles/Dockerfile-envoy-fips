@@ -1,10 +1,7 @@
-FROM sbo-saas-docker-release-local.artifactory-lvn.broadcom.net/broadcom-images/approved/redhat/ubi-minimal:8
-
-USER root
-
-ENV MICRODNF_ARGS=--disableplugin=subscription-manager\ --disablerepo=*\ --enablerepo=ubi-8-appstream\ --enablerepo=ubi-8-baseos
-
-RUN microdnf $MICRODNF_ARGS -y install wget -enablerepo=rhel-7-server-rpms && microdnf clean all
+### docker run --rm -it --entrypoint bash  gcr.io/istio-enterprise/proxyv2:1.10.2-fips
+### envoy --version
+### envoy  version: 748e69252be91d96e3236053541ead5096861594/1.18.3/Clean/RELEASE/BoringSSL-FIPS
+FROM gcr.io/istio-enterprise/proxyv2:1.10.2-fips
 
 RUN apt-get update -y && apt-get install -y wget curl --no-install-recommends && rm -rf /var/cache/apt/*
 
