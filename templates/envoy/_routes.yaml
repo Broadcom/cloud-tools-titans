@@ -1,6 +1,6 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.routes" }}
   {{- $titanSideCars := .titanSideCars }}
-  {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
+  {{- $appName := .appName -}}
   {{- $direction := .direction -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
