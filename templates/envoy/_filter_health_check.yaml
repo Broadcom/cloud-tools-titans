@@ -3,20 +3,33 @@
   {{- $remoteApp := index $clusters "remote-myapp" -}}
   {{- $localApp := index $clusters "local-myapp" }}
   {{- $gateway := $localApp.gateway }}
-  {{- $gatewayEnable := $gateway.enabled }}
+  {{- $gatewayEnable := $gateway.enabled | default false }}
+  {{- $gatewaycheckUpstreamClusters := $gateway.checkUpstreamClusters | default false }}
   {{- $healthChecks := $remoteApp.healthChecks  }}
 - name: envoy.filters.http.health_check
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.health_check.v3.HealthCheck
-    cluster_min_healthy_percentages:
   {{- if $gatewayEnable }}
-    {{- $minHealth := $gateway.minHealthRatio | default "25" -}}
-    {{- range $k, $v := $clusters }}
-      {{- if and (ne $k "local-myapp") (ne $k "remote-myapp") }}
+    {{- if $gatewaycheckUpstreamClusters }}
+      {{- $foundCriticalCluster := false -}}
+      {{- range $k, $v := $clusters }}
+        {{- if $v.critical -}}
+          {{- $foundCriticalCluster = true -}}
+        {{- end -}}
+      {{- end -}}
+      {{- if $foundCriticalCluster }}
+    cluster_min_healthy_percentages:
+        {{- $minHealth := $gateway.minHealthRatio | default "25" -}}
+        {{- range $k, $v := $clusters }}
+          {{- if and (ne $k "local-myapp") (ne $k "remote-myapp") }}
+            {{- if $v.critical }}
       {{ printf "%s:" $k }}
         {{ printf "value: %s" $minHealth }}
-      {{- end }}
-    {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end -}}
+    {{- end -}}
   {{- else }}
       local-myapp:
         value: 100

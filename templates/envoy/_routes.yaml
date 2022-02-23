@@ -1,5 +1,6 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.routes" }}
   {{- $titanSideCars := .titanSideCars }}
+  {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
   {{- $direction := .direction -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
@@ -143,7 +144,7 @@
                   direct_response:
                     status: {{ $cluster.directResponseCode | default "404" }}
                     body:
-                      inline_string: {{ ($cluster.directResponseMessage | default "No matching route") | squote }}
+                      inline_string: {{ ($cluster.directResponseMessage | default (printf "%s:No matching route" $appName)) | squote }}
     {{- else }}
                   route:
                     cluster: {{ $defaultBackend }}
