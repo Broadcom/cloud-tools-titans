@@ -65,3 +65,5 @@ sh ./scripts/package.sh
 * **Ajit Verma** - *ajit.verma@broadcom.com*
 * **Tyler Gray** - *tyler.gray@broadcom.com*
 
+## Contributors
+* **Juri Matvejev** - *juri.matvejev@broadcom.com*
