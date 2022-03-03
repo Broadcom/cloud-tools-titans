@@ -1,9 +1,10 @@
-### source from https://console.cloud.google.com/gcr/images/istio-enterprise/GLOBAL/proxyv2
-### docker run --rm -it --entrypoint bash  gcr.io/istio-enterprise/proxyv2:1.10.2-fips
-### envoy --version
-### envoy  version: 748e69252be91d96e3236053541ead5096861594/1.18.3/Clean/RELEASE/BoringSSL-FIPS
-FROM gcr.io/istio-enterprise/proxyv2:1.10.2-fips
-
-RUN apt-get update -y && apt-get install -y wget curl --no-install-recommends && rm -rf /var/cache/apt/*
-
-
+### instruction on how to get fips version of envoy
+### Step 1; run fips version of envoy image into docker container
+###         docker run --rm -it --entrypoint bash  gcr.io/istio-enterprise/proxyv2:1.10.2-fips
+### Step 2: Use different terminal to perform copy envoy to local host with following commands
+### run "docker ps" to get running envoy container ID
+### run "docker cp {container ID}:/usr/local/bin/envoy bin/linux-amd64/envoy"
+### run "chmod a+x bin/linux-amd64/envoy" to ensure excutable permission
+### Step 3: Build docker image with this Dockerfile
+FROM sbo-saas-docker-release-local.artifactory-lvn.broadcom.net/broadcom-images/approved/redhat/ubi-minimal:8 
+COPY bin/linux-amd64/envoy /usr/local/bin/
