@@ -9,7 +9,7 @@
   {{- $envoy := $titanSideCars.envoy -}}
   {{- $clusters := $envoy.clusters }}
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
-  {{- $envoyIngressPort := $remoteMyApp.port | default "9443"  }}
+  {{- $envoyIngressPort := coalesce $remoteMyApp.targetPort $remoteMyApp.port "9443" }}
   {{- $envoyHealthChecks := $remoteMyApp.healhChecks }}
   {{- $envoyHealthChecksPath := $envoyHealthChecks.path | default "/healthz" -}}
   {{- $envoyHealthChecksScheme:= $envoyHealthChecks.scheme | default "HTTPS" -}}
