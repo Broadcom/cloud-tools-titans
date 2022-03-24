@@ -60,9 +60,7 @@ generates the library ID for applying versioned templates within dependent chart
 {{- $version := "invalid" }}
 {{- $versionFct := include "meta.titan-mesh-helm-lib-chart.getVersionFunction" . }}
 {{- $vals := $.Values }}
-{{- if not (hasKey $ "Values") }}
-{{- $version := "legacy" }}
-{{- else }}
+{{- if hasKey $ "Values" }}
 {{- if hasKey $vals "titanVersionFunction" }}
 {{- $version = include $.Values.titanVersionFunction .   }}
 {{- else if $versionFct }}
@@ -86,10 +84,6 @@ generates the library ID for applying versioned templates within dependent chart
     {{- end}}
   {{- end}}
 {{- end }}
-{{- end }}
-
-{{- if eq $version "invalid" }}
-  {{- $version = "legacy" }}
 {{- end }}
 {{- printf "titan-mesh-helm-lib-chart-%s" $version -}}
 {{- end -}}
