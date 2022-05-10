@@ -1,7 +1,5 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.enrichment" }}
-{{- include (printf "%s.envoy.filter.enrichment" (include "meta.titan-mesh-helm-lib-chart.libId" . ) ) . }}
-{{- end -}}
-{{- define "titan-mesh-helm-lib-chart-1.1.36.envoy.filter.enrichment" }}
+  {{- $clusters := .clusters }}
   {{- $requests := .requests  }}
   {{- $localMyApp := .localMyApp  }}
   {{- $enableEnrichment := false  }}
@@ -29,7 +27,7 @@
         "@type": type.googleapis.com/google.protobuf.StringValue
 {{ print "value: |" | indent 8 }}
 {{ print "{" | indent 10 }}
-{{ printf "%s: [" (print "action" | quote) | indent 12 }}
+{{ printf "%s: [" (print "actions" | quote) | indent 12 }}
     {{- $count := 1 -}}
     {{- range $routes }}
       {{- if .enrich }}
@@ -39,24 +37,62 @@
             {{- $prefix = .match.prefix }}
           {{- end }}
         {{- end }}
+        {{- $address := "" }}
+        {{- if .route }}
+          {{- if .route.cluster }}
+            {{- $cluster := index $clusters .route.cluster }}
+            {{- if $cluster.address -}}
+              {{- $address = $cluster.address }}
+            {{- else if $cluster.namespace -}}
+              {{- $address = printf "%s.%s.svc.clusters.local" .route.cluster $cluster.namespace }}
+            {{- end -}}
+          {{- end }}
+        {{- end }}
         {{- range .enrich.actions }}
 {{ print "{" | indent 14 }}
 {{ printf "%s: %s," (print "action" | quote) (print .action | quote) | indent 16 }}
 {{ printf "%s: %s," (print "from" | quote) (print .from | quote) | indent 16 }}
-{{ printf "%s: %s," (print "to" | quote) (print .to | quote) | indent 16 }}
+          {{- if or .with .if_contain .if_start_with (ne $prefix "") .path_prefix (ne $address "") }}
+{{ printf "%s: %s," (print "to" | quote) (print .to | quote) | indent 16 }} 
+          {{- else }}
+{{ printf "%s: %s" (print "to" | quote) (print .to | quote) | indent 16 }} 
+          {{- end }}
           {{- if .with }}
+            {{- if or .if_contain .if_start_with (ne $prefix "") .path_prefix (ne $address "") }}
 {{ printf "%s: %s," (print "with" | quote) (print .with | quote) | indent 16 }}
+            {{- else }}
+{{ printf "%s: %s" (print "with" | quote) (print .with | quote) | indent 16 }}
+            {{- end -}}
           {{- end }}
           {{- if .if_contain }}
+            {{- if or .if_start_with (ne $prefix "") .path_prefix (ne $address "") }}
 {{ printf "%s: %s," (print "if_contain" | quote) (print .if_contain | quote) | indent 16 }}
+            {{- else }}
+{{ printf "%s: %s" (print "if_contain" | quote) (print .if_contain | quote) | indent 16 }}
+            {{- end }}
           {{- end }}
           {{- if .if_start_with }}
+            {{- if or (ne $prefix "") .path_prefix (ne $address "") }}
 {{ printf "%s: %s," (print "if_start_with" | quote) (print .if_start_with | quote) | indent 16 }}
+            {{- else }}
+{{ printf "%s: %s" (print "if_start_with" | quote) (print .if_start_with | quote) | indent 16 }}
+            {{- end }}
           {{- end }}
           {{- if ne $prefix "" }}
+            {{- if or (ne $address "") }}
 {{ printf "%s: %s," (print "path_prefix" | quote) (print $prefix | quote) | indent 16 }}
+            {{- else }}
+{{ printf "%s: %s" (print "path_prefix" | quote) (print $prefix | quote) | indent 16 }}
+            {{- end }}
           {{- else if .path_prefix }}
+            {{- if or (ne $address "") }}
 {{ printf "%s: %s," (print "path_prefix" | quote) (print .path_prefix | quote) | indent 16 }}
+            {{- else }}
+{{ printf "%s: %s" (print "path_prefix" | quote) (print .path_prefix | quote) | indent 16 }}
+            {{- end }}
+          {{- end }}
+          {{- if ne $address "" }}
+{{ printf "%s: %s" (print "host" | quote) (print $address | quote) | indent 16 }}
           {{- end }}
           {{- if eq $count $total }}
 {{ print "}" | indent 14 }}
