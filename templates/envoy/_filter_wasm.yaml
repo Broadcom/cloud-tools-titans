@@ -1,0 +1,81 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.enrichment" }}
+{{- include (printf "%s.envoy.filter.enrichment" (include "meta.titan-mesh-helm-lib-chart.libId" . ) ) . }}
+{{- end -}}
+{{- define "titan-mesh-helm-lib-chart-1.1.36.envoy.filter.enrichment" }}
+  {{- $requests := .requests  }}
+  {{- $localMyApp := .localMyApp  }}
+  {{- $enableEnrichment := false  }}
+  {{- $routes := $requests.routes }}
+  {{- if and $localMyApp (not $routes) }}
+    {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
+      {{ $routes = $localMyApp.routes }}
+    {{- end }}
+  {{- end }}
+  {{- $total := 0 }}
+  {{- range $routes }}
+    {{- if (hasKey . "enrich") }}
+      {{- $enableEnrichment = true  }}
+      {{- range .enrich.actions }}
+        {{- $total = add $total 1 }}
+      {{- end }}
+    {{- end }}
+  {{- end  }}
+  {{- if $enableEnrichment }}
+- name: envoy.filters.http.enrichment
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+    config:
+      configuration:
+        "@type": type.googleapis.com/google.protobuf.StringValue
+{{ print "value: |" | indent 8 }}
+{{ print "{" | indent 10 }}
+{{ printf "%s: [" (print "action" | quote) | indent 12 }}
+    {{- $count := 1 -}}
+    {{- range $routes }}
+      {{- if .enrich }}
+        {{- $prefix := "" }}
+        {{- if .match }}
+          {{- if .match.prefix }}
+            {{- $prefix = .match.prefix }}
+          {{- end }}
+        {{- end }}
+        {{- range .enrich.actions }}
+{{ print "{" | indent 14 }}
+{{ printf "%s: %s," (print "action" | quote) (print .action | quote) | indent 16 }}
+{{ printf "%s: %s," (print "from" | quote) (print .from | quote) | indent 16 }}
+{{ printf "%s: %s," (print "to" | quote) (print .to | quote) | indent 16 }}
+          {{- if .with }}
+{{ printf "%s: %s," (print "with" | quote) (print .with | quote) | indent 16 }}
+          {{- end }}
+          {{- if .if_contain }}
+{{ printf "%s: %s," (print "if_contain" | quote) (print .if_contain | quote) | indent 16 }}
+          {{- end }}
+          {{- if .if_start_with }}
+{{ printf "%s: %s," (print "if_start_with" | quote) (print .if_start_with | quote) | indent 16 }}
+          {{- end }}
+          {{- if ne $prefix "" }}
+{{ printf "%s: %s," (print "path_prefix" | quote) (print $prefix | quote) | indent 16 }}
+          {{- else if .path_prefix }}
+{{ printf "%s: %s," (print "path_prefix" | quote) (print .path_prefix | quote) | indent 16 }}
+          {{- end }}
+          {{- if eq $count $total }}
+{{ print "}" | indent 14 }}
+          {{- else }}
+{{ print "}," | indent 14 }}
+          {{- end }}
+          {{- $count = add $count 1 }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+{{ print "]" | indent 12 }}
+{{ print "}" | indent 10 }}
+      name: broadcom.saas.enrichment_http_filter
+      root_id: broadcom.saas.enrichment_http_filter
+      vm_config:
+        vm_id: vm.broadcom.saas.enrichment_http_filter
+        runtime: "envoy.wasm.runtime.v8"
+        code:
+          local:
+            filename: /etc/envoy/enrichment_http_filter_module.wasm
+  {{- end }}
+{{- end }}

@@ -87,6 +87,7 @@ envoy.yaml: |
       {{- end }}
     {{- end }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.ingress "issuers" $titanSideCars.issuers "localMyApp" $localMyApp) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict dict "clusters" $clusters "requests" $titanSideCars.ingress "localMyApp" $localMyApp) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "AccessCheck" }}
@@ -157,6 +158,7 @@ envoy.yaml: |
     {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" "HTTP2" "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
             http_filters:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers) | nindent 12 }}  
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict dict "clusters" $clusters "requests" $titanSideCars.egress ) | nindent 12 }}  
             - name: envoy.filters.http.router
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router

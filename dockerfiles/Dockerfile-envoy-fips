@@ -8,3 +8,4 @@
 ### Step 3: Build docker image with this Dockerfile
 FROM sbo-saas-docker-release-local.artifactory-lvn.broadcom.net/broadcom-images/approved/redhat/ubi-minimal:8 
 COPY bin/linux-amd64/envoy /usr/local/bin/
+COPY wasm/enrichment_http_filter_module.wasm /etc/envoy/enrichment_http_filter_module.wasm
