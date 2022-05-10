@@ -79,13 +79,13 @@
             {{- end }}
           {{- end }}
           {{- if ne $prefix "" }}
-            {{- if or (ne $address "") }}
+            {{- if ne $address "" }}
 {{ printf "%s: %s," (print "path_prefix" | quote) (print $prefix | quote) | indent 16 }}
             {{- else }}
 {{ printf "%s: %s" (print "path_prefix" | quote) (print $prefix | quote) | indent 16 }}
             {{- end }}
           {{- else if .path_prefix }}
-            {{- if or (ne $address "") }}
+            {{- if ne $address "" }}
 {{ printf "%s: %s," (print "path_prefix" | quote) (print .path_prefix | quote) | indent 16 }}
             {{- else }}
 {{ printf "%s: %s" (print "path_prefix" | quote) (print .path_prefix | quote) | indent 16 }}
