@@ -1,6 +1,7 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.enrichment" }}
   {{- $clusters := .clusters }}
   {{- $requests := .requests  }}
+  {{- $enrich := .enrich }}
   {{- $localMyApp := .localMyApp  }}
   {{- $enableEnrichment := false  }}
   {{- $routes := $requests.routes }}
@@ -10,6 +11,10 @@
     {{- end }}
   {{- end }}
   {{- $total := 0 }}
+  {{- range $enrich.actions }}
+    {{- $enableEnrichment = true  }}
+    {{- $total = add $total 1 }}
+  {{- end }}
   {{- range $routes }}
     {{- if (hasKey . "enrich") }}
       {{- $enableEnrichment = true  }}
@@ -28,7 +33,44 @@
 {{ print "value: |" | indent 8 }}
 {{ print "{" | indent 10 }}
 {{ printf "%s: [" (print "actions" | quote) | indent 12 }}
-    {{- $count := 1 -}}
+    {{- $count := 1 }}
+    {{- range $enrich.actions }}
+{{ print "{" | indent 14 }}
+{{ printf "%s: %s," (print "action" | quote) (print .action | quote) | indent 16 }}
+{{ printf "%s: %s," (print "from" | quote) (print .from | quote) | indent 16 }}
+      {{- if or .with .if_contain .if_start_with .path_prefix }}
+{{ printf "%s: %s," (print "to" | quote) (print .to | quote) | indent 16 }} 
+      {{- else }}
+{{ printf "%s: %s" (print "to" | quote) (print .to | quote) | indent 16 }} 
+      {{- end }}
+      {{- if .with }}
+        {{- if or .if_contain .if_start_with .path_prefix }}
+{{ printf "%s: %s," (print "with" | quote) (print .with | quote) | indent 16 }}
+        {{- else }}
+{{ printf "%s: %s" (print "with" | quote) (print .with | quote) | indent 16 }}
+        {{- end }}
+      {{- end }}
+      {{- if .if_contain }}
+        {{- if .if_start_with }}
+{{ printf "%s: %s," (print "if_contain" | quote) (print .if_contain | quote) | indent 16 }}
+        {{- else }}
+{{ printf "%s: %s" (print "if_contain" | quote) (print .if_contain | quote) | indent 16 }}
+        {{- end }}
+      {{- end }}
+      {{- if .if_start_with }}
+        {{- if .path_prefix }}
+{{ printf "%s: %s," (print "if_start_with" | quote) (print .if_start_with | quote) | indent 16 }}
+        {{- else }}
+{{ printf "%s: %s" (print "if_start_with" | quote) (print .if_start_with | quote) | indent 16 }}
+        {{- end }}
+      {{- end }}
+      {{- if eq $count $total }}
+{{ print "}" | indent 14 }}
+      {{- else }}
+{{ print "}," | indent 14 }}
+      {{- end }}
+      {{- $count = add $count 1 }}
+    {{- end }}
     {{- range $routes }}
       {{- if .enrich }}
         {{- $prefix := "" }}
@@ -41,11 +83,11 @@
         {{- if .route }}
           {{- if .route.cluster }}
             {{- $cluster := index $clusters .route.cluster }}
-            {{- if $cluster.address -}}
+            {{- if $cluster.address }}
               {{- $address = $cluster.address }}
-            {{- else if $cluster.namespace -}}
+            {{- else if $cluster.namespace }}
               {{- $address = printf "%s.%s.svc.clusters.local" .route.cluster $cluster.namespace }}
-            {{- end -}}
+            {{- end }}
           {{- end }}
         {{- end }}
         {{- range .enrich.actions }}
@@ -62,7 +104,7 @@
 {{ printf "%s: %s," (print "with" | quote) (print .with | quote) | indent 16 }}
             {{- else }}
 {{ printf "%s: %s" (print "with" | quote) (print .with | quote) | indent 16 }}
-            {{- end -}}
+            {{- end }}
           {{- end }}
           {{- if .if_contain }}
             {{- if or .if_start_with (ne $prefix "") .path_prefix (ne $address "") }}
