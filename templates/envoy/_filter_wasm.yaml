@@ -37,11 +37,17 @@
     {{- range $enrich.actions }}
 {{ print "{" | indent 14 }}
 {{ printf "%s: %s," (print "action" | quote) (print .action | quote) | indent 16 }}
+      {{- if .from }}
 {{ printf "%s: %s," (print "from" | quote) (print .from | quote) | indent 16 }}
+      {{- end }}
       {{- if or .with .if_contain .if_start_with .path_prefix }}
+        {{- if .to }}
 {{ printf "%s: %s," (print "to" | quote) (print .to | quote) | indent 16 }} 
+        {{- end }}
       {{- else }}
-{{ printf "%s: %s" (print "to" | quote) (print .to | quote) | indent 16 }} 
+        {{- if .to }}
+{{ printf "%s: %s" (print "to" | quote) (print .to | quote) | indent 16 }}
+        {{- end }}
       {{- end }}
       {{- if .with }}
         {{- if or .if_contain .if_start_with .path_prefix }}
