@@ -32,6 +32,12 @@
         "@type": type.googleapis.com/google.protobuf.StringValue
 {{ print "value: |" | indent 8 }}
 {{ print "{" | indent 10 }}
+    {{- if $enrich.auth_host }}
+{{ printf "%s: %s," (print "auth_host" | quote) (print $enrich.auth_host | quote) | indent 12 }}
+    {{- end }}
+    {{- if $enrich.auth_address }}
+{{ printf "%s: %s," (print "auth_address" | quote) (print $enrich.auth_address | quote) | indent 12 }}
+    {{- end }}
 {{ printf "%s: [" (print "actions" | quote) | indent 12 }}
     {{- $count := 1 }}
     {{- range $enrich.actions }}
@@ -166,6 +172,6 @@
         runtime: "envoy.wasm.runtime.v8"
         code:
           local:
-            filename: /etc/envoy/enrichment_http_filter_module.wasm
+            filename: /envoy/enrichment_http_filter_module.wasm
   {{- end }}
 {{- end }}
