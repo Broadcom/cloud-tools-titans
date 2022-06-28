@@ -57,21 +57,31 @@
           - sh
           - -c
           - wget --post-data="" -O - http://127.0.0.1:10000/healthcheck/fail && sleep {{ $envoy.connectionDrainDuration | default "80" }} || true
+  startupProbe:
+    httpGet:
+      path: {{ $envoyHealthChecksPath }}
+      port: {{ $envoyIngressPort }}
+      scheme: {{ $envoyHealthChecksScheme}}
+    initialDelaySeconds: 5
+    failureThreshold: {{ $envoy.startupFailureThreshold | default "60" }}
+    periodSeconds: 5
+
   livenessProbe:
     httpGet:
       path: {{ $envoyHealthChecksPath }}
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
     initialDelaySeconds: 5
-    failureThreshold: {{ $envoy.livenessFailureThreshold | default "50" }}
-    periodSeconds: 10
+    failureThreshold: {{ $envoy.livenessFailureThreshold | default "1" }}
+    periodSeconds: 15
+
   readinessProbe:
     httpGet:
       path: {{ $envoyHealthChecksPath }}
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
-    initialDelaySeconds: 1
-    failureThreshold:  {{ $envoy.readinessFailureThreshold | default "100" }}
+    initialDelaySeconds: 5
+    failureThreshold:  {{ $envoy.readinessFailureThreshold | default "1" }}
     periodSeconds: 5
   volumeMounts:
     - mountPath: /envoy/envoy.yaml

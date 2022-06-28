@@ -13,6 +13,7 @@
   {{- $gateway := $localApp.gateway }}
   {{- $gatewayEnable := $gateway.enabled }}
   {{- $defaultBackend := "local-myapp" }}
+  {{- $addAdditionalClustersForFilters := $envoy.filterClusters }}
   {{- if $gatewayEnable }} 
     {{- $defaultBackend = $gateway.defaultBackend | default "" }}  
   {{- end }}
@@ -64,16 +65,21 @@
               {{- if eq .route.cluster $cluster }}
                 {{- $setupCluster = true  }}
               {{- end }}
-            {{- end }}           
+            {{- end }}
           {{- end }}
         {{- end }}
         {{- range $ingress.routes }}
           {{- if .route }}
             {{- if .route.cluster }} 
               {{- if eq .route.cluster $cluster }}
-                {{- $setupCluster = true  }}
+                {{- $setupCluster = true }}
               {{- end }}
             {{- end }}           
+          {{- end }}
+        {{- end }}
+        {{- range $addAdditionalClustersForFilters }}
+          {{- if eq . $cluster }}
+            {{- $setupCluster = true }}
           {{- end }}
         {{- end }}
         {{- if and (hasPrefix "local-" $cluster) (not $setupCluster) }}
