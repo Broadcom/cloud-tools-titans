@@ -23,11 +23,13 @@
       {{- end }}
     {{- end }}
   {{- end  }}
+  {{- $enableEnrichment = ternary $enrich.enabled $enableEnrichment (hasKey $enrich "enabled") }}
   {{- if $enableEnrichment }}
 - name: envoy.filters.http.enrichment
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
     config:
+      fail_open: {{ $enrich.enabled | default "false" }}      
       configuration:
         "@type": type.googleapis.com/google.protobuf.StringValue
 {{ print "value: |" | indent 8 }}
