@@ -1,0 +1,45 @@
+                           
+          # - name: envoy.filters.http.rbac 
+          #   typed_config:
+          #     "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC       
+          #     rules: 
+          #       action: ALLOW
+          #       policies:
+          #         "service-admin":
+          #           permissions:
+          #             - any: true
+          #           principals:
+          #             - authenticated:
+          #                 principal_name:
+          #                   exact: "cluster.local/ns/default/sa/admin"
+          #             - authenticated:
+          #                 principal_name:
+          #                   exact: "cluster.local/ns/default/sa/superuser"
+          #         "product-viewer":
+          #           permissions:
+          #               - and_rules:
+          #                   rules:
+          #                     - header:
+          #                         name: ":method"
+          #                         string_match:
+          #                           exact: "GET"
+          #                     - url_path:
+          #                         path: { prefix: "/products" }
+          #                     - or_rules:
+          #                         rules:
+          #                           - destination_port: 80
+          #                           - destination_port: 443
+          #           principals:
+          #             - any: true
+
+          - name: envoy.filters.http.rbac 
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC       
+              rules: 
+                action: ALLOW
+                policies:
+                  "api-protection":
+                    permissions:
+                      - any: true
+                    principals:
+                      - any: true

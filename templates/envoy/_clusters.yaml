@@ -34,10 +34,20 @@
         {{- $circuitBreakers := mergeOverwrite ($circuitLocal | default dict) ( $localApp.circuitBreakers | default dict) }}
       circuit_breakers:
         thresholds:
-        - max_connections: {{ $circuitBreakers.maxConnections | default "1024" }}
-          max_requests: {{ $circuitBreakers.maxRequests | default "1024" }}
-          max_pending_requests: {{ $circuitBreakers.maxPendingRequests | default "1024" }}
-          max_retries: {{ $circuitBreakers.maxRetries | default "3" }}
+        - priority: "DEFAULT"
+        {{- if $circuitBreakers.maxConnections }}
+          max_connections: {{ $circuitBreakers.maxConnections }}
+        {{- end }}
+        {{- if $circuitBreakers.maxRequests }}
+          max_requests: {{ $circuitBreakers.maxRequests }}
+        {{- end }}
+        {{- if $circuitBreakers.maxPendingRequests }}
+          max_pending_requests: {{ $circuitBreakers.maxPendingRequests }}
+        {{- end }}
+          retry_budget:
+            budget_percent:
+              value: {{ $circuitBreakers.retryBudgetPercentage | default "20.0" }}
+            min_retry_concurrency: {{ $circuitBreakers.minRetryConcurrency | default "3" }}
       health_checks:
       - http_health_check:
           path: {{ required "value 'titanSideCars.envoy.clusters.local-myapp.healthChecks.path' is required" $localApp.healthChecks.path }}
@@ -106,10 +116,20 @@
           {{- $circuitBreakers := mergeOverwrite ((ternary $circuitLocal $circuitRemote (hasPrefix "local-" $cluster)) | default dict) ($value.circuitBreakers | default dict) }}
       circuit_breakers:
         thresholds:
-        - max_connections: {{ $circuitBreakers.maxConnections | default "1024" }}
-          max_requests: {{ $circuitBreakers.maxRequests | default "1024" }}
-          max_pending_requests: {{ $circuitBreakers.maxPendingRequests | default "1024" }}
-          max_retries: {{ $circuitBreakers.maxRetries | default (ternary "256" "3" (hasPrefix "local-" $cluster)) }}
+        - priority: "DEFAULT"
+        {{- if $circuitBreakers.maxConnections }}
+          max_connections: {{ $circuitBreakers.maxConnections }}
+        {{- end }}
+        {{- if $circuitBreakers.maxRequests }}
+          max_requests: {{ $circuitBreakers.maxRequests }}
+        {{- end }}
+        {{- if $circuitBreakers.maxPendingRequests }}
+          max_pending_requests: {{ $circuitBreakers.maxPendingRequests }}
+        {{- end }}
+          retry_budget:
+            budget_percent:
+              value: {{ $circuitBreakers.retryBudgetPercentage | default "20.0" }}
+            min_retry_concurrency: {{ $circuitBreakers.minRetryConcurrency | default "3" }}
           {{- $scheme := ternary ($value.scheme | default "HTTP") ($value.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
           {{- $sni := ternary $clusterAddress "" (or $value.sniValidation (hasKey $value "address") | default false) }}
           {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "addSocket" true "sni" $sni "cluster" (index $clusters $cluster)) | nindent 6 }}
