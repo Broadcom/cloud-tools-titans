@@ -11,9 +11,11 @@
     {{- end }}
   {{- end }}
   {{- $total := 0 }}
-  {{- range $enrich.actions }}
+  {{- if hasKey $enrich "actions" }}
     {{- $enableEnrichment = true  }}
-    {{- $total = add $total 1 }}
+    {{- range $enrich.actions }}
+      {{- $total = add $total 1 }}
+    {{- end }}
   {{- end }}
   {{- range $routes }}
     {{- if (hasKey . "enrich") }}

@@ -64,7 +64,7 @@
       scheme: {{ $envoyHealthChecksScheme}}
     initialDelaySeconds: 5
     failureThreshold: {{ $envoy.startupFailureThreshold | default "60" }}
-    periodSeconds: 5
+    periodSeconds: {{ $envoy.startupPeriodSeconds | default "5" }}
 
   livenessProbe:
     httpGet:
@@ -73,7 +73,7 @@
       scheme: {{ $envoyHealthChecksScheme}}
     initialDelaySeconds: 5
     failureThreshold: {{ $envoy.livenessFailureThreshold | default "1" }}
-    periodSeconds: 15
+    periodSeconds: {{ $envoy.livenessPeriodSeconds | default "15" }}
 
   readinessProbe:
     httpGet:
@@ -82,7 +82,7 @@
       scheme: {{ $envoyHealthChecksScheme}}
     initialDelaySeconds: 5
     failureThreshold:  {{ $envoy.readinessFailureThreshold | default "1" }}
-    periodSeconds: 5
+    periodSeconds: {{ $envoy.readinessPeriodSeconds | default "5" }}
   volumeMounts:
     - mountPath: /envoy/envoy.yaml
       name: titan-configs
