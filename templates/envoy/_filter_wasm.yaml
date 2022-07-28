@@ -31,7 +31,7 @@
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
     config:
-      fail_open: {{ $enrich.enabled | default "false" }}      
+      fail_open: {{ $enrich.failOpen | default "false" }}      
       configuration:
         "@type": type.googleapis.com/google.protobuf.StringValue
 {{ print "value: |" | indent 8 }}
