@@ -81,7 +81,7 @@
                     retry_policy:
                       num_retries: {{ coalesce $retryPolicy.numRetries "3" }}
                       retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
-                    timeout: {{ coalesce $route.timeout $clusterRoute.timeout (ternary $remoteMyApp.timeout $cluster.timeout (eq $direction "egress")) "15s" }}
+                    timeout: {{ coalesce $route.timeout $clusterRoute.timeout (ternary $remoteMyApp.timeout $cluster.timeout (or $gatewayEnable (eq $direction "egress"))) "15s" }}
         {{- end  }}
       {{- else }}
                 - match:
@@ -105,7 +105,7 @@
                     retry_policy:
                       num_retries: {{ coalesce $retryPolicy.numRetries "3" }}
                       retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
-                    timeout: {{ coalesce $route.timeout (ternary $remoteMyApp.timeout $cluster.timeout (eq $direction "egress")) "15s" }}
+                    timeout: {{ coalesce $route.timeout (ternary $remoteMyApp.timeout $cluster.timeout (or $gatewayEnable (eq $direction "egress"))) "15s" }}
           {{- if or $route.idleTimeout $cluster.idleTimeout }}
                     idle_timeout: {{ coalesce $route.idleTimeout $cluster.idleTimeout }}
           {{- end }}
