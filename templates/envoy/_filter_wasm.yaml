@@ -1,7 +1,8 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.enrichment" }}
   {{- $clusters := .clusters }}
   {{- $requests := .requests  }}
-  {{- $enrich := .enrich }}
+  {{- $envoy := .envoy  }}
+  {{- $enrich := $requests.enrich }}
   {{- $localMyApp := .localMyApp  }}
   {{- $enableEnrichment := false  }}
   {{- $routes := $requests.routes }}
@@ -31,7 +32,13 @@
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
     config:
-      fail_open: {{ $enrich.fail_open | default "false" }}      
+    {{- $enrichfilterFailOpen := "false" }}
+    {{- if $envoy.enrichfilter }}
+      {{- if hasKey $envoy.enrichfilter "failedOpen" }}
+        {{- $enrichfilterFailOpen = $envoy.enrichfilter.failedOpen }}
+      {{- end }}    
+    {{- end }}
+      fail_open: {{ $enrichfilterFailOpen | default "false" }}      
       configuration:
         "@type": type.googleapis.com/google.protobuf.StringValue
 {{ print "value: |" | indent 8 }}
@@ -169,13 +176,29 @@
     {{- end }}
 {{ print "]" | indent 12 }}
 {{ print "}" | indent 10 }}
-      name: broadcom.saas.enrichment_http_filter
-      root_id: broadcom.saas.enrichment_http_filter
+    {{- $enrichfilterName := "envoy_proxy_wasm_enrichment_filter.wasm" }}
+    {{- $enrichfilterAllowedPrecompiled := "true" }}
+    {{- $enrichfilterWasmRuntime := "envoy.wasm.runtime.v8" }}
+    {{- if $envoy.enrichfilter }}
+      {{- if $envoy.enrichfilter.filename }}
+        {{- $enrichfilterName = $envoy.enrichfilter.filename }}
+      {{- end }}
+      {{- if $envoy.enrichfilter.wasmRuntime }}
+        {{- $enrichfilterWasmRuntime = $envoy.enrichfilter.wasmRuntime }}
+      {{- end }}
+      {{- if hasKey $envoy.enrichfilter "allowPrecompiled" }}
+        {{- $enrichfilterAllowedPrecompiled = $envoy.enrichfilter.allowPrecompiled }}
+      {{- end }}    
+    {{- end }}
+      name: sps.proxy.wasm.enrichment.filter
+      root_id: enrichment
       vm_config:
-        vm_id: vm.broadcom.saas.enrichment_http_filter
-        runtime: "envoy.wasm.runtime.v8"
+        vm_id: vm.enrichment
+        runtime: {{ $enrichfilterWasmRuntime | quote }}
+        allow_precompiled: {{ $enrichfilterAllowedPrecompiled }}
         code:
           local:
-            filename: /envoy/enrichment_http_filter_module.wasm
+            filename: {{ printf "/envoy/%s" $enrichfilterName | quote }}
+        
   {{- end }}
 {{- end }}
