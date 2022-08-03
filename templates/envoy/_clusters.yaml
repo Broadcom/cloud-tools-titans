@@ -10,6 +10,7 @@
   {{- $circuitRemote := $envoy.remoteCircuitBreakers  }}
   {{- $clusters := $envoy.clusters }}
   {{- $localApp := index $clusters "local-myapp" }}
+  {{- $remoteApp := index $clusters "remote-myapp" }}
   {{- $gateway := $localApp.gateway }}
   {{- $gatewayEnable := $gateway.enabled }}
   {{- $defaultBackend := "local-myapp" }}
@@ -104,17 +105,18 @@
         {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp")) }}
           {{- $_ := set $myClusters $cluster "created"  }}
     - name: {{ $cluster }}
-          {{- $serviceName := $value.alias | default $cluster }}
+          {{- $clusterValue := mergeOverwrite (deepCopy $remoteApp) $value }}
+          {{- $serviceName := $clusterValue.alias | default $cluster }}
           {{- $serviceName = printf "%s%s" $serviceName (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
-          {{- if $value.external }}
-            {{- $serviceName = $value.alias | default $cluster }}
+          {{- if $clusterValue.external }}
+            {{- $serviceName = $clusterValue.alias | default $cluster }}
           {{- end }}
-          {{- $clusterAddress := $value.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($value.namespace | default $releaseNamespace )) }}
-      connect_timeout: {{ $value.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
+          {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
+      connect_timeout: {{ $clusterValue.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
       type: STRICT_DNS
       ignore_health_on_host_removal: true
       dns_lookup_family: V4_ONLY
-          {{- $circuitBreakers := mergeOverwrite ((ternary $circuitLocal $circuitRemote (hasPrefix "local-" $cluster)) | default dict) ($value.circuitBreakers | default dict) }}
+          {{- $circuitBreakers := mergeOverwrite ((ternary $circuitLocal $circuitRemote (hasPrefix "local-" $cluster)) | default dict) ( $clusterValue.circuitBreakers | default dict) }}
       circuit_breakers:
         thresholds:
         - priority: "DEFAULT"
@@ -131,8 +133,8 @@
             budget_percent:
               value: {{ $circuitBreakers.retryBudgetPercentage | default "20.0" }}
             min_retry_concurrency: {{ $circuitBreakers.minRetryConcurrency | default "3" }}
-          {{- $scheme := ternary ($value.scheme | default "HTTP") ($value.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
-          {{- $sni := ternary $clusterAddress "" (or $value.sniValidation (hasKey $value "address") | default false) }}
+          {{- $scheme := ternary ( $clusterValue.scheme | default "HTTP") ( $clusterValue.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
+          {{- $sni := ternary $clusterAddress "" (or  $clusterValue.sniValidation (hasKey  $clusterValue "address") | default false) }}
           {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "addSocket" true "sni" $sni "cluster" (index $clusters $cluster)) | nindent 6 }}
       lb_policy: LEAST_REQUEST
       load_assignment:
@@ -143,12 +145,12 @@
               address:
                 socket_address:
                   address: {{ ternary "127.0.0.1" $clusterAddress (hasPrefix "local-" $cluster) }}
-                  port_value: {{ $value.port | default "9443" }}
+                  port_value: {{  $clusterValue.port | default "9443" }}
       common_lb_config:
         healthy_panic_threshold:
-          value: {{ $value.healthyPanicThreshold | default "25" }}
+          value: {{  $clusterValue.healthyPanicThreshold | default "25" }}
       health_checks:
-          {{- $healthCheck := $value.healthChecks  }}
+          {{- $healthCheck :=  $clusterValue.healthChecks  }}
       - http_health_check: 
           path: {{ $healthCheck.path | default "/healthz" }}
         interval: {{ $healthCheck.interval | default "1s" }}
