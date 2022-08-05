@@ -11,11 +11,21 @@
   {{- if not (index $clusters "remote-myapp") }}
     {{- fail ".Values.titanSideCars.envoy.clusters.remote-myapp is required" }}
   {{- end }}
-  {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- if $envoyEnabled }}
-    {{- $port := $remoteMyApp.port | default "9443" }}
-    {{- $tport := $remoteMyApp.targetPort | default $port }}
+    {{- $remoteMyApp := index $clusters "remote-myapp" }}
+    {{- $localApp := index $clusters "local-myapp" }}
+    {{- $gateway := $localApp.gateway }}
+    {{- $gatewayEnable := $gateway.enabled }}
+    {{- $port := "9443" }}
+    {{- $tport := "9443" }}
+    {{- if $gatewayEnable }}
+      {{- $port = $gateway.port | default $port }}
+      {{- $tport = $remoteMyApp.targetPort | default $remoteMyApp.port | default $tport }}
+    {{- else }}
+      {{- $port = $remoteMyApp.port | default $port }}
+      {{- $tport = $remoteMyApp.targetPort | default $port }}
+    {{- end }}
     {{- $protocol := $remoteMyApp.protocol | default "TCP" }}
 - port: {{ $port }}
   targetPort: {{ $tport }}
