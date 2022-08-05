@@ -145,7 +145,11 @@
               address:
                 socket_address:
                   address: {{ ternary "127.0.0.1" $clusterAddress (hasPrefix "local-" $cluster) }}
-                  port_value: {{  $clusterValue.port | default "9443" }}
+            {{- if $gatewayEnable }}
+                  port_value: {{ $clusterValue.tergetPort | default "9443" }}
+            {{- else }}
+                  port_value: {{ $clusterValue.port | default "9443" }}
+            {{- end }}
       common_lb_config:
         healthy_panic_threshold:
           value: {{  $clusterValue.healthyPanicThreshold | default "25" }}
