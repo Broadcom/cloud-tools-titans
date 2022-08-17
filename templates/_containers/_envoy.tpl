@@ -10,7 +10,11 @@
   {{- $clusters := $envoy.clusters }}
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $envoyIngressPort := coalesce $remoteMyApp.targetPort $remoteMyApp.port "9443" }}
-  {{- $envoyHealthChecks := $remoteMyApp.healhChecks }}
+  {{- $envoyHealthChecks := $remoteMyApp.healthChecks }}
+  {{- $envoyHealthChecksCmds := $envoyHealthChecks.commands }}
+  {{- $envoyHealthChecksCmdsLiveness := $envoyHealthChecksCmds.liveness }}
+  {{- $envoyHealthChecksCmdsStartup := $envoyHealthChecksCmds.startup }}
+  {{- $envoyHealthChecksCmdsReadiness := $envoyHealthChecksCmds.readiness }}
   {{- $envoyHealthChecksPath := $envoyHealthChecks.path | default "/healthz" -}}
   {{- $envoyHealthChecksScheme:= $envoyHealthChecks.scheme | default "HTTPS" -}}
   {{- $logs := $titanSideCars.logs -}}
@@ -58,28 +62,52 @@
           - -c
           - wget --post-data="" -O - http://127.0.0.1:10000/healthcheck/fail && sleep {{ $envoy.connectionDrainDuration | default "80" }} || true
   startupProbe:
+    {{- if $envoyHealthChecksCmdsStartup }}
+    exec:
+      command:
+      {{- range $envoyHealthChecksCmdsStartup }}
+       {{ printf "- %s" . }}
+      {{- end }}
+    {{- else }}
     httpGet:
       path: {{ $envoyHealthChecksPath }}
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
+    {{- end }}
     initialDelaySeconds: 5
     failureThreshold: {{ $envoy.startupFailureThreshold | default "60" }}
     periodSeconds: {{ $envoy.startupPeriodSeconds | default "5" }}
 
   livenessProbe:
+    {{- if $envoyHealthChecksCmdsLiveness }}
+    exec:
+      command:
+      {{- range $envoyHealthChecksCmdsLiveness }}
+       {{ printf "- %s" . }}
+      {{- end }}
+    {{- else }}
     httpGet:
       path: {{ $envoyHealthChecksPath }}
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
+    {{- end }}
     initialDelaySeconds: 5
     failureThreshold: {{ $envoy.livenessFailureThreshold | default "1" }}
     periodSeconds: {{ $envoy.livenessPeriodSeconds | default "15" }}
 
   readinessProbe:
+    {{- if $envoyHealthChecksCmdsReadiness }}
+    exec:
+      command:
+      {{- range $envoyHealthChecksCmdsReadiness }}
+       {{ printf "- %s" . }}
+      {{- end }}
+    {{- else }}
     httpGet:
       path: {{ $envoyHealthChecksPath }}
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
+    {{- end }}
     initialDelaySeconds: 5
     failureThreshold:  {{ $envoy.readinessFailureThreshold | default "1" }}
     periodSeconds: {{ $envoy.readinessPeriodSeconds | default "5" }}
