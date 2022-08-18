@@ -1,48 +1,23 @@
 #!/bin/bash
 
-
-
-if [ -f "$HOME/.secrets/jfrog.key" ]; then
-    echo "Found jfrog.key - continue"
-else 
-    echo "No jfrog.key, please create a jfrog.key file under your home directory .secrets hidden folder - Exiting"
-    exit
-fi
-
 apikey=$(cat ~/.secrets/jfrog.key)
-chartStrs=$(cat ./Chart.yaml)
-chartname=""
-chartver=""
-lines=$(echo $chartStrs | tr " " "\n")
-i=0
-found=""
-for line in $lines
-do
-    if [[ "$found" == "foundName" ]]; then
-      chartname=$line
-      found=""
-    elif [[ "$found" == "foundVer" ]]; then
-      chartver=$line
-      break
-    elif [[ "$line" == "name:" ]]; then
-      found="foundName"
-    elif [[ "$line" == "version:"* ]]; then
-      found="foundVer"
-    fi
-done
+chartname=$( grep '^name:' Chart.yaml | sed 's/^.*: //' )
+chartver=$( grep '^version:' Chart.yaml | sed 's/^.*: //' )
 
-echo "chart name= $chartname" 
-echo "chart ver= $chartver" 
+echo "chart name= $chartname"
+echo "chart version= $chartver"
 
-mkdir -p tmp
-
-chartresponse=$(helm package . -d tmp)
-
-response=$(curl -H "X-JFrog-Art-Api:$apikey" -T tmp/$chartname-$chartver.tgz --write-out '%{http_code}' https://usw1.packages.broadcom.com/artifactory/sbo-sps-helm-release-local/$chartname/$chartname-$chartver.tgz)
-
+chartresponse=$(sh scripts/package.sh)
+if [ -f "$chartname-$chartver.tgz" ];then
+response=$(curl -X PUT -H "X-JFrog-Art-Api:$apikey" -T $chartname-$chartver.tgz --write-out '%{http_code}' https://usw1.packages.broadcom.com/artifactory/sbo-sps-helm-release-local/$chartname/$chartname-$chartver.tgz)
 if [ "$response" != "200" ]
 then
-    echo "Got" $response
-else 
+    echo "Got Unexpected response" $response
+else
     echo "Upload $chartname-$chartver.tgz successfully"
+fi
+rm "$chartname-$chartver.tgz"
+else
+  echo "$chartresponse"
+  echo "chart did not package successfully"
 fi
