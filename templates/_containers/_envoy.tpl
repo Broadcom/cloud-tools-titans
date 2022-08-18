@@ -74,9 +74,9 @@
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
     {{- end }}
-    initialDelaySeconds: 5
-    failureThreshold: {{ $envoy.startupFailureThreshold | default "60" }}
-    periodSeconds: {{ $envoy.startupPeriodSeconds | default "5" }}
+    initialDelaySeconds: {{ $envoy.startupInitialDelaySeconds | default "5" }}
+    failureThreshold: {{ $envoy.startupFailureThreshold | default "300" }}
+    periodSeconds: {{ $envoy.startupPeriodSeconds | default "1" }}
 
   livenessProbe:
     {{- if $envoyHealthChecksCmdsLiveness }}
@@ -91,9 +91,9 @@
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
     {{- end }}
-    initialDelaySeconds: 5
-    failureThreshold: {{ $envoy.livenessFailureThreshold | default "1" }}
-    periodSeconds: {{ $envoy.livenessPeriodSeconds | default "15" }}
+    initialDelaySeconds: {{ $envoy.livenessInitialDelaySeconds | default "1" }}
+    failureThreshold: {{ $envoy.livenessFailureThreshold | default "2" }}
+    periodSeconds: {{ $envoy.livenessPeriodSeconds | default "3" }}
 
   readinessProbe:
     {{- if $envoyHealthChecksCmdsReadiness }}
@@ -108,9 +108,9 @@
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
     {{- end }}
-    initialDelaySeconds: 5
+    initialDelaySeconds: {{ $envoy.readinessInitialDelaySeconds | default "1" }}
     failureThreshold:  {{ $envoy.readinessFailureThreshold | default "1" }}
-    periodSeconds: {{ $envoy.readinessPeriodSeconds | default "5" }}
+    periodSeconds: {{ $envoy.readinessPeriodSeconds | default "3" }}
   volumeMounts:
     - mountPath: /envoy/envoy.yaml
       name: titan-configs
