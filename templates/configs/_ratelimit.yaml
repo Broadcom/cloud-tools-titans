@@ -5,8 +5,20 @@
   {{- $ingress := $titanSideCars.ingress }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
+  {{- $localApp := index $clusters "local-myapp" }}
+  {{- $hasRatelimit := false }}
+  {{- $routes := $ingress.routes }}
+  {{- if not $routes }}
+    {{ $routes = $localApp.routes }}
+  {{- end }}
+  {{- range $routes }}
+    {{- $ratelimit := .ratelimit }}
+    {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
+  {{- end }}
+  {{- if $hasRatelimit }}
 
 ratelimit_config.yaml: |
   domain: {{ $appName }}
   {{- include "titan-mesh-helm-lib-chart.ratelimit.descriptors" (dict "ingress" $ingress "clusters" $clusters) | nindent 0 }}
+  {{- end }}
 {{- end }}

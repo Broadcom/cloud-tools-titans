@@ -13,7 +13,20 @@
   {{- $ratelimitStorage := $ratelimit.ephemeralStorage -}}
   {{- $imageRegistry := $ratelimit.imageRegistry | default $titanSideCars.imageRegistry -}}
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
-  {{- if and $envoyEnabled $ratelimitEnabled }}
+  {{- $ingress := $titanSideCars.ingress }}
+  {{- $envoy := $titanSideCars.envoy }}
+  {{- $clusters := $envoy.clusters }}
+  {{- $localApp := index $clusters "local-myapp" }}
+  {{- $hasRatelimit := false }}
+  {{- $routes := $ingress.routes }}
+  {{- if not $routes }}
+    {{ $routes = $localApp.routes }}
+  {{- end }}
+  {{- range $routes }}
+    {{- $ratelimit := .ratelimit }}
+    {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
+  {{- end }}
+  {{- if and $envoyEnabled $ratelimitEnabled $hasRatelimit }}
 - name: {{include "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($ratelimit.imageName | default "ratelimit") ($ratelimit.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
