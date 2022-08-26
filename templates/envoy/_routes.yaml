@@ -23,7 +23,7 @@
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
         {{- range $cv.routes }}
           {{- $newcluster := dict "cluster" $cn }}
-          {{- $routes = append $routes (dict "match" .match "route" $newcluster) }}
+          {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
         {{- end }}
       {{- end }}
     {{- end }}

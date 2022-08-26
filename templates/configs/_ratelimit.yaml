@@ -1,24 +1,51 @@
 {{- define "titan-mesh-helm-lib-chart.configs.ratelimit" }}
   {{- $global := $.Values.global -}}
   {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
+  {{- $ratelimitEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
   {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
   {{- $localApp := index $clusters "local-myapp" }}
   {{- $hasRatelimit := false }}
-  {{- $routes := $ingress.routes }}
-  {{- if not $routes }}
-    {{ $routes = $localApp.routes }}
+
+  {{- $gateway := $localApp.gateway }}
+  {{- $gatewayEnable := $gateway.enabled }}
+  {{- $routes := list }}
+  {{- if $gatewayEnable }}
+    {{- range $cn, $cv := $clusters }}
+      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
+        {{- range $cv.routes }}
+          {{- $newcluster := dict "cluster" $cn }}
+          {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- else }}
+    {{- $routes = $ingress.routes }}
+    {{- if and $ingress (not $routes) }}
+      {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
+        {{ $routes = $localApp.routes }}
+      {{- end }}
+    {{- end }}
+    {{- $additionalRoutes := $ingress.additionalRoutes }}
+    {{- if $additionalRoutes }}
+      {{- if $routes }}
+        {{- $routes = concat $additionalRoutes $routes }}
+      {{- else }}
+        {{- $routes = $additionalRoutes }}
+      {{- end }}
+    {{- end }}
   {{- end }}
+
   {{- range $routes }}
     {{- $ratelimit := .ratelimit }}
     {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
   {{- end }}
-  {{- if $hasRatelimit }}
+  {{- if and  $ratelimitEnabled $hasRatelimit }}
 
 ratelimit_config.yaml: |
   domain: {{ $appName }}
-  {{- include "titan-mesh-helm-lib-chart.ratelimit.descriptors" (dict "ingress" $ingress "clusters" $clusters) | nindent 0 }}
+  {{- include "titan-mesh-helm-lib-chart.ratelimit.descriptors" (dict "ingress" $ingress "clusters" $clusters "routes" $routes) | nindent 0 }}
   {{- end }}
 {{- end }}

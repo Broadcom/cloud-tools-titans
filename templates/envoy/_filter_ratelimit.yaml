@@ -4,26 +4,43 @@
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
   {{- $localMyApp := index $clusters "local-myapp" }}
-  {{- $ratelimitSidecar := .ratelimit }}
+  {{- $ratelimitSidecar := $titanSideCars.ratelimit }}
   {{- $ingress := .ingress }}
-  {{- $routes := $ingress.routes }}
-  {{- if and $ingress (not $routes) }}
-    {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
-      {{ $routes = $localMyApp.routes }}
-    {{- end }}
-  {{- end }}
-  {{- $additionalRoutes := $ingress.additionalRoutes }}
-  {{- if $additionalRoutes }}
-    {{- if $routes }}
-      {{- $routes = concat $additionalRoutes $routes }}
-    {{- else }}
-      {{- $routes = $additionalRoutes }}
-    {{- end }}
-  {{- end }} 
+
   {{- $ratelimitSidecarEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
   {{- $ingressRatelimit := $ingress.ratelimit }}
   {{- $ratelimitEnabled := (ternary $ingressRatelimit.enabled "true" (hasKey $ingressRatelimit "enabled")) }}
   {{- $hasRatelimit := false }}
+
+  {{- $gateway := $localMyApp.gateway }}
+  {{- $gatewayEnable := $gateway.enabled }}
+  {{- $routes := list }}
+  {{- if $gatewayEnable }}
+    {{- range $cn, $cv := $clusters }}
+      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
+        {{- range $cv.routes }}
+          {{- $newcluster := dict "cluster" $cn }}
+          {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- else }}
+    {{- $routes = $ingress.routes }}
+    {{- if and $ingress (not $routes) }}
+      {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
+        {{ $routes = $localMyApp.routes }}
+      {{- end }}
+    {{- end }}
+    {{- $additionalRoutes := $ingress.additionalRoutes }}
+    {{- if $additionalRoutes }}
+      {{- if $routes }}
+        {{- $routes = concat $additionalRoutes $routes }}
+      {{- else }}
+        {{- $routes = $additionalRoutes }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+
   {{- range $routes }}
     {{- $ratelimit := .ratelimit }}
     {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
@@ -35,14 +52,13 @@
 - name: envoy.filters.http.ratelimit
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
-    domain: {{ $appName }}
+    domain: {{ $ratelimitSidecar.domain | default $appName }}
     failure_mode_deny: false
     rate_limit_service:
       transport_api_version: V3
       grpc_service:
-        google_grpc:
-          target_uri: {{ printf "127.0.0.1:%s" ($ratelimitSidecar.port | default "8081") }}
-          stat_prefix: ratelimit          
+        envoy_grpc:
+          cluster_name: ratelimit
         timeout: 0.5s
   {{- end }}
 {{- end }}

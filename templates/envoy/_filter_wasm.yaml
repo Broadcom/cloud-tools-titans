@@ -4,13 +4,36 @@
   {{- $envoy := .envoy  }}
   {{- $enrich := $requests.enrich }}
   {{- $localMyApp := .localMyApp  }}
-  {{- $enableEnrichment := false  }}
-  {{- $routes := $requests.routes }}
-  {{- if and $localMyApp (not $routes) }}
-    {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
-      {{ $routes = $localMyApp.routes }}
+
+  {{- $gateway := $localMyApp.gateway }}
+  {{- $gatewayEnable := $gateway.enabled }}
+  {{- $routes := list }}
+  {{- if $gatewayEnable }}
+    {{- range $cn, $cv := $clusters }}
+      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
+        {{- range $cv.routes }}
+          {{- $newcluster := dict "cluster" $cn }}
+          {{- $routes = append $routes . }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- else }}
+    {{- $routes = $requests.routes }}
+    {{- if and $requests (not $routes) }}
+      {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
+        {{ $routes = $localMyApp.routes }}
+      {{- end }}
+    {{- end }}
+    {{- $additionalRoutes := $requests.additionalRoutes }}
+    {{- if $additionalRoutes }}
+      {{- if $routes }}
+        {{- $routes = concat $additionalRoutes $routes }}
+      {{- else }}
+        {{- $routes = $additionalRoutes }}
+      {{- end }}
     {{- end }}
   {{- end }}
+  {{- $enableEnrichment := false  }}
   {{- $total := 0 }}
   {{- if hasKey $enrich "actions" }}
     {{- $enableEnrichment = true  }}
