@@ -45,9 +45,6 @@
     {{- $ratelimit := .ratelimit }}
     {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
   {{- end }}
-  {{- if and $hasRatelimit (not $ratelimitSidecarEnabled) }}
-    {{- fail "invalid config - ratelimiting requires ratelimit sidecar, disable .Values.titanSideCars.ingress.routes[].ratelimit or enable .Values.titanSideCars.ratelimit" }}
-  {{- end }}
   {{- if and $ratelimitEnabled $hasRatelimit }}
 - name: envoy.filters.http.ratelimit
   typed_config:
