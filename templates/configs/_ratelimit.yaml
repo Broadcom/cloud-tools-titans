@@ -5,6 +5,7 @@
   {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $envoy := $titanSideCars.envoy }}
+  {{- $ratelimitSidecar := $titanSideCars.ratelimit }}
   {{- $clusters := $envoy.clusters }}
   {{- $localApp := index $clusters "local-myapp" }}
   {{- $hasRatelimit := false }}
@@ -45,7 +46,7 @@
   {{- if and  $ratelimitEnabled $hasRatelimit }}
 
 ratelimit_config.yaml: |
-  domain: {{ $appName }}
+  domain: {{ $ratelimitSidecar.domain | default $appName }}
   {{- include "titan-mesh-helm-lib-chart.ratelimit.descriptors" (dict "ingress" $ingress "clusters" $clusters "routes" $routes) | nindent 0 }}
   {{- end }}
 {{- end }}
