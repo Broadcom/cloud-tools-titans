@@ -4,7 +4,7 @@
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
   {{- $localMyApp := index $clusters "local-myapp" }}
-  {{- $ratelimitSidecar := $titanSideCars.ratelimit }}
+  {{- $ratelimit := $envoy.ratelimit }}
   {{- $ingress := .ingress }}
 
   {{- $ratelimitSidecarEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
@@ -42,14 +42,14 @@
   {{- end }}
 
   {{- range $routes }}
-    {{- $ratelimit := .ratelimit }}
-    {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
+    {{- $rt := .ratelimit }}
+    {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled ($rt | default false) (hasKey $rt "enabled")) }}
   {{- end }}
   {{- if and $ratelimitEnabled $hasRatelimit }}
 - name: envoy.filters.http.ratelimit
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
-    domain: {{ $ratelimitSidecar.domain | default $appName }}
+    domain: {{ $ratelimit.domain | default $appName }}
     failure_mode_deny: false
     rate_limit_service:
       transport_api_version: V3
