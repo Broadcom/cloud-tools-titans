@@ -128,7 +128,7 @@
       ephemeral-storage: {{ $ratelimitStorage.request | default "100Mi" | quote }}
   terminationMessagePath: /dev/termination-log
   volumeMounts:
-    - mountPath: /configs/ratelimit/config.yaml
+    - mountPath: /configs/ratelimit/config/ratelimit_config.yaml
       name: titan-configs
       subPath: ratelimit_config.yaml
     - mountPath: /logs/
