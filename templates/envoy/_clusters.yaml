@@ -279,6 +279,6 @@
               address:
                 socket_address:
                   address: {{ $ratelimit.address | default "127.0.0.1" }}
-                  port_value: {{ $ratelimit.port | default "8070" }}
+                  port_value: {{ $ratelimit.port | default "8081" }}
   {{- end }}
 {{- end }}
