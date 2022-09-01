@@ -102,7 +102,7 @@
         {{- end }}
       {{- end }}
       {{- if $setupCluster }}
-        {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp")) }}
+        {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp") (not $value.external)) }}
           {{- $_ := set $myClusters $cluster "created"  }}
     - name: {{ $cluster }}
           {{- $clusterValue := mergeOverwrite (deepCopy $remoteApp) $value }}
@@ -146,7 +146,7 @@
                 socket_address:
                   address: {{ ternary "127.0.0.1" $clusterAddress (hasPrefix "local-" $cluster) }}
             {{- if $gatewayEnable }}
-                  port_value: {{ $clusterValue.tergetPort | default "9443" }}
+                  port_value: {{ coalesce $clusterValue.tergetPort $clusterValue.port "9443" }}
             {{- else }}
                   port_value: {{ $clusterValue.port | default "9443" }}
             {{- end }}
