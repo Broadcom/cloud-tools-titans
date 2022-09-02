@@ -45,6 +45,7 @@
         {{- if $circuitBreakers.maxPendingRequests }}
           max_pending_requests: {{ $circuitBreakers.maxPendingRequests }}
         {{- end }}
+          track_remaining: {{ $circuitBreakers.trackRemaining | default "true" }}
           retry_budget:
             budget_percent:
               value: {{ $circuitBreakers.retryBudgetPercentage | default "20.0" }}
@@ -102,7 +103,7 @@
         {{- end }}
       {{- end }}
       {{- if $setupCluster }}
-        {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp") (not $value.external)) }}
+        {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp")) }}
           {{- $_ := set $myClusters $cluster "created"  }}
     - name: {{ $cluster }}
           {{- $clusterValue := mergeOverwrite (deepCopy $remoteApp) $value }}
@@ -129,6 +130,7 @@
         {{- if $circuitBreakers.maxPendingRequests }}
           max_pending_requests: {{ $circuitBreakers.maxPendingRequests }}
         {{- end }}
+          track_remaining: {{ $circuitBreakers.trackRemaining | default "true" }}
           retry_budget:
             budget_percent:
               value: {{ $circuitBreakers.retryBudgetPercentage | default "20.0" }}
