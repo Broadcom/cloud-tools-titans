@@ -85,7 +85,7 @@
     - name: STATSD_PORT
       value: {{ ( $ratelimit.statsdPort | default "8126" ) | quote  }}
     - name: STATSD_PROTOCOL
-      value: {{ ( $ratelimit.statsdProtocol | default udp ) | quote  }}
+      value: {{ ( $ratelimit.statsdProtocol | default "udp" ) | quote  }}
     - name: STATSD_HOST
       value: {{ ( $ratelimit.statsdHost | default "127.0.0.1" ) | quote  }}
     - name: NEAR_LIMIT_RATIO
