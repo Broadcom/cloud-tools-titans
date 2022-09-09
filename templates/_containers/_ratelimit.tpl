@@ -81,7 +81,7 @@
     - name: REDIS_AUTH
       value: {{ $ratelimit.redisAuth| default "" | quote  }}
     - name: USE_STATSD
-      value: {{ $ratelimit.userStatsD | default "False" | quote  }}
+      value: {{ $ratelimit.userStatsD | default "true" | quote  }}
     - name: STATSD_PORT
       value: {{ ( $ratelimit.statsdPort | default "8126" ) | quote  }}
     - name: STATSD_PROTOCOL
