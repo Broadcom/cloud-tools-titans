@@ -91,7 +91,7 @@
     - name: NEAR_LIMIT_RATIO
       value: {{ ( $ratelimit.statsdNear_limit_ratio | default "0.8" ) | quote  }}
     - name: DETAILED_METRICS_MODE
-      value: {{ ( $ratelimit.statsdDetailed_metrics_mode | "true" ) | quote  }}
+      value: {{ ( $ratelimit.statsdDetailed_metrics_mode | default "true" ) | quote  }}
     - name: SHADOW_MODE
       value: {{ ( $ratelimit.Shadow_mode | default "false" ) | quote  }}
     - name: PORT
