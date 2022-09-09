@@ -60,7 +60,6 @@
     - sh
     - '-c'
     - >
-      sleep 5
       exec /bin/ratelimit  2>&1 | tee -a /logs/ratelimit.log
   env:
     - name: RUNTIME_ROOT
