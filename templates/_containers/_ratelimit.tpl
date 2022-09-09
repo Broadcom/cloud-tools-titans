@@ -60,6 +60,7 @@
     - sh
     - '-c'
     - >
+      sleep 5
       exec /bin/ratelimit  2>&1 | tee -a /logs/ratelimit.log
   env:
     - name: RUNTIME_ROOT
@@ -80,10 +81,20 @@
       value: {{ $ratelimit.redisSocketType | default "tcp" | quote }}
     - name: REDIS_AUTH
       value: {{ $ratelimit.redisAuth| default "" | quote  }}
-    - name: STATSD_PORT
-      value: {{ ( $ratelimit.statsdPort | default 8225 ) | quote  }}
     - name: USE_STATSD
       value: {{ $ratelimit.userStatsD | default "False" | quote  }}
+    - name: STATSD_PORT
+      value: {{ ( $ratelimit.statsdPort | default "8126" ) | quote  }}
+    - name: STATSD_PROTOCOL
+      value: {{ ( $ratelimit.statsdProtocol | default udp ) | quote  }}
+    - name: STATSD_HOST
+      value: {{ ( $ratelimit.statsdHost | default localhost ) | quote  }}
+    - name: NEAR_LIMIT_RATIO
+      value: {{ ( $ratelimit.statsdNear_limit_ratio | default "0.8" ) | quote  }}
+    - name: DETAILED_METRICS_MODE
+      value: {{ ( $ratelimit.statsdDetailed_metrics_mode | "true" ) | quote  }}
+    - name: SHADOW_MODE
+      value: {{ ( $ratelimit.Shadow_mode | default "true" ) | quote  }}
     - name: PORT
       value: {{ ( $ratelimit.port | default 8070 ) | quote  }}
     - name: NAMESPACE
