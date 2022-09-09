@@ -94,7 +94,7 @@
     - name: DETAILED_METRICS_MODE
       value: {{ ( $ratelimit.statsdDetailed_metrics_mode | "true" ) | quote  }}
     - name: SHADOW_MODE
-      value: {{ ( $ratelimit.Shadow_mode | default "true" ) | quote  }}
+      value: {{ ( $ratelimit.Shadow_mode | default "false" ) | quote  }}
     - name: PORT
       value: {{ ( $ratelimit.port | default 8070 ) | quote  }}
     - name: NAMESPACE
