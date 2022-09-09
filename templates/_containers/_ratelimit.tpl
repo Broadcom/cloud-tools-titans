@@ -87,7 +87,7 @@
     - name: STATSD_PROTOCOL
       value: {{ ( $ratelimit.statsdProtocol | default udp ) | quote  }}
     - name: STATSD_HOST
-      value: {{ ( $ratelimit.statsdHost | default localhost ) | quote  }}
+      value: {{ ( $ratelimit.statsdHost | default "127.0.0.1" ) | quote  }}
     - name: NEAR_LIMIT_RATIO
       value: {{ ( $ratelimit.statsdNear_limit_ratio | default "0.8" ) | quote  }}
     - name: DETAILED_METRICS_MODE
