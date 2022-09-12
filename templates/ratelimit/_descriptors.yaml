@@ -64,6 +64,9 @@
   {{ $indent }}  rate_limit:
   {{ $indent }}    unit: {{ index $limit 1 }}
   {{ $indent }}    requests_per_unit: {{ index $limit 0 }}
+            {{- if $action.preview }} 
+  {{ $indent }}  shadow_mode: {{ $action.preview }}
+            {{- end }}
           {{- end }}
         {{- end }}
       {{- end }}

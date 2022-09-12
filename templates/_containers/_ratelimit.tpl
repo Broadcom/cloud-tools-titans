@@ -49,8 +49,12 @@
   {{- end }}
   
   {{- range $routes }}
-    {{- $ratelimit := .ratelimit }}
-    {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
+    {{- $rt := .ratelimit }}
+    {{- if $rt }}
+      {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled true (hasKey $rt "enabled")) }}
+    {{- else }}
+      {{- $hasRatelimit = or $hasRatelimit false }}
+    {{- end }}
   {{- end }}
   {{- if and $envoyEnabled $ratelimitEnabled $hasRatelimit }}
 - name: {{include "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" . }}
@@ -80,10 +84,20 @@
       value: {{ $ratelimit.redisSocketType | default "tcp" | quote }}
     - name: REDIS_AUTH
       value: {{ $ratelimit.redisAuth| default "" | quote  }}
-    - name: STATSD_PORT
-      value: {{ ( $ratelimit.statsdPort | default 8225 ) | quote  }}
     - name: USE_STATSD
-      value: {{ $ratelimit.userStatsD | default "False" | quote  }}
+      value: {{ $ratelimit.userStatsD | default "true" | quote  }}
+    - name: STATSD_PORT
+      value: {{ ( $ratelimit.statsdPort | default "8125" ) | quote  }}
+    - name: STATSD_PROTOCOL
+      value: {{ ( $ratelimit.statsdProtocol | default "udp" ) | quote  }}
+    - name: STATSD_HOST
+      value: {{ ( $ratelimit.statsdHost | default "127.0.0.1" ) | quote  }}
+    - name: NEAR_LIMIT_RATIO
+      value: {{ ( $ratelimit.statsdNear_limit_ratio | default "0.8" ) | quote  }}
+    - name: DETAILED_METRICS_MODE
+      value: {{ ( $ratelimit.statsdDetailed_metrics_mode | default "true" ) | quote  }}
+    - name: SHADOW_MODE
+      value: {{ ( $ratelimit.Shadow_mode | default "false" ) | quote  }}
     - name: PORT
       value: {{ ( $ratelimit.port | default 8070 ) | quote  }}
     - name: NAMESPACE
