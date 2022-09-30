@@ -56,7 +56,7 @@
       {{- end }}
     {{- end }}
     {{- $cluster := ternary (index $clusters $clusterName) .empty (ne $clusterName "") }}
-    {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
+    {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default $remoteMyApp.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
     {{- if or $cluster (or .directResponse .redirect) }}
       {{- if not .match }}
         {{- $retryOn := ternary "reset,connect-failure,refused-stream" "reset,connect-failure,refused-stream,gateway-error" (hasPrefix "local-" $clusterName) }}
