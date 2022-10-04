@@ -42,6 +42,7 @@
   rate_limits:
     {{- range $routes }}
       {{- $ratelimit := .ratelimit }}
+      {{- $rtName := regexReplaceAll "\\W+" ($ratelimit.name | default "keyval") "-" }}
       {{- if (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
         {{- $l1hash := . | toString | sha1sum }}
         {{- $matches := .empty }}
@@ -64,7 +65,7 @@
           {{- range $matches }}
   - actions:
     - header_value_match:
-        descriptor_value: {{ printf "keyval_%s" ((printf "%s:%s:%s" $l1hash $l2hash (. | toString)) |  sha1sum | trunc $hashLen) }}
+        descriptor_value: {{ printf "%s_%s" $rtName ((printf "%s:%s:%s" $l1hash $l2hash (. | toString)) |  sha1sum | trunc $hashLen) }}
           {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .) | nindent 6 }}
             {{- range $action.match }}
               {{- $descriptor := . }}
@@ -76,13 +77,13 @@
               {{- end }}
               {{- if or .eq .neq .sw .nsw .ew .new .co .nco .lk .nlk .pr .npr }}
     - header_value_match:
-        descriptor_value: {{ printf "keyval_%s" ((printf "%s:%s:%s" $l1hash $l2hash (. | toString)) |  sha1sum  | trunc $hashLen) }}
+        descriptor_value: {{ printf "%s_%s" $rtName ((printf "%s:%s:%s" $l1hash $l2hash (. | toString)) |  sha1sum  | trunc $hashLen) }}
                 {{ $headers := list (set $descriptor "key" $header) }}
         {{- include "titan-mesh-helm-lib-chart.envoy.matcher-headers" (dict "headers"  $headers) | nindent 6 }}
               {{- else }}
                 {{- if $testForNil }}
     - header_value_match:
-        descriptor_value: {{ printf "keyval_%s" ((printf "%s:%s:%s" $l1hash $l2hash (. | toString)) |  sha1sum  | trunc $hashLen) }}
+        descriptor_value: {{ printf "%s_%s" $rtName ((printf "%s:%s:%s" $l1hash $l2hash (. | toString)) |  sha1sum  | trunc $hashLen) }}
                   {{- $headers := list (dict "key" $header "neq" "nil") }}
         {{- include "titan-mesh-helm-lib-chart.envoy.matcher-headers" (dict "headers"  $headers) | nindent 6 }}
                 {{- end }}
