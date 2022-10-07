@@ -1,8 +1,8 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.enrichment" }}
   {{- $clusters := .clusters }}
   {{- $requests := .requests  }}
-  {{- $envoy := .envoy  }}
-  {{- $enrich := $requests.enrich }}
+  {{- $envoy := .envoy }}
+  {{- $enrich := mergeOverwrite (deepCopy ($envoy.enrich | default dict)) ($requests.enrich | default dict) -}}
   {{- $localMyApp := .localMyApp  }}
 
   {{- $gateway := $localMyApp.gateway }}
@@ -12,7 +12,6 @@
     {{- range $cn, $cv := $clusters }}
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
         {{- range $cv.routes }}
-          {{- $newcluster := dict "cluster" $cn }}
           {{- $routes = append $routes . }}
         {{- end }}
       {{- end }}
@@ -34,22 +33,65 @@
     {{- end }}
   {{- end }}
   {{- $enableEnrichment := false  }}
-  {{- $total := 0 }}
   {{- if hasKey $enrich "actions" }}
-    {{- $enableEnrichment = true  }}
     {{- range $enrich.actions }}
-      {{- $total = add $total 1 }}
+      {{- $enableEnrichment = true  }}
+    {{- end }}
+  {{- else }}
+    {{- $actions := list }}
+    {{- range $routes }}
+      {{- $match := .match }}
+      {{- $pathPrefix := $match.prefix | default $match.path | default "" }}
+      {{- $headerMatches := list }}
+      {{- range $match.headers }}
+        {{- $hdr := dict "name" .key }}
+        {{- if .eq }}
+          {{- $_ := set $hdr "pattern" "eq" }}
+          {{- $_ := set $hdr "value" .eq }}
+        {{- else if .neq }}
+          {{- $_ := set $hdr "pattern" "eq" }}
+          {{- $_ := set $hdr "value" .neq }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- else if .sw }}
+          {{- $_ := set $hdr "pattern" "sw" }}
+          {{- $_ := set $hdr "value" .sw }}
+        {{- else if .nsw }}
+          {{- $_ := set $hdr "pattern" "sw" }}
+          {{- $_ := set $hdr "value" .sw }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- else if .ew }}
+          {{- $_ := set $hdr "pattern" "ew" }}
+          {{- $_ := set $hdr "value" .ew }}
+        {{- else if .new }}
+          {{- $_ := set $hdr "pattern" "ew" }}
+          {{- $_ := set $hdr "value" .new }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- else if .co }}
+          {{- $_ := set $hdr "pattern" "co" }}
+          {{- $_ := set $hdr "value" .co }}
+        {{- else if .nco }}
+          {{- $_ := set $hdr "pattern" "co" }}
+          {{- $_ := set $hdr "value" .nco }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- end }}
+        {{- $headerMatches = append $headerMatches $hdr }}
+      {{- end }}
+      {{- if (hasKey . "enrich") }}
+        {{- range .enrich.actions }}
+          {{- $enableEnrichment = true }}
+          {{- if ne $pathPrefix "" }}
+            {{- $_ := set . "path_prefix" $pathPrefix }}
+            {{- $_ := set . "match_headers" $headerMatches }}
+          {{- end }}
+          {{- $actions = append $actions . }}
+        {{- end }}
+      {{- end }}
+    {{- end  }}
+    {{- if gt (len $actions) 0 }}
+      {{- $ := set $enrich "actions" $actions }}
     {{- end }}
   {{- end }}
-  {{- range $routes }}
-    {{- if (hasKey . "enrich") }}
-      {{- $enableEnrichment = true  }}
-      {{- range .enrich.actions }}
-        {{- $total = add $total 1 }}
-      {{- end }}
-    {{- end }}
-  {{- end  }}
-  {{- $enableEnrichment = ternary $enrich.enabled $enableEnrichment (hasKey $enrich "enabled") }}
+  {{- $enableEnrichment = ternary (and $enrich.enabled $enableEnrichment) $enableEnrichment (hasKey $enrich "enabled") }}
   {{- if $enableEnrichment }}
 - name: envoy.filters.http.enrichment
   typed_config:
@@ -65,140 +107,7 @@
       configuration:
         "@type": type.googleapis.com/google.protobuf.StringValue
 {{ print "value: |" | indent 8 }}
-{{ print "{" | indent 10 }}
-    {{- if $enrich.auth_host }}
-{{ printf "%s: %s," (print "auth_host" | quote) (print $enrich.auth_host | quote) | indent 12 }}
-    {{- end }}
-    {{- if $enrich.auth_address }}
-{{ printf "%s: %s," (print "auth_address" | quote) (print $enrich.auth_address | quote) | indent 12 }}
-    {{- end }}
-{{ printf "%s: [" (print "actions" | quote) | indent 12 }}
-    {{- $count := 1 }}
-    {{- range $enrich.actions }}
-{{ print "{" | indent 14 }}
-{{ printf "%s: %s," (print "action" | quote) (print .action | quote) | indent 16 }}
-      {{- if .from }}
-{{ printf "%s: %s," (print "from" | quote) (print .from | quote) | indent 16 }}
-      {{- end }}
-      {{- if or .with .if_contain .if_start_with .path_prefix }}
-        {{- if .to }}
-{{ printf "%s: %s," (print "to" | quote) (print .to | quote) | indent 16 }} 
-        {{- end }}
-      {{- else }}
-        {{- if .to }}
-{{ printf "%s: %s" (print "to" | quote) (print .to | quote) | indent 16 }}
-        {{- end }}
-      {{- end }}
-      {{- if .with }}
-        {{- if or .if_contain .if_start_with .path_prefix }}
-{{ printf "%s: %s," (print "with" | quote) (print .with | quote) | indent 16 }}
-        {{- else }}
-{{ printf "%s: %s" (print "with" | quote) (print .with | quote) | indent 16 }}
-        {{- end }}
-      {{- end }}
-      {{- if .if_contain }}
-        {{- if .if_start_with }}
-{{ printf "%s: %s," (print "if_contain" | quote) (print .if_contain | quote) | indent 16 }}
-        {{- else }}
-{{ printf "%s: %s" (print "if_contain" | quote) (print .if_contain | quote) | indent 16 }}
-        {{- end }}
-      {{- end }}
-      {{- if .if_start_with }}
-        {{- if .path_prefix }}
-{{ printf "%s: %s," (print "if_start_with" | quote) (print .if_start_with | quote) | indent 16 }}
-        {{- else }}
-{{ printf "%s: %s" (print "if_start_with" | quote) (print .if_start_with | quote) | indent 16 }}
-        {{- end }}
-      {{- end }}
-      {{- if eq $count $total }}
-{{ print "}" | indent 14 }}
-      {{- else }}
-{{ print "}," | indent 14 }}
-      {{- end }}
-      {{- $count = add $count 1 }}
-    {{- end }}
-    {{- range $routes }}
-      {{- if .enrich }}
-        {{- $prefix := "" }}
-        {{- if .match }}
-          {{- if .match.prefix }}
-            {{- $prefix = .match.prefix }}
-          {{- end }}
-        {{- end }}
-        {{- $address := "" }}
-        {{- if .route }}
-          {{- if .route.cluster }}
-            {{- $cluster := index $clusters .route.cluster }}
-            {{- if $cluster.address }}
-              {{- $address = $cluster.address }}
-            {{- else if $cluster.namespace }}
-              {{- $address = printf "%s.%s.svc.clusters.local" .route.cluster $cluster.namespace }}
-            {{- end }}
-          {{- end }}
-        {{- end }}
-        {{- range .enrich.actions }}
-{{ print "{" | indent 14 }}
-{{ printf "%s: %s," (print "action" | quote) (print .action | quote) | indent 16 }}
-          {{- if .from }}
-{{ printf "%s: %s," (print "from" | quote) (print .from | quote) | indent 16 }}
-          {{- end }}
-          {{- if or .with .if_contain .if_start_with (ne $prefix "") .path_prefix (ne $address "") }}
-            {{- if .to }}
-{{ printf "%s: %s," (print "to" | quote) (print .to | quote) | indent 16 }}
-            {{- end }}
-          {{- else }}
-            {{- if .to }}
-{{ printf "%s: %s" (print "to" | quote) (print .to | quote) | indent 16 }} 
-            {{- end }}
-          {{- end }}
-          {{- if .with }}
-            {{- if or .if_contain .if_start_with (ne $prefix "") .path_prefix (ne $address "") }}
-{{ printf "%s: %s," (print "with" | quote) (print .with | quote) | indent 16 }}
-            {{- else }}
-{{ printf "%s: %s" (print "with" | quote) (print .with | quote) | indent 16 }}
-            {{- end }}
-          {{- end }}
-          {{- if .if_contain }}
-            {{- if or .if_start_with (ne $prefix "") .path_prefix (ne $address "") }}
-{{ printf "%s: %s," (print "if_contain" | quote) (print .if_contain | quote) | indent 16 }}
-            {{- else }}
-{{ printf "%s: %s" (print "if_contain" | quote) (print .if_contain | quote) | indent 16 }}
-            {{- end }}
-          {{- end }}
-          {{- if .if_start_with }}
-            {{- if or (ne $prefix "") .path_prefix (ne $address "") }}
-{{ printf "%s: %s," (print "if_start_with" | quote) (print .if_start_with | quote) | indent 16 }}
-            {{- else }}
-{{ printf "%s: %s" (print "if_start_with" | quote) (print .if_start_with | quote) | indent 16 }}
-            {{- end }}
-          {{- end }}
-          {{- if ne $prefix "" }}
-            {{- if ne $address "" }}
-{{ printf "%s: %s," (print "path_prefix" | quote) (print $prefix | quote) | indent 16 }}
-            {{- else }}
-{{ printf "%s: %s" (print "path_prefix" | quote) (print $prefix | quote) | indent 16 }}
-            {{- end }}
-          {{- else if .path_prefix }}
-            {{- if ne $address "" }}
-{{ printf "%s: %s," (print "path_prefix" | quote) (print .path_prefix | quote) | indent 16 }}
-            {{- else }}
-{{ printf "%s: %s" (print "path_prefix" | quote) (print .path_prefix | quote) | indent 16 }}
-            {{- end }}
-          {{- end }}
-          {{- if ne $address "" }}
-{{ printf "%s: %s" (print "host" | quote) (print $address | quote) | indent 16 }}
-          {{- end }}
-          {{- if eq $count $total }}
-{{ print "}" | indent 14 }}
-          {{- else }}
-{{ print "}," | indent 14 }}
-          {{- end }}
-          {{- $count = add $count 1 }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
-{{ print "]" | indent 12 }}
-{{ print "}" | indent 10 }}
+{{ toPrettyJson $enrich | indent 10 }}
     {{- $enrichfilterName := "envoy_proxy_wasm_enrichment_filter.wasm" }}
     {{- $enrichfilterAllowedPrecompiled := "true" }}
     {{- $enrichfilterWasmRuntime := "envoy.wasm.runtime.v8" }}
@@ -221,7 +130,6 @@
         allow_precompiled: {{ $enrichfilterAllowedPrecompiled }}
         code:
           local:
-            filename: {{ printf "/envoy/%s" $enrichfilterName | quote }}
-        
+            filename: {{ printf "/envoy/%s" $enrichfilterName | quote }}        
   {{- end }}
 {{- end }}
