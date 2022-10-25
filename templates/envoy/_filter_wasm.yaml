@@ -33,12 +33,16 @@
     {{- end }}
   {{- end }}
   {{- $enableEnrichment := false  }}
-  {{- if hasKey $enrich "actions" }}
+  {{- if or (hasKey $enrich "actions") (hasKey $enrich "rbacs") }}
     {{- range $enrich.actions }}
+      {{- $enableEnrichment = true  }}
+    {{- end }}
+    {{- range $enrich.rbacs }}
       {{- $enableEnrichment = true  }}
     {{- end }}
   {{- else }}
     {{- $actions := list }}
+    {{- $rbacs := list }}
     {{- range $routes }}
       {{- $match := .match }}
       {{- $pathPrefix := $match.prefix | default $match.path | default "" }}
