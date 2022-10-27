@@ -45,6 +45,7 @@
       {{- $pathPrefix := $match.prefix | default "" }}
       {{- $pathMatch := $match.path | default "" }}
       {{- $pathRegex := $match.regex | default "" }}
+      {{- $method := $match.method | default "" }}
       {{- if ne $pathPrefix "" }}
         {{- $hdr := dict "name" ":path" }}
         {{- $_ := set $hdr "pattern" "sw" }}
@@ -61,6 +62,12 @@
         {{- $hdr := dict "name" ":path" }}
         {{- $_ := set $hdr "pattern" "regex" }}
         {{- $_ := set $hdr "value" $pathRegex }}
+        {{- $headerMatches = append $headerMatches $hdr }}        
+      {{- end }}
+      {{- if ne $method "" }}
+        {{- $hdr := dict "name" ":method" }}
+        {{- $_ := set $hdr "pattern" "eq" }}
+        {{- $_ := set $hdr "value" $method }}
         {{- $headerMatches = append $headerMatches $hdr }}        
       {{- end }}
       {{- range $match.headers }}
