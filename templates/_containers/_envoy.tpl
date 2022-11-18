@@ -7,6 +7,7 @@
 {{- if $titanSideCars }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- $envoy := $titanSideCars.envoy -}}
+  {{- $envars := $envoy.env }}
   {{- $clusters := $envoy.clusters }}
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $envoyIngressPort := coalesce $remoteMyApp.targetPort $remoteMyApp.port "9443" }}
@@ -28,6 +29,13 @@
 - name: {{include "titan-mesh-helm-lib-chart.containers.envoy.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($envoy.imageName | default "envoy") ($envoy.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
+    {{- if $envars }}
+  env:
+      {{- range $k, $v := $envars }}
+  - name: {{ $k | upper }}
+    value: {{ $v | quote }}
+      {{- end }}  
+    {{- end }}
   command: 
     - /usr/local/bin/envoy 
     - -c
