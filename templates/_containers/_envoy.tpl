@@ -4,6 +4,7 @@
 
 {{- define "titan-mesh-helm-lib-chart.containers.envoy" -}}
 {{- $titanSideCars := .titanSideCars -}}
+{{- $namespace := .namespace }}
 {{- if $titanSideCars }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- $envoy := $titanSideCars.envoy -}}
@@ -30,11 +31,11 @@
   image: {{ printf "%s%s:%s" $imageRegistry  ($envoy.imageName | default "envoy") ($envoy.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
   env:
-  - name: KUBERNETES_NAMESPACE
-    value: {{ $.Release.Namespace | quote }}
+    - name: KUBERNETES_NAMESPACE
+      value: {{ $namespace | quote }}
     {{- range $k, $v := $envars }}
-  - name: {{ $k | upper }}
-    value: {{ $v | quote }}
+    - name: {{ $k | upper }}
+      value: {{ $v | quote }}
     {{- end }}  
   command: 
     - /usr/local/bin/envoy 
