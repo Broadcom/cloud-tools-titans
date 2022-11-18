@@ -29,13 +29,13 @@
 - name: {{include "titan-mesh-helm-lib-chart.containers.envoy.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($envoy.imageName | default "envoy") ($envoy.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
-    {{- if $envars }}
   env:
-      {{- range $k, $v := $envars }}
+  - name: KUBERNETES_NAMESPACE
+    value: {{ $.Release.Namespace | quote }}
+    {{- range $k, $v := $envars }}
   - name: {{ $k | upper }}
     value: {{ $v | quote }}
-      {{- end }}  
-    {{- end }}
+    {{- end }}  
   command: 
     - /usr/local/bin/envoy 
     - -c
