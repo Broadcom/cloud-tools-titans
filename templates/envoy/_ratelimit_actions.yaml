@@ -8,7 +8,13 @@
   {{- if $gatewayEnable }}
     {{- range $cn, $cv := $clusters }}
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
-        {{- range $cv.routes }}
+        {{- $ratelimitRoutes := $cv.routes }} 
+        {{- if $cv.ratelimit }}
+          {{- if $cv.ratelimit.routes }}
+            {{- $ratelimitRoutes = $cv.ratelimit.routes }} 
+          {{- end }}
+        {{- end }}
+        {{- range $ratelimitRoutes }}
           {{- $newcluster := dict "cluster" $cn }}
           {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
         {{- end }}
@@ -19,6 +25,20 @@
     {{- if and $ingress (not $routes) }}
       {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
         {{ $routes = $localMyApp.routes }}
+      {{- end }}
+    {{- end }}
+    {{- $foundRatelimitRoutes := false }}
+    {{- if $ingress.ratelimit }}
+      {{- if $ingress.ratelimit.routes }}
+        {{- $routes = $ingress.ratelimit.routes }}
+        {{- $foundRatelimitRoutes = true }}
+      {{- end }}
+    {{- end }}
+    {{- if not $foundRatelimitRoutes }}
+      {{- if $localApp.ratelimit }}
+        {{- if $localApp.ratelimit.routes }}
+          {{- $routes = $localApp.ratelimit.routes }}
+        {{- end }}
       {{- end }}
     {{- end }}
     {{- $additionalRoutes := $ingress.additionalRoutes }}
