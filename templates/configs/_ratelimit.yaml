@@ -16,8 +16,21 @@
   {{- if $gatewayEnable }}
     {{- range $cn, $cv := $clusters }}
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
+        {{- $clusterRateLimits := dict }}
+        {{- if $cv.ratelimit }}
+          {{- if $cv.ratelimit.limits }}
+            {{- $clusterRateLimits = $cv.ratelimit.limits }} 
+          {{- end }}
+        {{- end }}
         {{- range $cv.routes }}
           {{- $newcluster := dict "cluster" $cn }}
+          {{- if and .ratelimit $clusterRateLimits }}
+            {{- range .ratelimit.actions }}
+              {{- if not (contains "/" .limit) }}
+                {{$_ := set . "limit" (get $clusterRateLimits .limit)}}
+              {{- end }}
+            {{- end }}
+          {{- end }}
           {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
         {{- end }}
       {{- end }}
@@ -44,7 +57,6 @@
     {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled ($rt | default false) (hasKey $rt "enabled")) }}
   {{- end }}
   {{- if and  $ratelimitEnabled $hasRatelimit }}
-
 ratelimit_config.yaml: |
   domain: {{ $ratelimit.domain | default $appName }}
   {{- include "titan-mesh-helm-lib-chart.ratelimit.descriptors" (dict "ingress" $ingress "clusters" $clusters "routes" $routes) | nindent 0 }}
