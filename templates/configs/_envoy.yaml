@@ -4,6 +4,7 @@
   {{- $envoy := $titanSideCars.envoy  }}
   {{- $logs := $titanSideCars.logs  }}
   {{- $opa := $titanSideCars.opa  }}
+  {{- $ratelimit := $titanSideCars.ratelimit -}}
   {{- $ingress := $titanSideCars.ingress  }}
   {{- $egress := $titanSideCars.egress  }}
   {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
@@ -78,7 +79,7 @@ envoy.yaml: |
         {{- include .name $ | nindent 12 }}
       {{- end }}
     {{- end }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" (dict "clusters" $clusters) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" (dict "clusters" $clusters "opa" $opa "ratelimit" $ratelimit) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "TokenValidation" }}

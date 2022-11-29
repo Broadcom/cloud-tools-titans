@@ -252,9 +252,11 @@
     {{- end }}
   {{- end }}
   {{- $ratelimit := $titanSideCars.ratelimit -}}
+  {{- $ratelimitMonitorByEnvoy := $ratelimit.monitorByEnvoy -}}
   {{- $ratelimitEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
-  {{- $hasRatelimit := false }}
-
+  {{- $opaEnabled := eq (include "static.titan-mesh-helm-lib-chart.opaEnabled" $titanSideCars) "true" -}}
+  {{- $opa := $titanSideCars.opa -}}
+  {{- $opaMonitorByEnvoy := $opa.monitorByEnvoy -}}
   {{- $gateway := $localApp.gateway }}
   {{- $gatewayEnable := $gateway.enabled }}
   {{- $routes := list }}
@@ -283,12 +285,7 @@
       {{- end }}
     {{- end }}
   {{- end }}
-
-  {{- range $routes }}
-    {{- $rt := .ratelimit }}
-    {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled ($rt | default false) (hasKey $rt "enabled")) }}
-  {{- end }}
-  {{- if and $ratelimitEnabled $hasRatelimit }}
+  {{- if $ratelimitEnabled }}
     - name: ratelimit
       type: STATIC
       dns_lookup_family: V4_ONLY
@@ -314,5 +311,49 @@
                 socket_address:
                   address: {{ $ratelimit.address | default "127.0.0.1" }}
                   port_value: {{ $ratelimit.port | default "8081" }}
+    {{- if $ratelimitMonitorByEnvoy }}
+    - name: ratelimit-health
+      connect_timeout: {{ $ratelimit.healthConnectTimeout | "0.25s" }}
+      type: static
+      lb_policy: round_robin
+      health_checks:
+      - http_health_check: 
+          path: {{ $ratelimit.healthCheckPath | default "/healthcheck" }}
+        interval: {{ $ratelimit.healthCheckInterval | "5s" }}
+        timeout: {{ $ratelimit.healthConnectTimeout | "0.25s" }}
+        healthy_threshold: {{ $ratelimit.healthThreshold | "1" }}
+        unhealthy_threshold: {{ $ratelimit.unhealthThreshold | "1" }}
+      load_assignment:
+        cluster_name: ratelimit-health
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address:
+                  address: 127.0.0.1
+                  port_value: {{ $ratelimit.healthCheckPort | default "8070" }}
+    {{- end }} 
+  {{- end }}
+  {{- if and $opaEnabled $opaMonitorByEnvoy }}
+    - name: opa-health
+      connect_timeout: {{ $opa.healthConnectTimeout | "0.25s" }}
+      type: static
+      lb_policy: round_robin
+      health_checks:
+      - http_health_check: 
+          path: {{ $opa.healthCheckPath | default "/health?plugins" }}
+        interval: {{ $opa.healthCheckInterval | "5s" }}
+        timeout: {{ $opa.healthConnectTimeout | "0.25s" }}
+        healthy_threshold: {{ $opa.healthThreshold | "1" }}
+        unhealthy_threshold: {{ $opa.unhealthThreshold | "1" }}
+      load_assignment:
+        cluster_name: opa-health
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address:
+                  address: 127.0.0.1
+                  port_value: {{ $opa.healthCheckPort | default "8282" }}
   {{- end }}
 {{- end }}

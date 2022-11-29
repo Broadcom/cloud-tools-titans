@@ -6,8 +6,8 @@
 {{- if $titanSideCars }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- $ratelimitEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
-  {{- $opa := $titanSideCars.opa -}}
   {{- $ratelimit := $titanSideCars.ratelimit -}}
+  {{- $ratelimitMonitorByEnvoy := $ratelimit.monitorByEnvoy -}}
   {{- $ratelimitCPU := $ratelimit.cpu -}}
   {{- $ratelimitMemory := $ratelimit.memory -}}
   {{- $ratelimitStorage := $ratelimit.ephemeralStorage -}}
@@ -17,7 +17,6 @@
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
   {{- $localApp := index $clusters "local-myapp" }}
-  {{- $hasRatelimit := false }}
 
   {{- $gateway := $localApp.gateway }}
   {{- $gatewayEnable := $gateway.enabled }}
@@ -48,15 +47,7 @@
     {{- end }}
   {{- end }}
   
-  {{- range $routes }}
-    {{- $rt := .ratelimit }}
-    {{- if $rt }}
-      {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled true (hasKey $rt "enabled")) }}
-    {{- else }}
-      {{- $hasRatelimit = or $hasRatelimit false }}
-    {{- end }}
-  {{- end }}
-  {{- if and $envoyEnabled $ratelimitEnabled $hasRatelimit }}
+  {{- if and $envoyEnabled $ratelimitEnabled }}
 - name: {{include "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($ratelimit.imageName | default "ratelimit") ($ratelimit.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
@@ -115,6 +106,7 @@
         fieldRef:
           apiVersion: v1
           fieldPath: metadata.uid
+    {{- if not $ratelimitMonitorByEnvoy }}
   livenessProbe:
     httpGet:
       path: {{ $ratelimit.healthCheckPath | default "/healthcheck" }}
@@ -140,6 +132,7 @@
       cpu: {{ $ratelimitCPU.request | default "250m" | quote }}
       memory: {{ $ratelimitMemory.request | default "256Mi" | quote }}
       ephemeral-storage: {{ $ratelimitStorage.request | default "100Mi" | quote }}
+    {{- end }}
   terminationMessagePath: /dev/termination-log
   volumeMounts:
     - mountPath: /configs/ratelimit/config/ratelimit_config.yaml

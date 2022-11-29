@@ -7,6 +7,7 @@
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- $opaEnabled := eq (include "static.titan-mesh-helm-lib-chart.opaEnabled" $titanSideCars) "true" -}}
   {{- $opa := $titanSideCars.opa -}}
+  {{- $opaMonitorByEnvoy := $opa.monitorByEnvoy -}}
   {{- $opaCPU := $opa.cpu -}}
   {{- $opaMemory := $opa.memory -}}
   {{- $opaStorage := $opa.ephemeralStorage -}}
@@ -24,6 +25,7 @@
     - "--diagnostic-addr=0.0.0.0:8282"
     - "--ignore=.*"
     - "/opa/policies"
+    {{- if not $opaMonitorByEnvoy }}
   startupProbe:
     httpGet:
       path: {{ $opa.healthCheckPath | default "/health?plugins" }}
@@ -48,6 +50,7 @@
     initialDelaySeconds: 1
     failureThreshold: {{ $opa.readinessFailureThreshold | default "1" }}
     periodSeconds: 5
+    {{- end }}
   lifecycle:
     preStop:
       exec:
