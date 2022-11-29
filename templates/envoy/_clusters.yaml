@@ -313,16 +313,20 @@
                   port_value: {{ $ratelimit.port | default "8081" }}
     {{- if $ratelimitMonitorByEnvoy }}
     - name: ratelimit-health
-      connect_timeout: {{ $ratelimit.healthConnectTimeout | "0.25s" }}
-      type: static
-      lb_policy: round_robin
+      type: STATIC
+      dns_lookup_family: V4_ONLY
+      lb_policy: LEAST_REQUEST
+      connect_timeout: {{ $ratelimit.healthConnectTimeout | default "0.25s" }}
+      common_lb_config:
+        healthy_panic_threshold:
+          value: 25
       health_checks:
-      - http_health_check: 
+      - http_health_check:
           path: {{ $ratelimit.healthCheckPath | default "/healthcheck" }}
-        interval: {{ $ratelimit.healthCheckInterval | "5s" }}
-        timeout: {{ $ratelimit.healthConnectTimeout | "0.25s" }}
-        healthy_threshold: {{ $ratelimit.healthThreshold | "1" }}
-        unhealthy_threshold: {{ $ratelimit.unhealthThreshold | "1" }}
+        interval: {{ $ratelimit.healthCheckInterval |  default "5s" }}
+        timeout: {{ $ratelimit.healthCheckTimeout |  default "1s" }}
+        healthy_threshold: {{ $ratelimit.healthThreshold |  default "1" }}
+        unhealthy_threshold: {{ $ratelimit.unhealthThreshold |  default "1" }}
       load_assignment:
         cluster_name: ratelimit-health
         endpoints:
@@ -336,16 +340,20 @@
   {{- end }}
   {{- if and $opaEnabled $opaMonitorByEnvoy }}
     - name: opa-health
-      connect_timeout: {{ $opa.healthConnectTimeout | "0.25s" }}
-      type: static
-      lb_policy: round_robin
+      type: STATIC
+      dns_lookup_family: V4_ONLY
+      lb_policy: LEAST_REQUEST     
+      connect_timeout: {{ $opa.healthConnectTimeout |  default "0.25s" }}
+      common_lb_config:
+        healthy_panic_threshold:
+          value: 25
       health_checks:
-      - http_health_check: 
+      - http_health_check:
           path: {{ $opa.healthCheckPath | default "/health?plugins" }}
-        interval: {{ $opa.healthCheckInterval | "5s" }}
-        timeout: {{ $opa.healthConnectTimeout | "0.25s" }}
-        healthy_threshold: {{ $opa.healthThreshold | "1" }}
-        unhealthy_threshold: {{ $opa.unhealthThreshold | "1" }}
+        interval: {{ $opa.healthCheckInterval |  default "5s" }}
+        timeout: {{ $opa.healthCheckTimeout |  default "1s" }}
+        healthy_threshold: {{ $opa.healthThreshold |  default "1" }}
+        unhealthy_threshold: {{ $opa.unhealthThreshold |  default "1" }}
       load_assignment:
         cluster_name: opa-health
         endpoints:
