@@ -3,6 +3,7 @@
   {{- $requests := .requests  }}
   {{- $envoy := .envoy }}
   {{- $enrich := mergeOverwrite (deepCopy ($envoy.enrich | default dict)) ($requests.enrich | default dict) -}}
+  {{- $rbacPolicies := mergeOverwrite (deepCopy ($envoy.rbacs | default dict)) ($requests.rbacs | default dict) -}}
   {{- $localMyApp := .localMyApp  }}
 
   {{- $gateway := $localMyApp.gateway }}
@@ -33,97 +34,118 @@
     {{- end }}
   {{- end }}
   {{- $enableEnrichment := false  }}
-  {{- if hasKey $enrich "actions" }}
+  {{- $enableRbac := false  }}
+  {{- $actions := list }}
+  {{- $rbacs := list }}
+  {{- if or (hasKey $enrich "actions") (hasKey $rbacPolicies "actions") }}
     {{- range $enrich.actions }}
       {{- $enableEnrichment = true  }}
+      {{- $actions = append $actions . }}
     {{- end }}
-  {{- else }}
-    {{- $actions := list }}
-    {{- range $routes }}
-      {{- $match := .match }}
-      {{- $headerMatches := list }}
-      {{- $pathPrefix := $match.prefix | default "" }}
-      {{- $pathMatch := $match.path | default "" }}
-      {{- $pathRegex := $match.regex | default "" }}
-      {{- $method := $match.method | default "" }}
-      {{- if ne $pathPrefix "" }}
-        {{- $hdr := dict "name" ":path" }}
-        {{- $_ := set $hdr "pattern" "sw" }}
-        {{- $_ := set $hdr "value" $pathPrefix }}
-        {{- $headerMatches = append $headerMatches $hdr }}
-      {{- end }}
-      {{- if ne $pathMatch "" }}
-        {{- $hdr := dict "name" ":path" }}
-        {{- $_ := set $hdr "pattern" "eq" }}
-        {{- $_ := set $hdr "value" $pathMatch }}
-        {{- $headerMatches = append $headerMatches $hdr }}
-      {{- end }}
-      {{- if ne $pathRegex "" }}
-        {{- $hdr := dict "name" ":path" }}
-        {{- $_ := set $hdr "pattern" "regex" }}
-        {{- $_ := set $hdr "value" $pathRegex }}
-        {{- $headerMatches = append $headerMatches $hdr }}        
-      {{- end }}
-      {{- if ne $method "" }}
-        {{- $hdr := dict "name" ":method" }}
-        {{- $_ := set $hdr "pattern" "eq" }}
-        {{- $_ := set $hdr "value" $method }}
-        {{- $headerMatches = append $headerMatches $hdr }}        
-      {{- end }}
-      {{- range $match.headers }}
-        {{- $hdr := dict "name" .key }}
-        {{- if .eq }}
-          {{- $_ := set $hdr "pattern" "eq" }}
-          {{- $_ := set $hdr "value" .eq }}
-        {{- else if .neq }}
-          {{- $_ := set $hdr "pattern" "eq" }}
-          {{- $_ := set $hdr "value" .neq }}
-          {{- $_ := set $hdr "invert" true }}
-        {{- else if .sw }}
-          {{- $_ := set $hdr "pattern" "sw" }}
-          {{- $_ := set $hdr "value" .sw }}
-        {{- else if .nsw }}
-          {{- $_ := set $hdr "pattern" "sw" }}
-          {{- $_ := set $hdr "value" .sw }}
-          {{- $_ := set $hdr "invert" true }}
-        {{- else if .ew }}
-          {{- $_ := set $hdr "pattern" "ew" }}
-          {{- $_ := set $hdr "value" .ew }}
-        {{- else if .new }}
-          {{- $_ := set $hdr "pattern" "ew" }}
-          {{- $_ := set $hdr "value" .new }}
-          {{- $_ := set $hdr "invert" true }}
-        {{- else if .co }}
-          {{- $_ := set $hdr "pattern" "co" }}
-          {{- $_ := set $hdr "value" .co }}
-        {{- else if .nco }}
-          {{- $_ := set $hdr "pattern" "co" }}
-          {{- $_ := set $hdr "value" .nco }}
-          {{- $_ := set $hdr "invert" true }}
-        {{- else if .lk }}
-          {{- $_ := set $hdr "pattern" "regex" }}
-          {{- $_ := set $hdr "value" .lk }}
-        {{- else if .nlk }}
-          {{- $_ := set $hdr "pattern" "regex" }}
-          {{- $_ := set $hdr "value" .nlk }}
-          {{- $_ := set $hdr "invert" true }}
-        {{- end }}
-        {{- $headerMatches = append $headerMatches $hdr }}
-      {{- end }}
-      {{- if (hasKey . "enrich") }}
-        {{- range .enrich.actions }}
-          {{- $enableEnrichment = true }}
-          {{- $_ := set . "match_headers" $headerMatches }}
-          {{- $actions = append $actions . }}
-        {{- end }}
-      {{- end }}
-    {{- end  }}
-    {{- if gt (len $actions) 0 }}
-      {{- $ := set $enrich "actions" $actions }}
+    {{- range $rbacPolicies.actions }}
+      {{- $enableRbac = true  }}
+      {{- $rbacs = append $rbacs . }}
     {{- end }}
   {{- end }}
+  {{- range $routes }}
+    {{- $match := .match }}
+    {{- $headerMatches := list }}
+    {{- $pathPrefix := $match.prefix | default "" }}
+    {{- $pathMatch := $match.path | default "" }}
+    {{- $pathRegex := $match.regex | default "" }}
+    {{- $method := $match.method | default "" }}
+    {{- if ne $pathPrefix "" }}
+      {{- $hdr := dict "name" ":path" }}
+      {{- $_ := set $hdr "pattern" "sw" }}
+      {{- $_ := set $hdr "value" $pathPrefix }}
+      {{- $headerMatches = append $headerMatches $hdr }}
+    {{- end }}
+    {{- if ne $pathMatch "" }}
+      {{- $hdr := dict "name" ":path" }}
+      {{- $_ := set $hdr "pattern" "eq" }}
+      {{- $_ := set $hdr "value" $pathMatch }}
+      {{- $headerMatches = append $headerMatches $hdr }}
+    {{- end }}
+    {{- if ne $pathRegex "" }}
+      {{- $hdr := dict "name" ":path" }}
+      {{- $_ := set $hdr "pattern" "regex" }}
+      {{- $_ := set $hdr "value" $pathRegex }}
+      {{- $headerMatches = append $headerMatches $hdr }}        
+    {{- end }}
+    {{- if ne $method "" }}
+      {{- $hdr := dict "name" ":method" }}
+      {{- $_ := set $hdr "pattern" "eq" }}
+      {{- $_ := set $hdr "value" $method }}
+      {{- $headerMatches = append $headerMatches $hdr }}        
+    {{- end }}
+    {{- range $match.headers }}
+      {{- $hdr := dict "name" .key }}
+      {{- if .eq }}
+        {{- $_ := set $hdr "pattern" "eq" }}
+        {{- $_ := set $hdr "value" .eq }}
+      {{- else if .neq }}
+        {{- $_ := set $hdr "pattern" "eq" }}
+        {{- $_ := set $hdr "value" .neq }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- else if .sw }}
+        {{- $_ := set $hdr "pattern" "sw" }}
+        {{- $_ := set $hdr "value" .sw }}
+      {{- else if .nsw }}
+        {{- $_ := set $hdr "pattern" "sw" }}
+        {{- $_ := set $hdr "value" .sw }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- else if .ew }}
+        {{- $_ := set $hdr "pattern" "ew" }}
+        {{- $_ := set $hdr "value" .ew }}
+      {{- else if .new }}
+        {{- $_ := set $hdr "pattern" "ew" }}
+        {{- $_ := set $hdr "value" .new }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- else if .co }}
+        {{- $_ := set $hdr "pattern" "co" }}
+        {{- $_ := set $hdr "value" .co }}
+      {{- else if .nco }}
+        {{- $_ := set $hdr "pattern" "co" }}
+        {{- $_ := set $hdr "value" .nco }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- else if .lk }}
+        {{- $_ := set $hdr "pattern" "regex" }}
+        {{- $_ := set $hdr "value" .lk }}
+      {{- else if .nlk }}
+        {{- $_ := set $hdr "pattern" "regex" }}
+        {{- $_ := set $hdr "value" .nlk }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- end }}
+      {{- $headerMatches = append $headerMatches $hdr }}
+    {{- end }}
+    {{- if (hasKey . "enrich") }}
+      {{- range .enrich.actions }}
+        {{- $enableEnrichment = true }}
+        {{- $_ := set . "match_headers" $headerMatches }}
+        {{- $actions = append $actions . }}
+      {{- end }}
+    {{- end }}
+    {{- if hasKey . "rbac" }}
+      {{- if or .rbac.enabled (not (hasKey .rbac "enabled"))}}
+        {{- $rbac := dict }}
+        {{- $_ := set $rbac "match_headers" $headerMatches }}
+        {{- if .rbac.policies }}
+          {{- $_ := set $rbac "policies" .rbac.policies }}
+          {{- $rbacs = append $rbacs  $rbac }}
+          {{- $enableRbac = true }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end  }}
+  {{- if gt (len $actions) 0 }}
+    {{- $ := set $enrich "actions" $actions }}
+  {{- end }}
+  {{- if gt (len $rbacs) 0 }}
+    {{- $ := set $enrich "rbacs" $rbacs }}
+  {{- end }}
   {{- $enableEnrichment = ternary (and $enrich.enabled $enableEnrichment) $enableEnrichment (hasKey $enrich "enabled") }}
-  {{- if $enableEnrichment }}
+  {{- $enableRbac = ternary (and $rbacPolicies.enabled $enableRbac) $enableRbac (hasKey $rbacPolicies "enabled") }}
+  {{- if or $enableEnrichment $enableRbac }}
 - name: envoy.filters.http.enrichment
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
