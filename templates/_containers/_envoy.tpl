@@ -13,10 +13,15 @@
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $envoyIngressPort := coalesce $remoteMyApp.targetPort $remoteMyApp.port "9443" }}
   {{- $envoyHealthChecks := $remoteMyApp.healthChecks }}
-  {{- $envoyHealthChecksCmds := $envoyHealthChecks.commands }}
-  {{- $envoyHealthChecksCmdsLiveness := $envoyHealthChecksCmds.liveness }}
-  {{- $envoyHealthChecksCmdsStartup := $envoyHealthChecksCmds.startup }}
-  {{- $envoyHealthChecksCmdsReadiness := $envoyHealthChecksCmds.readiness }}
+  {{- $envoyHealthChecksStartup := $envoyHealthChecks.startup }}
+  {{- $envoyHealthChecksStartupEnabled := ternary $envoyHealthChecksStartup.enabled true  (hasKey $envoyHealthChecksStartup "enabled") }}
+  {{- $envoyHealthChecksCmdsStartup := $envoyHealthChecksStartup.commands }}
+  {{- $envoyHealthChecksLiveness := $envoyHealthChecks.liveness }}
+  {{- $envoyHealthChecksLivenessEnabled := ternary $envoyHealthChecksLiveness.enabled true  (hasKey $envoyHealthChecksLiveness "enabled") }}
+  {{- $envoyHealthChecksCmdsLiveness := $envoyHealthChecksLiveness.commands }}
+  {{- $envoyHealthChecksReadiness := $envoyHealthChecks.readiness }}
+  {{- $envoyHealthChecksReadinessEnabled := ternary $envoyHealthChecksReadiness.enabled true  (hasKey $envoyHealthChecksReadiness "enabled") }}
+  {{- $envoyHealthChecksCmdsReadiness := $envoyHealthChecksReadiness.commands }}
   {{- $envoyHealthChecksPath := $envoyHealthChecks.path | default "/healthz" -}}
   {{- $envoyHealthChecksScheme:= $envoyHealthChecks.scheme | default "HTTPS" -}}
   {{- $logs := $titanSideCars.logs -}}
@@ -70,56 +75,60 @@
           - sh
           - -c
           - wget --post-data="" -O - http://127.0.0.1:10000/healthcheck/fail && sleep {{ $envoy.connectionDrainDuration | default "80" }} || true
+    {{- if $envoyHealthChecksStartupEnabled }}
   startupProbe:
-    {{- if $envoyHealthChecksCmdsStartup }}
+      {{- if $envoyHealthChecksCmdsStartup }}
     exec:
       command:
-      {{- range $envoyHealthChecksCmdsStartup }}
+        {{- range $envoyHealthChecksCmdsStartup }}
        {{ printf "- %s" . }}
-      {{- end }}
-    {{- else }}
+        {{- end }}
+      {{- else }}
     httpGet:
       path: {{ $envoyHealthChecksPath }}
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
-    {{- end }}
+      {{- end }}
     initialDelaySeconds: {{ $envoy.startupInitialDelaySeconds | default "5" }}
     failureThreshold: {{ $envoy.startupFailureThreshold | default "300" }}
     periodSeconds: {{ $envoy.startupPeriodSeconds | default "1" }}
-
+    {{- end }}
+    {{- if $envoyHealthChecksLiveness }}
   livenessProbe:
-    {{- if $envoyHealthChecksCmdsLiveness }}
+      {{- if $envoyHealthChecksCmdsLiveness }}
     exec:
       command:
-      {{- range $envoyHealthChecksCmdsLiveness }}
+        {{- range $envoyHealthChecksCmdsLiveness }}
        {{ printf "- %s" . }}
-      {{- end }}
-    {{- else }}
+        {{- end }}
+      {{- else }}
     httpGet:
       path: {{ $envoyHealthChecksPath }}
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
-    {{- end }}
+      {{- end }}
     initialDelaySeconds: {{ $envoy.livenessInitialDelaySeconds | default "1" }}
     failureThreshold: {{ $envoy.livenessFailureThreshold | default "2" }}
     periodSeconds: {{ $envoy.livenessPeriodSeconds | default "3" }}
-
+    {{- end }}
+    {{- if $envoyHealthChecksReadinessEnabled }}
   readinessProbe:
-    {{- if $envoyHealthChecksCmdsReadiness }}
+      {{- if $envoyHealthChecksCmdsReadiness }}
     exec:
       command:
-      {{- range $envoyHealthChecksCmdsReadiness }}
+        {{- range $envoyHealthChecksCmdsReadiness }}
        {{ printf "- %s" . }}
-      {{- end }}
-    {{- else }}
+        {{- end }}
+      {{- else }}
     httpGet:
       path: {{ $envoyHealthChecksPath }}
       port: {{ $envoyIngressPort }}
       scheme: {{ $envoyHealthChecksScheme}}
-    {{- end }}
+      {{- end }}
     initialDelaySeconds: {{ $envoy.readinessInitialDelaySeconds | default "1" }}
     failureThreshold:  {{ $envoy.readinessFailureThreshold | default "1" }}
     periodSeconds: {{ $envoy.readinessPeriodSeconds | default "3" }}
+  {{- end }}
   volumeMounts:
     - mountPath: /envoy/envoy.yaml
       name: titan-configs
