@@ -4,13 +4,47 @@
 
 {{- define "titan-mesh-helm-lib-chart.containers.envoy" -}}
 {{- $titanSideCars := .titanSideCars -}}
-{{- $namespace := .namespace }}
-{{- if $titanSideCars }}
+{{- $namespace := .namespace -}}
+{{- if $titanSideCars -}}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- $envoy := $titanSideCars.envoy -}}
-  {{- $envars := $envoy.env }}
+  {{- $envars := $envoy.env -}}
   {{- $clusters := $envoy.clusters }}
-  {{- $remoteMyApp := index $clusters "remote-myapp" }}
+  {{- $remoteMyApp := index $clusters "remote-myapp" -}}
+  {{- $localMyApp := index $clusters "local-myapp" -}}
+  {{- $ingress := $titanSideCars.ingress }}
+  {{- $ingressroutes := list -}}
+  {{- if $ingress.routes -}}
+    {{- $ingressroutes = $ingress.routes -}}
+  {{- else if $localMyApp.routes -}}
+    {{- $ingressroutes = $localMyApp.routes -}}
+  {{- end -}}
+  {{- $wasmFilterUsed := false -}}
+  {{- range $ingressroutes -}}
+    {{- if or .enrich .rbac -}}
+      {{- $wasmFilterUsed = true -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if not $wasmFilterUsed -}}
+    {{- $enrich := mergeOverwrite (deepCopy ($envoy.enrich | default dict)) ($ingress.enrich | default dict) -}}
+    {{- $rbacPolicies := mergeOverwrite (deepCopy ($envoy.rbacs | default dict)) ($ingress.rbacs | default dict) -}} 
+    {{- range $enrich.actions -}}
+      {{- $wasmFilterUsed = true -}}
+    {{- end -}}
+    {{- range $rbacPolicies.actions -}}
+      {{- $wasmFilterUsed = true -}}
+    {{- end -}}
+    {{- if and (and (hasKey $enrich ".enabled") (not $enrich.enabled)) (and (hasKey $rbacPolicies ".enabled") (not $rbacPolicies.enabled)) }}
+        {{- $wasmFilterUsed = false -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if $titanSideCars.ingress -}}
+    {{- if hasKey $titanSideCars.ingress "enrich" -}}
+      {{- if and (hasKey $titanSideCars.ingress "enabled") (not $titanSideCars.ingress.enabled) }}
+        {{- $wasmFilterUsed = false -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
   {{- $envoyIngressPort := coalesce $remoteMyApp.targetPort $remoteMyApp.port "9443" }}
   {{- $envoyHealthChecks := $remoteMyApp.healthChecks }}
   {{- $envoyHealthChecksStartup := $envoyHealthChecks.startup }}
@@ -77,11 +111,21 @@
           - wget --post-data="" -O - http://127.0.0.1:10000/healthcheck/fail && sleep {{ $envoy.connectionDrainDuration | default "80" }} || true
     {{- if $envoyHealthChecksStartupEnabled }}
   startupProbe:
-      {{- if $envoyHealthChecksCmdsStartup }}
+      {{- if $envoyHealthChecksStartup.useCustomhealthCheckCmds }}
+        {{- if $wasmFilterUsed }}
+    exec:
+      command:
+        {{ printf "- %s" (printf "/envoy/health_check_restart_pod.sh startup %s true" ($envoy.startupFailureThreshold | default "300")| quote) }}
+        {{- else }}
+    exec:
+      command:
+        {{ printf "- %s" (print "/envoy/health_check_restart_pod.sh startup %s" ($envoy.startupFailureThreshold | default "300") | quote) }}
+        {{- end }}
+      {{- else if $envoyHealthChecksCmdsStartup }}
     exec:
       command:
         {{- range $envoyHealthChecksCmdsStartup }}
-       {{ printf "- %s" . }}
+        {{ printf "- %s" (. | quote) }}
         {{- end }}
       {{- else }}
     httpGet:
@@ -95,11 +139,21 @@
     {{- end }}
     {{- if $envoyHealthChecksLiveness }}
   livenessProbe:
-      {{- if $envoyHealthChecksCmdsLiveness }}
+      {{- if $envoyHealthChecksLiveness.useCustomhealthCheckCmds }}
+        {{- if $wasmFilterUsed }}
+    exec:
+      command:
+        {{ printf "- %s" (printf "/envoy/health_check_restart_pod.sh liveness %s true" ($envoy.livenessFailureThreshold | default "2") | quote) }}
+        {{- else }}
+    exec:
+      command:
+        {{ printf "- %s" (printf "/envoy/health_check_restart_pod.sh liveness %s" ($envoy.livenessFailureThreshold | default "2") | quote) }}
+        {{- end }}
+      {{- else if $envoyHealthChecksCmdsLiveness }}
     exec:
       command:
         {{- range $envoyHealthChecksCmdsLiveness }}
-       {{ printf "- %s" . }}
+        {{ printf "- %s" (. | quote) }}
         {{- end }}
       {{- else }}
     httpGet:
@@ -113,11 +167,21 @@
     {{- end }}
     {{- if $envoyHealthChecksReadinessEnabled }}
   readinessProbe:
-      {{- if $envoyHealthChecksCmdsReadiness }}
+      {{- if $envoyHealthChecksReadiness.useCustomhealthCheckCmds }}
+        {{- if $wasmFilterUsed }}
+    exec:
+      command:
+        {{ printf "- %s" (printf "/envoy/health_check_restart_pod.sh readiness %s true" ($envoy.readinessFailureThreshold | default "1") | quote) }}
+        {{- else }}
+    exec:
+      command:
+        {{ printf "- %s" (print "/envoy/health_check_restart_pod.sh readiness %s" ($envoy.readinessFailureThreshold | default "1") | quote) }}
+        {{- end }}
+      {{- else if $envoyHealthChecksCmdsReadiness }}
     exec:
       command:
         {{- range $envoyHealthChecksCmdsReadiness }}
-       {{ printf "- %s" . }}
+        {{ printf "- %s" (. | quote) }}
         {{- end }}
       {{- else }}
     httpGet:
