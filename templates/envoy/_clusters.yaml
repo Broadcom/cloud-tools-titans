@@ -323,8 +323,8 @@
       health_checks:
       - http_health_check:
           path: {{ $ratelimit.healthCheckPath | default "/healthcheck" }}
-        interval: {{ $ratelimit.healthCheckInterval |  default "5s" }}
-        timeout: {{ $ratelimit.healthCheckTimeout |  default "1s" }}
+        interval: {{ $ratelimit.healthCheckInterval |  default "3s" }}
+        timeout: {{ $ratelimit.healthCheckTimeout |  default "2s" }}
         healthy_threshold: {{ $ratelimit.healthThreshold |  default "1" }}
         unhealthy_threshold: {{ $ratelimit.unhealthThreshold |  default "1" }}
       load_assignment:
@@ -350,8 +350,8 @@
       health_checks:
       - http_health_check:
           path: {{ $opa.healthCheckPath | default "/health?plugins" }}
-        interval: {{ $opa.healthCheckInterval |  default "5s" }}
-        timeout: {{ $opa.healthCheckTimeout |  default "1s" }}
+        interval: {{ $opa.healthCheckInterval |  default "3s" }}
+        timeout: {{ $opa.healthCheckTimeout |  default "2s" }}
         healthy_threshold: {{ $opa.healthThreshold |  default "1" }}
         unhealthy_threshold: {{ $opa.unhealthThreshold |  default "1" }}
       load_assignment:
