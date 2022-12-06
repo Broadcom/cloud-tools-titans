@@ -50,7 +50,8 @@
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
     domain: {{ $ratelimit.domain | default $appName }}
-    failure_mode_deny: false
+    failure_mode_deny: {{ $ratelimit.failureModeDeny | default "false" }}
+    enable_x_ratelimit_headers: {{ $ratelimit.enableRatelimitResponseHeaders | default "true" }}
     rate_limit_service:
       transport_api_version: V3
       grpc_service:
