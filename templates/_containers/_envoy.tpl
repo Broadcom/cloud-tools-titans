@@ -112,14 +112,13 @@
     {{- if $envoyHealthChecksStartupEnabled }}
   startupProbe:
       {{- if $envoyHealthChecksStartup.useCustomhealthCheckCmds }}
+    exec:
+      command:
+        - "/envoy/health_check_restart_pod.sh"
+        - "startup"
+        - {{ print ($envoy.startupFailureThreshold | default "300") | quote }}
         {{- if $wasmFilterUsed }}
-    exec:
-      command:
-        {{ printf "- %s" (printf "/envoy/health_check_restart_pod.sh startup %s true" ($envoy.startupFailureThreshold | default "300")| quote) }}
-        {{- else }}
-    exec:
-      command:
-        {{ printf "- %s" (print "/envoy/health_check_restart_pod.sh startup %s" ($envoy.startupFailureThreshold | default "300") | quote) }}
+        - "true"
         {{- end }}
       {{- else if $envoyHealthChecksCmdsStartup }}
     exec:
@@ -140,14 +139,13 @@
     {{- if $envoyHealthChecksLiveness }}
   livenessProbe:
       {{- if $envoyHealthChecksLiveness.useCustomhealthCheckCmds }}
+    exec:
+      command:
+        - "/envoy/health_check_restart_pod.sh"
+        - "liveness"
+        - {{ print ($envoy.livenessFailureThreshold | default "2") | quote }}
         {{- if $wasmFilterUsed }}
-    exec:
-      command:
-        {{ printf "- %s" (printf "/envoy/health_check_restart_pod.sh liveness %s true" ($envoy.livenessFailureThreshold | default "2") | quote) }}
-        {{- else }}
-    exec:
-      command:
-        {{ printf "- %s" (printf "/envoy/health_check_restart_pod.sh liveness %s" ($envoy.livenessFailureThreshold | default "2") | quote) }}
+        - "true"
         {{- end }}
       {{- else if $envoyHealthChecksCmdsLiveness }}
     exec:
@@ -168,14 +166,13 @@
     {{- if $envoyHealthChecksReadinessEnabled }}
   readinessProbe:
       {{- if $envoyHealthChecksReadiness.useCustomhealthCheckCmds }}
+    exec:
+      command:
+        - "/envoy/health_check_restart_pod.sh"
+        - "readiness"
+        - {{ print ($envoy.readinessFailureThreshold | default "1") | quote }}
         {{- if $wasmFilterUsed }}
-    exec:
-      command:
-        {{ printf "- %s" (printf "/envoy/health_check_restart_pod.sh readiness %s true" ($envoy.readinessFailureThreshold | default "1") | quote) }}
-        {{- else }}
-    exec:
-      command:
-        {{ printf "- %s" (print "/envoy/health_check_restart_pod.sh readiness %s" ($envoy.readinessFailureThreshold | default "1") | quote) }}
+        - "true"
         {{- end }}
       {{- else if $envoyHealthChecksCmdsReadiness }}
     exec:
