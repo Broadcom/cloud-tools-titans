@@ -136,7 +136,7 @@
     failureThreshold: {{ $envoy.startupFailureThreshold | default "300" }}
     periodSeconds: {{ $envoy.startupPeriodSeconds | default "1" }}
     {{- end }}
-    {{- if $envoyHealthChecksLiveness }}
+    {{- if $envoyHealthChecksLivenessEnabled }}
   livenessProbe:
       {{- if $envoyHealthChecksLiveness.useCustomhealthCheckCmds }}
     exec:
