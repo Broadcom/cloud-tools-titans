@@ -170,7 +170,7 @@
           {{- $scheme := ternary ( $clusterValue.scheme | default "HTTP") ( $clusterValue.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
           {{- $sni := ternary $clusterAddress "" (or  $clusterValue.sniValidation (hasKey  $clusterValue "address") | default false) }}
           {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "addSocket" true "sni" $sni "cluster" (index $clusters $cluster)) | nindent 6 }}
-      lb_policy: LEAST_REQUEST
+      lb_policy: {{ $clusterValue.lbPolicy | default "LEAST_REQUEST" }}
       load_assignment:
         cluster_name: {{ $cluster }}
         endpoints:
