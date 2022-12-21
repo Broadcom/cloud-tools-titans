@@ -114,7 +114,7 @@
       {{- if $envoyHealthChecksStartup.useCustomhealthCheckCmds }}
     exec:
       command:
-        - "/envoy/health_check_restart_pod.sh"
+        - {{ print ($envoyHealthChecksStartup.customhealthCheckCmdScript | default "/envoy/health_check_restart_pod.sh") | quote }} 
         - "startup"
         - {{ print ($envoy.startupFailureThreshold | default "300") | quote }}
         {{- if $wasmFilterUsed }}
@@ -141,7 +141,7 @@
       {{- if $envoyHealthChecksLiveness.useCustomhealthCheckCmds }}
     exec:
       command:
-        - "/envoy/health_check_restart_pod.sh"
+        - {{ print ($envoyHealthChecksLiveness.customhealthCheckCmdScript | default "/envoy/health_check_restart_pod.sh") | quote }} 
         - "liveness"
         - {{ print ($envoy.livenessFailureThreshold | default "2") | quote }}
         {{- if $wasmFilterUsed }}
@@ -168,7 +168,7 @@
       {{- if $envoyHealthChecksReadiness.useCustomhealthCheckCmds }}
     exec:
       command:
-        - "/envoy/health_check_restart_pod.sh"
+        - {{ print ($envoyHealthChecksReadiness.customhealthCheckCmdScript | default "/envoy/health_check_restart_pod.sh") | quote }} 
         - "readiness"
         - {{ print ($envoy.readinessFailureThreshold | default "1") | quote }}
         {{- if $wasmFilterUsed }}
