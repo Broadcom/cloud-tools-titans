@@ -84,9 +84,9 @@
     - name: STATSD_HOST
       value: {{ ( $ratelimit.statsdHost | default "127.0.0.1" ) | quote  }}
     - name: NEAR_LIMIT_RATIO
-      value: {{ ( $ratelimit.statsdNear_limit_ratio | default "0.8" ) | quote  }}
+      value: {{ ( $ratelimit.nearLimitRatio | default "0.8" ) | quote  }}
     - name: DETAILED_METRICS_MODE
-      value: {{ ( $ratelimit.statsdDetailed_metrics_mode | default "true" ) | quote  }}
+      value: {{ ( $ratelimit.detailedMetricsMode | default "true" ) | quote  }}
     - name: SHADOW_MODE
       value: {{ ( $ratelimit.shadowMode | default "false" ) | quote  }}
     - name: PORT
