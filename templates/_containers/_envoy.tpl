@@ -135,6 +135,7 @@
     initialDelaySeconds: {{ $envoy.startupInitialDelaySeconds | default "5" }}
     failureThreshold: {{ $envoy.startupFailureThreshold | default "300" }}
     periodSeconds: {{ $envoy.startupPeriodSeconds | default "1" }}
+    timeoutSeconds: {{ $envoy.startupTimeoutSeconds | default "5" }}
     {{- end }}
     {{- if $envoyHealthChecksLivenessEnabled }}
   livenessProbe:
@@ -162,6 +163,7 @@
     initialDelaySeconds: {{ $envoy.livenessInitialDelaySeconds | default "1" }}
     failureThreshold: {{ $envoy.livenessFailureThreshold | default "2" }}
     periodSeconds: {{ $envoy.livenessPeriodSeconds | default "3" }}
+    timeoutSeconds: {{ $envoy.livenessTimeoutSeconds | default "5" }}
     {{- end }}
     {{- if $envoyHealthChecksReadinessEnabled }}
   readinessProbe:
@@ -189,6 +191,7 @@
     initialDelaySeconds: {{ $envoy.readinessInitialDelaySeconds | default "1" }}
     failureThreshold:  {{ $envoy.readinessFailureThreshold | default "1" }}
     periodSeconds: {{ $envoy.readinessPeriodSeconds | default "3" }}
+    timeoutSeconds: {{ $envoy.readinessTimeoutSeconds | default "5" }}
   {{- end }}
   volumeMounts:
     - mountPath: /envoy/envoy.yaml
