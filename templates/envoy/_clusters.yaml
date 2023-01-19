@@ -129,8 +129,9 @@
             {{- $serviceName = $clusterValue.alias | default $cluster }}
           {{- end }}
           {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
+          {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
       connect_timeout: {{ $clusterValue.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
-      type: STRICT_DNS
+      type: {{ $clusterValue.type| default "STRICT_DNS" }}
       ignore_health_on_host_removal: true
       dns_lookup_family: V4_ONLY
           {{- $outlierDetection := $clusterValue.outlierDetection }}
@@ -178,7 +179,7 @@
           - endpoint:
               address:
                 socket_address:
-                  address: {{ ternary "127.0.0.1" $clusterAddress (hasPrefix "local-" $cluster) }}
+                  address: {{ ternary "127.0.0.1" $clusterIpAddress (hasPrefix "local-" $cluster) }}
             {{- if $gatewayEnable }}
                   port_value: {{ coalesce $clusterValue.tergetPort $clusterValue.port "9443" }}
             {{- else }}
