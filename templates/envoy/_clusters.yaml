@@ -73,6 +73,7 @@
         timeout: {{ $localApp.healthChecks.timeout | default "1s" }}
         healthy_threshold: {{ coalesce $localApp.healthyThreshold "1" }}
         unhealthy_threshold: {{ $localApp.healthChecks.unhealthyThreahold | default "1" }}
+        no_traffic_interval: {{ $localApp.healthChecks.noTrafficInterval | default "3s" }}
       load_assignment:
         cluster_name: local-myapp
         endpoints:
@@ -196,6 +197,7 @@
         timeout: {{ $healthCheck.timeout | default "1s" }}
         healthy_threshold: {{ $healthCheck.healthyThreahold | default "1" }}
         unhealthy_threshold: {{ $healthCheck.unhealthyThreahold | default "1" }}
+        no_traffic_interval: {{ $healthCheck.noTrafficInterval | default "3s" }}
         {{- end }}
       {{- end }}
     {{- end }}  
@@ -250,6 +252,7 @@
         timeout: {{ $healthCheck.timeout | default "1s" }}
         healthy_threshold: {{ $healthCheck.healthyThreahold | default "1" }}
         unhealthy_threshold: {{ $healthCheck.unhealthyThreahold | default "1" }}
+        no_traffic_interval: {{ $healthCheck.noTrafficInterval | default "3s" }}
     {{- end }}
   {{- end }}
   {{- $ratelimit := $titanSideCars.ratelimit -}}
@@ -328,6 +331,7 @@
         timeout: {{ $ratelimit.healthCheckTimeout |  default "2s" }}
         healthy_threshold: {{ $ratelimit.healthThreshold |  default "1" }}
         unhealthy_threshold: {{ $ratelimit.unhealthThreshold |  default "1" }}
+        no_traffic_interval: {{ $ratelimit.noTrafficInterval | default "3s" }}
       load_assignment:
         cluster_name: ratelimit-health
         endpoints:
@@ -355,6 +359,7 @@
         timeout: {{ $opa.healthCheckTimeout |  default "2s" }}
         healthy_threshold: {{ $opa.healthThreshold |  default "1" }}
         unhealthy_threshold: {{ $opa.unhealthThreshold |  default "1" }}
+        no_traffic_interval: {{ $opa.noTrafficInterval | default "3s" }}
       load_assignment:
         cluster_name: opa-health
         endpoints:
