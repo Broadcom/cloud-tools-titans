@@ -71,6 +71,10 @@ filter:
     {{- end }}
     {{- end }}
   {{- else }}
+    {{- if $accessLog.alwaysFilter }}
+      {{- $accessLog.alwaysFilter | toYaml | nindent 2 }}
+    {{- else }}
   not_health_check_filter: {}
+    {{- end }}
   {{- end }}
 {{- end }}
