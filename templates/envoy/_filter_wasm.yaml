@@ -92,7 +92,7 @@
         {{- $_ := set $hdr "value" .sw }}
       {{- else if .nsw }}
         {{- $_ := set $hdr "pattern" "sw" }}
-        {{- $_ := set $hdr "value" .sw }}
+        {{- $_ := set $hdr "value" .nsw }}
         {{- $_ := set $hdr "invert" true }}
       {{- else if .ew }}
         {{- $_ := set $hdr "pattern" "ew" }}
