@@ -50,6 +50,7 @@
   {{- range $routes }}
     {{- $match := .match }}
     {{- $headerMatches := list }}
+    {{- $audit := dict }}
     {{- $pathPrefix := $match.prefix | default "" }}
     {{- $pathMatch := $match.path | default "" }}
     {{- $pathRegex := $match.regex | default "" }}
@@ -125,6 +126,15 @@
         {{- $actions = append $actions . }}
       {{- end }}
     {{- end }}
+    {{- if (hasKey . "audit") }}
+      {{- $a := .auidt }}
+      {{- $_ := set $audit "action" "audit" }}
+      {{- $_ := set $audit "match_headers" $headerMatches }}
+      {{- if (hasKey $a "additionalInfo") }}
+        {{- $_ := set $audit "additionalInfo" $a.additionalInfo }}
+      {{- end }}
+      {{- $actions = append $actions . }}
+    {{- end }}
     {{- if hasKey . "rbac" }}
       {{- if or .rbac.enabled (not (hasKey .rbac "enabled"))}}
         {{- $rbac := dict }}
@@ -139,6 +149,7 @@
   {{- end  }}
   {{- if gt (len $actions) 0 }}
     {{- $ := set $enrich "actions" $actions }}
+    {{- $enableEnrichment = true }}
   {{- end }}
   {{- if gt (len $rbacs) 0 }}
     {{- $ := set $enrich "rbacs" $rbacs }}
