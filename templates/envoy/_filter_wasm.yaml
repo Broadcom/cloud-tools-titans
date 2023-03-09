@@ -35,8 +35,10 @@
   {{- end }}
   {{- $enableEnrichment := false  }}
   {{- $enableRbac := false  }}
+  {{- $enableAudit := false  }}
   {{- $actions := list }}
   {{- $rbacs := list }}
+  {{- $audits := list }}
   {{- if or (hasKey $enrich "actions") (hasKey $rbacPolicies "actions") }}
     {{- range $enrich.actions }}
       {{- $enableEnrichment = true  }}
@@ -116,24 +118,29 @@
         {{- $_ := set $hdr "pattern" "regex" }}
         {{- $_ := set $hdr "value" .nlk }}
         {{- $_ := set $hdr "invert" true }}
+      {{- else if .pr }}
+        {{- $_ := set $hdr "pattern" "ex" }}
+      {{- else if .npr }}
+        {{- $_ := set $hdr "pattern" "ex" }}
+        {{- $_ := set $hdr "invert" true }}
       {{- end }}
       {{- $headerMatches = append $headerMatches $hdr }}
     {{- end }}
-    {{- if (hasKey . "enrich") }}
+    {{- if hasKey . "enrich" }}
       {{- range .enrich.actions }}
         {{- $enableEnrichment = true }}
         {{- $_ := set . "match_headers" $headerMatches }}
         {{- $actions = append $actions . }}
       {{- end }}
     {{- end }}
-    {{- if (hasKey . "audit") }}
-      {{- $a := .auidt }}
-      {{- $_ := set $audit "action" "audit" }}
-      {{- $_ := set $audit "match_headers" $headerMatches }}
-      {{- if (hasKey $a "additionalInfo") }}
-        {{- $_ := set $audit "additionalInfo" $a.additionalInfo }}
+    {{- if hasKey . "audit" }}
+        {{- if (ternary .audit.enabled true (hasKey .audit "enabled")) }}
+        {{- $_ := set $audit "match_headers" $headerMatches }}
+        {{- if (hasKey .audit "additionalInfo") }}
+          {{- $_ := set $audit "additional_info" .audit.additionalInfo }}
+        {{- end }}
+        {{- $audits = append $audits $audit }}
       {{- end }}
-      {{- $actions = append $actions . }}
     {{- end }}
     {{- if hasKey . "rbac" }}
       {{- if or .rbac.enabled (not (hasKey .rbac "enabled"))}}
@@ -154,9 +161,13 @@
   {{- if gt (len $rbacs) 0 }}
     {{- $ := set $enrich "rbacs" $rbacs }}
   {{- end }}
+  {{- if gt (len $audits) 0 }}
+    {{- $ := set $enrich "audits" $audits }}
+    {{- $enableAudit = true }}
+  {{- end }}
   {{- $enableEnrichment = ternary (and $enrich.enabled $enableEnrichment) $enableEnrichment (hasKey $enrich "enabled") }}
   {{- $enableRbac = ternary (and $rbacPolicies.enabled $enableRbac) $enableRbac (hasKey $rbacPolicies "enabled") }}
-  {{- if or $enableEnrichment $enableRbac }}
+  {{- if or $enableEnrichment $enableRbac $enableAudit }}
 - name: envoy.filters.http.enrichment
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
