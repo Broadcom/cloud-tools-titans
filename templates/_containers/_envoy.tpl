@@ -21,8 +21,20 @@
   {{- end -}}
   {{- $wasmFilterUsed := false -}}
   {{- range $ingressroutes -}}
-    {{- if or .enrich .rbac -}}
-      {{- $wasmFilterUsed = true -}}
+    {{- if .enrich -}}
+      {{- if not .enrich.enabled -}}
+        {{- $wasmFilterUsed = true -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if .rbac -}}
+      {{- if not .rbac.enabled -}}
+        {{- $wasmFilterUsed = true -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if .audit -}}
+      {{- if not .audit.enabled -}}
+        {{- $wasmFilterUsed = true -}}
+      {{- end -}}
     {{- end -}}
   {{- end -}}
   {{- if not $wasmFilterUsed -}}
