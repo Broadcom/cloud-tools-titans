@@ -2,10 +2,8 @@
   {{- $clusters := .clusters }}
   {{- $requests := .requests  }}
   {{- $envoy := .envoy }}
-  {{- $enrich := mergeOverwrite (deepCopy ($envoy.enrich | default dict)) ($requests.enrich | default dict) -}}
-  {{- $rbacPolicies := mergeOverwrite (deepCopy ($envoy.rbacs | default dict)) ($requests.rbacs | default dict) -}}
+  {{- $enrichment := $requests.enrichment | default dict }}
   {{- $localMyApp := .localMyApp  }}
-
   {{- $gateway := $localMyApp.gateway }}
   {{- $gatewayEnable := $gateway.enabled }}
   {{- $routes := list }}
@@ -33,22 +31,9 @@
       {{- end }}
     {{- end }}
   {{- end }}
-  {{- $enableEnrichment := false  }}
-  {{- $enableRbac := false  }}
-  {{- $enableAudit := false  }}
   {{- $actions := list }}
   {{- $rbacs := list }}
   {{- $audits := list }}
-  {{- if or (hasKey $enrich "actions") (hasKey $rbacPolicies "actions") }}
-    {{- range $enrich.actions }}
-      {{- $enableEnrichment = true  }}
-      {{- $actions = append $actions . }}
-    {{- end }}
-    {{- range $rbacPolicies.actions }}
-      {{- $enableRbac = true  }}
-      {{- $rbacs = append $rbacs . }}
-    {{- end }}
-  {{- end }}
   {{- range $routes }}
     {{- $match := .match }}
     {{- $headerMatches := list }}
@@ -128,7 +113,6 @@
     {{- end }}
     {{- if hasKey . "enrich" }}
       {{- range .enrich.actions }}
-        {{- $enableEnrichment = true }}
         {{- $_ := set . "match_headers" $headerMatches }}
         {{- $actions = append $actions . }}
       {{- end }}
@@ -149,25 +133,20 @@
         {{- if .rbac.policies }}
           {{- $_ := set $rbac "policies" .rbac.policies }}
           {{- $rbacs = append $rbacs  $rbac }}
-          {{- $enableRbac = true }}
         {{- end }}
       {{- end }}
     {{- end }}
   {{- end  }}
   {{- if gt (len $actions) 0 }}
-    {{- $ := set $enrich "actions" $actions }}
-    {{- $enableEnrichment = true }}
+    {{- $ := set $enrichment "actions" $actions }}
   {{- end }}
   {{- if gt (len $rbacs) 0 }}
-    {{- $ := set $enrich "rbacs" $rbacs }}
+    {{- $ := set $enrichment "rbacs" $rbacs }}
   {{- end }}
   {{- if gt (len $audits) 0 }}
-    {{- $ := set $enrich "audits" $audits }}
-    {{- $enableAudit = true }}
+    {{- $ := set $enrichment "audits" $audits }}
   {{- end }}
-  {{- $enableEnrichment = ternary (and $enrich.enabled $enableEnrichment) $enableEnrichment (hasKey $enrich "enabled") }}
-  {{- $enableRbac = ternary (and $rbacPolicies.enabled $enableRbac) $enableRbac (hasKey $rbacPolicies "enabled") }}
-  {{- if or $enableEnrichment $enableRbac $enableAudit }}
+  {{- if eq (include "titan-mesh-helm-lib-chart.envoy.filter.enrichment.enabled" (dict "requests" $requests "routes" $routes)) "true" }}
 - name: envoy.filters.http.enrichment
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
@@ -182,7 +161,7 @@
       configuration:
         "@type": type.googleapis.com/google.protobuf.StringValue
 {{ print "value: |" | indent 8 }}
-{{ toPrettyJson $enrich | indent 10 }}
+{{ toPrettyJson $enrichment| indent 10 }}
     {{- $enrichfilterName := "envoy_proxy_wasm_enrichment_filter.wasm" }}
     {{- $enrichfilterAllowedPrecompiled := "true" }}
     {{- $enrichfilterWasmRuntime := "envoy.wasm.runtime.v8" }}

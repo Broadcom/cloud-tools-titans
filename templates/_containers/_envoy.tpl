@@ -19,44 +19,7 @@
   {{- else if $localMyApp.routes -}}
     {{- $ingressroutes = $localMyApp.routes -}}
   {{- end -}}
-  {{- $wasmFilterUsed := false -}}
-  {{- range $ingressroutes -}}
-    {{- if .enrich -}}
-      {{- if not .enrich.enabled -}}
-        {{- $wasmFilterUsed = true -}}
-      {{- end -}}
-    {{- end -}}
-    {{- if .rbac -}}
-      {{- if not .rbac.enabled -}}
-        {{- $wasmFilterUsed = true -}}
-      {{- end -}}
-    {{- end -}}
-    {{- if .audit -}}
-      {{- if not .audit.enabled -}}
-        {{- $wasmFilterUsed = true -}}
-      {{- end -}}
-    {{- end -}}
-  {{- end -}}
-  {{- if not $wasmFilterUsed -}}
-    {{- $enrich := mergeOverwrite (deepCopy ($envoy.enrich | default dict)) ($ingress.enrich | default dict) -}}
-    {{- $rbacPolicies := mergeOverwrite (deepCopy ($envoy.rbacs | default dict)) ($ingress.rbacs | default dict) -}} 
-    {{- range $enrich.actions -}}
-      {{- $wasmFilterUsed = true -}}
-    {{- end -}}
-    {{- range $rbacPolicies.actions -}}
-      {{- $wasmFilterUsed = true -}}
-    {{- end -}}
-    {{- if and (and (hasKey $enrich ".enabled") (not $enrich.enabled)) (and (hasKey $rbacPolicies ".enabled") (not $rbacPolicies.enabled)) }}
-        {{- $wasmFilterUsed = false -}}
-    {{- end -}}
-  {{- end -}}
-  {{- if $titanSideCars.ingress -}}
-    {{- if hasKey $titanSideCars.ingress "enrich" -}}
-      {{- if and (hasKey $titanSideCars.ingress "enabled") (not $titanSideCars.ingress.enabled) }}
-        {{- $wasmFilterUsed = false -}}
-      {{- end -}}
-    {{- end -}}
-  {{- end -}}
+    {{- $wasmFilterUsed := eq (include "titan-mesh-helm-lib-chart.envoy.filter.enrichment.enabled" (dict "requests" $ingress "routes" $ingressroutes)) "true" -}}
   {{- $envoyIngressPort := coalesce $remoteMyApp.targetPort $remoteMyApp.port "9443" }}
   {{- $envoyHealthChecks := $remoteMyApp.healthChecks }}
   {{- $envoyHealthChecksStartup := $envoyHealthChecks.startup }}
