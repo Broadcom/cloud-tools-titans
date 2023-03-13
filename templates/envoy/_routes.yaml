@@ -35,8 +35,12 @@
       {{- end }}
     {{- end }}
     {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
-    {{- if and $additionalRoutes $routes }}
-      {{- $routes = concat $additionalRoutes $routes }}
+    {{- if and $additionalRoutes }}
+      {{- if $routes }}
+        {{- $routes = concat $additionalRoutes $routes }}
+      {{- else }}
+        {{- $routes = $additionalRoutes }}
+      {{- end }}
     {{- end }} 
   {{- end }}
   {{- range $routes }}
