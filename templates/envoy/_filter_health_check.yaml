@@ -6,6 +6,7 @@
   {{- $ratelimit := .ratelimit }}
   {{- $ratelimitEnabled := $ratelimit.enabled }}
   {{- $ratelimitMonitorByEnvoy := $ratelimit.monitorByEnvoy -}}
+  {{- $ratelimitIncludeIntoHealthState := $ratelimit.includeIntoHealthState -}}
   {{- $remoteApp := index $clusters "remote-myapp" -}}
   {{- $localApp := index $clusters "local-myapp" }}
   {{- $gateway := $localApp.gateway }}
@@ -44,7 +45,7 @@
       opa-health:
         value: 100
     {{- end }}
-    {{- if and $ratelimitEnabled $ratelimitMonitorByEnvoy }}
+    {{- if and $ratelimitEnabled $ratelimitMonitorByEnvoy $ratelimitIncludeIntoHealthState }}
       ratelimit-health:
         value: 100
     {{- end }}
