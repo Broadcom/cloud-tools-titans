@@ -68,7 +68,7 @@ envoy.yaml: |
             use_remote_address: true
             stat_prefix: ingress-proxy
             server_name: {{ $appName }}-ingress
-            normalize_path: {{ $envoy.normalizePath | default "true" }}
+            normalize_path: {{ ternary $envoy.normalizePath "true" (hasKey $envoy "normalizePath") }}
             path_with_escaped_slashes_action: {{ $envoy.pathWithEscapedSlashesAction | default "UNESCAPE_AND_FORWARD" }}
     {{- if $ingressIdleTimeout }}
             stream_idle_timeout: {{ $ingressIdleTimeout }}
