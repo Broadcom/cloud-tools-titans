@@ -6,55 +6,43 @@
   - name: {{ .key }}
     {{- if or .eq .sw .ew .co .lk }}
       {{- if .eq }}
-    string_match: 
-      exact: {{ .eq | squote }}
+    exact_match: {{ .eq | squote }}
       {{- else if .sw }}
-    string_match: 
-      prefix: {{ .sw | squote }}
+    prefix_match: {{ .sw | squote  }}
       {{- else if .ew }}
-    string_match: 
-      suffix: {{ .ew | squote }}
+    suffix_match: {{ .ew | squote  }}
       {{- else if .co }}
-    string_match: 
-      contains: {{ .co | squote }}
+    contains_match: {{ .co | squote  }}
       {{- else if .lk }}
-    string_match: 
-      safe_regex:
-        google_re2: {}
-        regex: {{ .lk | squote }}
+    safe_regex_match:
+      google_re2: {}
+      regex: {{ .lk | squote }}
       {{- end }}
     {{- else if or .neq .nsw .new .nco .nlk }}
       {{- if .neq }}
-    string_match: 
-      exact: {{ .neq | squote }}
+    exact_match: {{ .neq | squote  }}
       {{- else if .nsw }}
-    string_match: 
-      prefix: {{ .nsw | squote }}
+    prefix_match: {{ .nsw | squote  }}
       {{- else if .new }}
-    string_match: 
-      suffix: {{ .new | squote }}
+    suffix_match: {{ .new | squote  }}
       {{- else if .nco }}
-    string_match: 
-      contains: {{ .nco | squote }}
+    contains_match: {{ .nco | squote }}
       {{- else if .nlk }}
-    string_match: 
-      safe_regex:
-        google_re2: {}
-        regex: {{ .nlk | squote }}
+    safe_regex_match:
+      google_re2: {}
+      regex: {{ .nlk | squote }}
       {{- end }}
     invert_match: true
     {{- else if .pr }}
       {{- if hasPrefix "x-tint-" .key }}
-    string_match:
-      exact: "nil"
+    exact_match: "nil"
     invert_match: true
       {{- else }}
     present_match: true
       {{- end }}
     {{- else if .npr }}
       {{- if hasPrefix "x-tint-" .key }}
-    string_match:
-      exact: "nil"
+    exact_match: "nil"
       {{- else }}
     present_match: true
     invert_match: true
