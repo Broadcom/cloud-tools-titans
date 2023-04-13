@@ -177,9 +177,9 @@
       {{- end }}    
     {{- end }}
       name: sps.proxy.wasm.enrichment.filter
-      root_id: enrichment
+      root_id: wasm_filters
       vm_config:
-        vm_id: vm.enrichment
+        vm_id: vm.wasm_filters
         runtime: {{ $enrichfilterWasmRuntime | quote }}
         allow_precompiled: {{ $enrichfilterAllowedPrecompiled }}
         code:

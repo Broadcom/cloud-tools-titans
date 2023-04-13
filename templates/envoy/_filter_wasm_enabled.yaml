@@ -1,7 +1,6 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.enrichment.enabled" -}}
 {{- $requests := .requests -}}
 {{- $routes := .routes -}}
-{{- $wasmFilterEnabled := false -}}
 {{- $auditEnabled := false -}}
 {{- $rbacEnabled := false -}}
 {{- $enrichEnabled := false -}}
