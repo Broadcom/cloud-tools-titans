@@ -124,6 +124,16 @@ envoy.yaml: |
               request_headers_to_add: []
               virtual_hosts:
               - domains: '*'
+    {{- if $envoy.perRouteFilters }}
+                typed_per_filter_config:
+      {{- range $filter, $config := $envoy.perRouteFilters -}}
+        {{- printf "%s:" $filter | nindent 18 }}
+        {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $config.type | nindent 20 }}
+        {{- if $config.settings -}}
+          {{- $config.settings | toYaml | nindent 20 }}
+        {{- end -}}
+      {{- end }}
+    {{- end }}
                 name: {{ $appName }}-ingress
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $ingress "clusters" $clusters "direction" "ingress") | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "ingress" $ingress "clusters" $clusters ) | nindent 14 }}

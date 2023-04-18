@@ -68,6 +68,15 @@
           {{- $clusterRoute := .route }}
                 - match:
           {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
+          {{- range $clusterRoute.disableFilters }}
+            {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+            {{- if $disabledFilter }}
+                  typed_per_filter_config:
+              {{- printf "%s:" . | nindent 20 }}
+              {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+              {{- print "disabled: true" | nindent 22 }}
+            {{- end }}
+          {{- end }}
                   route:
           {{- if $clusterRoute.prefixRewrite }}
                     prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
@@ -101,6 +110,16 @@
           {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
         {{- if ne $clusterName "" }}
           {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
+          {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
+          {{- range $route.disableFilters }}
+            {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+            {{- if $disabledFilter }}
+                  typed_per_filter_config:
+              {{- printf "%s:" . | nindent 20 }}
+              {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+              {{- print "disabled: true" | nindent 22 }}
+            {{- end }}
+          {{- end }}
                   route:
                     cluster: {{ $clusterName }} 
           {{- if $route.prefixRewrite }}
