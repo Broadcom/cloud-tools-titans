@@ -1,7 +1,7 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" }}
   {{- $envoy := .envoy -}}
-  {{- $sni := .sni -}}
-  {{- $httpScheme := .httpScheme -}}
+  {{- $sni := .sni | default "" -}}
+  {{- $httpScheme := .httpScheme | default "HTTP" -}}
   {{- if or (eq $httpScheme "HTTP2") (eq $httpScheme "HTTPS") }}
 transport_socket:
   name: envoy.transport_sockets.tls
@@ -17,7 +17,11 @@ transport_socket:
             exact: {{ $sni }}
     {{- end }}
         trusted_ca:
+    {{- if hasSuffix "svc.cluster.local" $sni }}
           filename: {{ printf "%s/ca.crt" ( $envoy.secretsFolder | default "/secrets" ) }}
+    {{- else }}
+          filename: {{ $envoy.trustCAcert | default "/etc/ssl/certs/ca-bundle.trust.crt" }}
+    {{- end }}
     {{- if ne $sni "" }}
     sni: {{ $sni }}
     {{- end }}

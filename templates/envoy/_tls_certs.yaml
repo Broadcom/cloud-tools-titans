@@ -1,5 +1,5 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.tls-cert" }}
-  {{- $envoy := .envoy }}
+  {{- $envoy := .envoy -}}
 tls_certificate_sds_secret_configs:
 - name: tls_sds
   sds_config:
