@@ -1,0 +1,25 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" }}
+  {{- $envoy := .envoy -}}
+  {{- $sni := .sni -}}
+  {{- $httpScheme := .httpScheme -}}
+  {{- if or (eq $httpScheme "HTTP2") (eq $httpScheme "HTTPS") }}
+transport_socket:
+  name: envoy.transport_sockets.tls
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+    common_tls_context:
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert" (dict "envoy" $envoy) | nindent 6 }}
+      validation_context:
+    {{- if ne $sni "" }}
+        match_typed_subject_alt_names:
+        - san_type: DNS
+          matcher:
+            exact: {{ $sni }}
+    {{- end }}
+        trusted_ca:
+          filename: {{ printf "%s/ca.crt" ( $envoy.secretsFolder | default "/secrets" ) }}
+    {{- if ne $sni "" }}
+    sni: {{ $sni }}
+    {{- end }}
+  {{- end }}
+{{- end }}

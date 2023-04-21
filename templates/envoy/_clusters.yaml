@@ -27,7 +27,7 @@
       type: STATIC
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
-        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $localApp.scheme  "cluster" $localApp "addSocket" true) | nindent 6 }}
+        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $localApp.scheme  "cluster" $localApp ) | nindent 6 }}
       connect_timeout: {{ $localApp.connectionTimeout | default "0.25s" }}
       common_lb_config:
         healthy_panic_threshold:
@@ -83,6 +83,7 @@
                 socket_address:
                   address: 127.0.0.1
                   port_value: {{  $localApp.port | default "8080" }}
+        {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $localApp.scheme  "envoy" $envoy) | nindent 6 }}
       {{- end }}
     {{- else }}
       {{- $setupCluster := true }}
@@ -172,7 +173,7 @@
             min_retry_concurrency: {{ $circuitBreakers.minRetryConcurrency | default "3" }}
         {{- $scheme := ternary ( $clusterValue.scheme | default "HTTP") ( $clusterValue.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
         {{- $sni := ternary $clusterAddress "" (or  $clusterValue.sniValidation (hasKey  $clusterValue "address") | default false) }}
-        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "addSocket" true "sni" $sni "cluster" (index $clusters $cluster)) | nindent 6 }}
+        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "cluster" (index $clusters $cluster)) | nindent 6 }}
       lb_policy: {{ $clusterValue.lbPolicy | default "LEAST_REQUEST" }}
       load_assignment:
         cluster_name: {{ $cluster }}
@@ -202,6 +203,7 @@
         healthy_threshold: {{ $healthCheck.healthyThreahold | default "1" }}
         unhealthy_threshold: {{ $healthCheck.unhealthyThreahold | default "1" }}
         no_traffic_interval: {{ $healthCheck.noTrafficInterval | default "3s" }}
+          {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $scheme  "envoy" $envoy "sni" $sni) | nindent 6 }}
         {{- end }}
       {{- end }}
     {{- end }}  
@@ -225,7 +227,7 @@
       dns_lookup_family: V4_ONLY
       {{- $scheme := ternary ( $clusterValue.scheme | default "HTTP") ( $clusterValue.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
       {{- $sni := ternary $clusterAddress "" (or  $clusterValue.sniValidation (hasKey  $clusterValue "address") | default false) }}
-      {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "addSocket" true "sni" $sni "cluster" $clusterValue) | nindent 6 }}
+      {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "cluster" $clusterValue) | nindent 6 }}
       lb_policy: LEAST_REQUEST
       load_assignment:
         cluster_name: {{ $cluster }}
@@ -251,6 +253,7 @@
         healthy_threshold: {{ $healthCheck.healthyThreahold | default "1" }}
         unhealthy_threshold: {{ $healthCheck.unhealthyThreahold | default "1" }}
         no_traffic_interval: {{ $healthCheck.noTrafficInterval | default "3s" }}
+      {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $scheme  "envoy" $envoy "sni" $sni) | nindent 6 }}
     {{- end }}
   {{- end }}
   {{- $ratelimit := $titanSideCars.ratelimit -}}

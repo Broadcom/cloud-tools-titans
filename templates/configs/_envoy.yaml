@@ -143,11 +143,14 @@ envoy.yaml: |
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
             common_tls_context:
-              tls_certificate_sds_secret_configs:
-                name: tls_sds
-                sds_config:
-                  path: {{ printf "%s/envoy-sds.yaml" ($envoy.configFolder | default "/envoy") }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert" (dict "envoy" $envoy) | nindent 14 }}
+    {{- if $envoy.mTLSenabled }}
+              validation_context:
+                trusted_ca:
+                  filename: {{ printf "%s/ca.crt" ($envoy.secretsFolder | default "/secrets") | quote }}
+    {{- else }}
               validation_context: {}
+    {{- end }}
               alpn_protocols:
               - h2
               - http/1.1
