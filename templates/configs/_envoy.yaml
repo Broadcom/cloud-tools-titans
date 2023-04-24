@@ -147,7 +147,22 @@ envoy.yaml: |
     {{- if $envoy.mTLSenabled }}
               validation_context:
                 trusted_ca:
-                  filename: {{ printf "%s/ca.crt" ($envoy.secretsFolder | default "/secrets") | quote }}
+                  filename: {{ printf "%s" ($envoy.trustCACertBundlePath | default "/secrets/ca.crt") | quote }}
+      {{- if $ingress.allowableClients }}
+                match_typed_subject_alt_names:
+        {{- range $ingress.allowableClients }}
+          {{- $matchMethod := .match | default "exact" }}
+                - san_type: {{ .sanType | default "DNS" }}
+                  matcher:
+            {{- if eq $matchMethod "regex" }}
+                    safe_regex:
+                      google_re2: {}
+                      regex: {{ .value | quote }}
+            {{- else }}
+                    {{ $matchMethod }}: {{ .value | quote }}
+            {{- end }}
+        {{- end }}
+      {{- end }}   
     {{- else }}
               validation_context: {}
     {{- end }}
