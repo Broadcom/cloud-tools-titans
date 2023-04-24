@@ -19,10 +19,10 @@
   {{- else if $localMyApp.routes -}}
     {{- $ingressroutes = $localMyApp.routes -}}
   {{- end -}}
-{{/*  {{- $wasmFilterUsed := eq (include "titan-mesh-helm-lib-chart.envoy.filter.enrichment.enabled" (dict "requests" $ingress "routes" $ingressroutes)) "true" -}}*/}}
-{{/*  {{- if not $wasmFilterUsed -}}*/}}
-{{/*    {{- $wasmFilterUsed = eq (include "titan-mesh-helm-lib-chart.envoy.filter.custom.response.enabled" (dict "requests" $ingress "routes" $ingressroutes)) "true" -}}*/}}
-{{/*  {{- end -}}*/}}
+  {{- $wasmFilterUsed := eq (include "titan-mesh-helm-lib-chart.envoy.filter.enrichment.enabled" (dict "requests" $ingress "routes" $ingressroutes)) "true" -}}
+  {{- if not $wasmFilterUsed -}}
+    {{- $wasmFilterUsed = eq (include "titan-mesh-helm-lib-chart.envoy.filter.custom.response.enabled" (dict "requests" $ingress "routes" $ingressroutes)) "true" -}}
+  {{- end -}}
   {{- $envoyIngressPort := coalesce $remoteMyApp.targetPort $remoteMyApp.port "9443" }}
   {{- $envoyHealthChecks := $remoteMyApp.healthChecks }}
   {{- $envoyHealthChecksStartup := $envoyHealthChecks.startup }}
