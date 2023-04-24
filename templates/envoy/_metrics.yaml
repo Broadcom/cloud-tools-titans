@@ -35,12 +35,12 @@
         {{- end }}
         {{- range $matches }}
   - name: {{ $metricName }}
-  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match) | nindent 2 }} 
+  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match) | nindent 2 }}
         {{- end }}
       {{- end }}
     {{- end }}
   - name: "_all_"
-  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" (dict "prefix" "/")) | nindent 2 }} 
+  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" (dict "prefix" "/")) | nindent 2 }}
   {{- else }}
   virtual_clusters: []
   {{- end }}

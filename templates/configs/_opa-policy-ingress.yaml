@@ -32,7 +32,7 @@ policy-ingress.rego: |
       {{- range $ruleSets }}
         {{- $ruleSet := .allOf }}
   {{ $policyName }} {
-        {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+        {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }}
         {{- range $ruleSet }}
           {{- $rule := . }}
           {{- $lop := $rule.key | default "nolop" }}
@@ -82,7 +82,7 @@ policy-ingress.rego: |
     not {{ $lop }}
           {{- else }}
     {{ $op }}({{ $lop }}, {{ $rop }})
-          {{- end }}       
+          {{- end }}
         {{- end }}
   }
         {{- $policyName = "else" }}
@@ -101,7 +101,7 @@ policy-ingress.rego: |
         {{ $_ := set $headersToInject $header $headerId }}
         {{- if $replace }}
   {{ $headerId }} = value {
-    {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+    {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }}
           {{- if hasPrefix "token." .value }}
     value := {{ printf "token.%s" .value }}
           {{- else if hasPrefix "header." .value }}
@@ -116,17 +116,17 @@ policy-ingress.rego: |
   {{ $headerId }} = value {
     value := {{ printf "request.headers[%s]" ($header | quote)}}
   } else = value {
-    {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+    {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }}
           {{- if hasPrefix "token." .value }}
     value := {{ printf "token.%s" .value }}
           {{- else if hasPrefix "header." .value }}
     value := {{ printf "request.headers[%s]"  ((trimPrefix "header." .value) | quote) }}
           {{- else }}
     value := {{ .value | quote }}
-          {{- end }} 
+          {{- end }}
   } else = ""
         {{- end }}
-      {{ end }} 
+      {{ end }}
     {{- end }}
   {{- end }}
 
@@ -141,7 +141,7 @@ policy-ingress.rego: |
         {{ $_ := set $headersToInject $header $headerId }}
         {{- if $replace }}
   {{ $headerId }} = value {
-    {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+    {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }}
           {{- if hasPrefix "token." .value }}
     value := {{ printf "token.%s" .value }}
           {{- else if hasPrefix "header." .value }}
@@ -156,14 +156,14 @@ policy-ingress.rego: |
   {{ $headerId }} = value {
     value := {{ printf "request.headers[%s]" ($header | quote)}}
   } else = value {
-    {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }} 
+    {{- include "titan-mesh-helm-lib-chart.opa.matcher-route" (dict "route" $route) | nindent 2 }}
           {{- if hasPrefix "token." .value }}
     value := {{ printf "token.%s" .value }}
           {{- else if hasPrefix "header." .value }}
     value := {{ printf "request.headers[%s]"  ((trimPrefix "header." .value) | quote) }}
           {{- else }}
     value := {{ .value | quote }}
-          {{- end }} 
+          {{- end }}
   } else = ""
         {{- end }}
       {{ end }}
@@ -200,7 +200,7 @@ policy-ingress.rego: |
 
   destination_headers = {
     {{- range $header, $headerId := $headersToInject }}
-   {{ printf "%s: %s," ($header | quote) $headerId }} 
+   {{ printf "%s: %s," ($header | quote) $headerId }}
     {{- end }}
    "x-titan-opa-allow": "yes"
   }

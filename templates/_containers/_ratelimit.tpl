@@ -139,7 +139,7 @@
       name: titan-configs
       subPath: ratelimit_config.yaml
     - mountPath: /logs/
-      name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}    
+      name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
     {{- end }}
 {{- end }}
 {{- end }}
