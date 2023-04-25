@@ -49,7 +49,7 @@ envoy.yaml: |
     {{- $envoy.statsConfigRaw | toYaml | nindent 2 }}
   {{- end }}
   static_resources:
-  {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" .Release.Namespace "chartName" $.Chart.Name) }}  
+  {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" .Release.Namespace "chartName" $.Chart.Name) }}
   {{- if and $ingress (not $ingress.enabled) }}
     listeners:
     - name: {{ $appName }}-ingress
@@ -162,7 +162,7 @@ envoy.yaml: |
                     {{ $matchMethod }}: {{ .value | quote }}
             {{- end }}
         {{- end }}
-      {{- end }}   
+      {{- end }}
     {{- else }}
               validation_context: {}
     {{- end }}
@@ -189,8 +189,8 @@ envoy.yaml: |
     {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" "HTTP2" "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
             http_filters:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.custome.response" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy) | nindent 12 }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers) | nindent 12 }}  
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy) | nindent 12 }}  
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy) | nindent 12 }}
             - name: envoy.filters.http.router
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -206,7 +206,7 @@ envoy.yaml: |
               virtual_hosts:
               - name: {{ $appName }}-egress
                 domains: '*'
-    {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $egress "clusters" $clusters "direction" "egress") | nindent 14 }}  
+    {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $egress "clusters" $clusters "direction" "egress") | nindent 14 }}
                 rate_limits: []
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress" "appName" $appName) }}
   {{- end }}

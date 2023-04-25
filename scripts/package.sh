@@ -23,14 +23,14 @@ if  [[ "$OSTYPE" == "darwin"* ]]; then
 {{- include (printf \"%s\3\" (include \"meta.${chart_name}.libId\" . ) ) . }}\\${nl}\
 {{- end -}}\\$nl\
 {{- \1\2${chart_name}-${chart_version}\3\"\4\5/" {} \;
-    find .  -type f '(' -name "*.tpl" -o -name "*.yaml" ')' -exec sed -E -i '' "s/(template|include)([^\"]*\")${chart_name}/\1\2${chart_name}-${chart_version}/" {} \;
+    find .  -type f '(' -name "*.tpl" -o -name "*.yaml" ')' -exec sed -E -i '' "s/(template|include)([^\"]*\")${chart_name}/\1\2${chart_name}-${chart_version}/g" {} \;
 sed -E -i '' "s/^chartName:.*/chartName: ${chart_name}/" values.yaml
 sed -E -i '' "s/^chartVersion:.*/chartVersion: ${chart_version}/" values.yaml
 else
     find . -type f '(' -name "*.tpl" -o -name "*.yaml" ')' -exec sed -E -i "s/(define)([^\"]*\")${chart_name}([^\"]*)\"(.[^\}]*}})(.*)/\\1\2${chart_name}\3\"\4\\${nl}\
 {{- include (printf \"%s\3\" (include \"meta.${chart_name}.libId\" . ) ) . }}\\${nl}\
 {{- end -}}\\$nl\
-{{- \1\2${chart_name}-${chart_version}\3\"\4\5/" {} \;
+{{- \1\2${chart_name}-${chart_version}\3\"\4\5/g" {} \;
     find . -type f '(' -name "*.tpl" -o -name "*.yaml" ')' -exec sed -E -i "s/(template|include)([^\"]*\")${chart_name}/\1\2${chart_name}-${chart_version}/" {} \;
 sed -E -i "s/^chartName:.*/chartName: ${chart_name}/" values.yaml
 sed -E -i "s/^chartVersion:.*/chartVersion: ${chart_version}/" values.yaml
