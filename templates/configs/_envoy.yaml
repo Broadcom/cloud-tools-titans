@@ -70,6 +70,7 @@ envoy.yaml: |
             server_name: {{ $appName }}-ingress
             normalize_path: {{ ternary $envoy.normalizePath "true" (hasKey $envoy "normalizePath") }}
             path_with_escaped_slashes_action: {{ $envoy.pathWithEscapedSlashesAction | default "UNESCAPE_AND_FORWARD" }}
+            preserve_external_request_id: {{ $ingress.preserveExternalRequestId | default "true" }}
     {{- if $ingressIdleTimeout }}
             stream_idle_timeout: {{ $ingressIdleTimeout }}
     {{- end }}
@@ -124,16 +125,6 @@ envoy.yaml: |
               request_headers_to_add: []
               virtual_hosts:
               - domains: '*'
-    {{- if $envoy.perRouteFilters }}
-                typed_per_filter_config:
-      {{- range $filter, $config := $envoy.perRouteFilters -}}
-        {{- printf "%s:" $filter | nindent 18 }}
-        {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $config.type | nindent 20 }}
-        {{- if $config.settings -}}
-          {{- $config.settings | toYaml | nindent 20 }}
-        {{- end -}}
-      {{- end }}
-    {{- end }}
                 name: {{ $appName }}-ingress
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $ingress "clusters" $clusters "direction" "ingress") | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "ingress" $ingress "clusters" $clusters ) | nindent 14 }}
@@ -183,6 +174,7 @@ envoy.yaml: |
             "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
             stat_prefix: egress-proxy
             server_name: {{ $appName }}-egress
+            preserve_external_request_id: {{ $egress.preserveExternalRequestId | default "false" }}
             access_log:
               name: envoy.access_loggers.file
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-downstream") | nindent 14 }}
