@@ -9,21 +9,23 @@ transport_socket:
     "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
     common_tls_context:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert" (dict "envoy" $envoy) | nindent 6 }}
+    {{- if $envoy.validateServerCertificate }}
       validation_context:
-    {{- if ne $sni "" }}
+      {{- if ne $sni "" }}
         match_typed_subject_alt_names:
         - san_type: DNS
           matcher:
             exact: {{ $sni }}
-    {{- end }}
+      {{- end }}
         trusted_ca:
-    {{- if hasSuffix "svc.cluster.local" $sni }}
+      {{- if hasSuffix "svc.cluster.local" $sni }}
           filename: {{ printf "%s/ca.crt" ( $envoy.secretsFolder | default "/secrets" ) }}
-    {{- else }}
+      {{- else }}
           filename: {{ $envoy.trustCAcert | default "/etc/ssl/certs/ca-bundle.trust.crt" }}
-    {{- end }}
-    {{- if ne $sni "" }}
+      {{- end }}
+      {{- if ne $sni "" }}
     sni: {{ $sni }}
+      {{- end }}
     {{- end }}
   {{- end }}
 {{- end }}
