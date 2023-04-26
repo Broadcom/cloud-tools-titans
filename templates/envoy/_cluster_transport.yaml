@@ -2,7 +2,7 @@
   {{- $envoy := .envoy -}}
   {{- $sni := .sni | default "" -}}
   {{- $httpScheme := .httpScheme | default "HTTP" -}}
-  {{- if or (eq $httpScheme "HTTP2") (eq $httpScheme "HTTPS") }}
+  {{- if eq $httpScheme "HTTPS" }}
 transport_socket:
   name: envoy.transport_sockets.tls
   typed_config:
