@@ -69,6 +69,7 @@ envoy.yaml: |
             stat_prefix: ingress-proxy
             server_name: {{ $appName }}-ingress
             normalize_path: {{ ternary $envoy.normalizePath "true" (hasKey $envoy "normalizePath") }}
+            merge_slashes: {{ ternary $envoy.mergeSlashes "true" (hasKey $envoy "mergeSlashes") }}
             path_with_escaped_slashes_action: {{ $envoy.pathWithEscapedSlashesAction | default "UNESCAPE_AND_FORWARD" }}
             preserve_external_request_id: {{ $ingress.preserveExternalRequestId | default "true" }}
     {{- if $ingressIdleTimeout }}
