@@ -11,7 +11,7 @@ transport_socket:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert" (dict "envoy" $envoy) | nindent 6 }}
     {{- if $envoy.validateServerCertificate }}
       validation_context:
-      {{- if ne $sni "" }}
+      {{- if and (ne $sni "") $envoy.validateSubjectAltName }}
         match_typed_subject_alt_names:
         - san_type: DNS
           matcher:
