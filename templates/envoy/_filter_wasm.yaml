@@ -1,6 +1,7 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.enrichment" }}
   {{- $clusters := .clusters }}
   {{- $requests := .requests  }}
+  {{- $enableAudit := ternary (not $requests.disableAudit) true (hasKey $requests "disableAudit") }}
   {{- $envoy := .envoy }}
   {{- $enrichment := $requests.enrichment | default dict }}
   {{- $localMyApp := .localMyApp  }}
@@ -143,7 +144,7 @@
   {{- if gt (len $rbacs) 0 }}
     {{- $ := set $enrichment "rbacs" $rbacs }}
   {{- end }}
-  {{- if gt (len $audits) 0 }}
+  {{- if and $enableAudit (gt (len $audits) 0) }}
     {{- $ := set $enrichment "audits" $audits }}
   {{- end }}
   {{- if eq (include "titan-mesh-helm-lib-chart.envoy.filter.enrichment.enabled" (dict "requests" $requests "routes" $routes)) "true" }}
