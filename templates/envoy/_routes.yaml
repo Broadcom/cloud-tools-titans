@@ -111,7 +111,6 @@
         {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
         {{- if ne $clusterName "" }}
           {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
-          {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
           {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
           {{- range $route.disableFilters }}
             {{- $disabledFilter := index $envoy.perRouteFilters . -}}
