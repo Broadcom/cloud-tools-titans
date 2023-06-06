@@ -8,6 +8,7 @@
   {{- $clusters := $envoy.clusters }}
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $localMyApp := index $clusters "local-myapp" }}
+  {{- $ingressRoutesFromLocalMyapp := false -}}
   {{- $gatewayEnable := false }}
   {{- $defaultBackend := "local-myapp" }}
   {{- if $localMyApp.gateway  -}}
@@ -31,7 +32,8 @@
     {{- $routes = ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
     {{- if and (eq "ingress" $direction) (not $routes) }}
       {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
-        {{ $routes = $localMyApp.routes }}
+        {{- $routes = $localMyApp.routes -}}
+        {{- $ingressRoutesFromLocalMyapp = true -}}
       {{- end }}
     {{- end }}
     {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
@@ -45,7 +47,7 @@
   {{- end }}
   {{- range $routes }}
     {{- $route := .route }}
-    {{- if or .route .redirect .directResponse }}
+    {{- if or .route .redirect .directResponse $ingressRoutesFromLocalMyapp }}
       {{- $clusterName := $route.cluster }}
       {{- if not $clusterName }}
         {{- if eq $direction "ingress" }}
@@ -64,13 +66,13 @@
       {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default $remoteMyApp.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
       {{- if or $cluster (or .directResponse .redirect) }}
         {{- if not .match }}
-          {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
+          {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}     
           {{- range $cluster.routes }}
-            {{- $clusterRoute := .route }}
+            {{- $clusterRoute := $route }}
                 - match:
             {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
             {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
-            {{- range $clusterRoute.disableFilters }}
+            {{- range  $clusterRoute.disableFilters }}
               {{- $disabledFilter := index $envoy.perRouteFilters . -}}
               {{- if $disabledFilter }}
                   typed_per_filter_config:
