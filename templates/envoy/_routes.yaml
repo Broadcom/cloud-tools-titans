@@ -68,7 +68,7 @@
         {{- if not .match }}
           {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}     
           {{- range $cluster.routes }}
-            {{- $clusterRoute := $route }}
+            {{- $clusterRoute := .route }}
                 - match:
             {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
             {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
