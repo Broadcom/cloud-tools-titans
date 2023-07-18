@@ -2,6 +2,7 @@
   {{- $titanSideCars := .titanSideCars }}
   {{- $appName := .appName -}}
   {{- $direction := .direction -}}
+  {{- $icdmClusters := .icdmClusters -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
@@ -20,14 +21,40 @@
                 routes:
   {{- $routes := list }}
   {{- if $gatewayEnable }}
-    {{- range $cn, $cv := $clusters }}
-      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
-        {{- range $cv.routes }}
-          {{- $newcluster := dict "cluster" $cn }}
-          {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
+    {{- $releaseBaseLabel := "0000-00-0" -}}
+    {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "icdmClusters" $icdmClusters) | fromJson -}}
+    {{- range $cn, $cl := $releaseClusters -}}
+      {{- $sortedClusterReleases := keys $cl | sortAlpha -}}
+      {{- $orderedClusterReleases := list -}}
+      {{- range $sortedClusterReleases -}}
+        {{- $orderedClusterReleases = prepend $orderedClusterReleases . -}}
+      {{- end -}}
+      {{- $oldestRelease := first $sortedClusterReleases -}}
+      {{- range $orderedClusterReleases -}}
+        {{- $relVer := . -}}
+        {{- $value := get $cl $relVer -}}
+        {{- if eq $relVer $oldestRelease -}}
+          {{- range $value.routes -}}
+            {{- $newcluster := ternary $cn (printf "%s-%s" $cn $relVer) (eq $relVer $releaseBaseLabel) -}}
+            {{- $route := dict "cluster" $newcluster -}}
+            {{- $routes = append $routes (dict "match" .match "route" $route "ratelimit" .ratelimit) -}}
+          {{- end -}}
+        {{- else -}}
+          {{- range $value.routes -}}
+            {{- $newcluster := printf "%s-%s" $cn $relVer -}}
+            {{- $route := dict "cluster" $newcluster -}}
+            {{- $match := .match -}}
+            {{- $headers := get $match "headers" -}}
+            {{- if $headers -}}
+              {{- $headers = append $headers (dict "key" "x-epmp-route-by-release" "eq" $relVer) -}}
+            {{- else -}}
+              {{- $_ := set $match "headers" (list (dict "key" "x-epmp-route-by-release" "eq" $relVer)) -}}
+            {{- end -}}
+            {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
   {{- else }}
     {{- $routes = ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
     {{- if and (eq "ingress" $direction) (not $routes) }}
