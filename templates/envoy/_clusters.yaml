@@ -18,6 +18,8 @@
   {{- if $gatewayEnable }} 
     {{- $defaultBackend = $gateway.defaultBackend | default "" }}  
   {{- end }}
+  {{- $setupLocalMyEgress := false }}
+  {{- $setupLocalMyEgressAlready := false }}
   {{- $myClusters := dict }}
     clusters:
   {{- range $cluster, $value := $clusters }}
@@ -87,13 +89,15 @@
       {{- end }}
     {{- else }}
       {{- $setupCluster := true }}
+      {{- $clusterInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $cluster | fromJson -}}
       {{- if not $gatewayEnable }}
         {{- $setupCluster = false }}
         {{- range $egress.routes }}
           {{- if .route }}
-            {{- if .route.cluster }} 
-              {{- if eq .route.cluster $cluster }}
+            {{- if .route.cluster }}
+              {{- if eq .route.cluster $clusterInfo.name }}
                 {{- $setupCluster = true  }}
+                {{- $setupLocalMyEgress = true -}}
               {{- end }}
             {{- end }}
           {{- end }}
@@ -121,6 +125,24 @@
         {{- end }}
       {{- end }}
       {{- if $setupCluster }}
+        {{- if and $setupLocalMyEgress (not $setupLocalMyEgressAlready) }}
+          {{- $setupLocalMyEgressAlready = true }}
+    - name: local-egress
+      type: STATIC
+      dns_lookup_family: V4_ONLY
+      lb_policy: LEAST_REQUEST
+      http2_protocol_options: {}
+      connect_timeout: "0.25s"
+      load_assignment:
+        cluster_name: local-egress
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address:
+                  address: 127.0.0.1
+                  port_value: {{ $egress.port | default "9565" }}
+        {{- end }}
         {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp")) }}
           {{- $_ := set $myClusters $cluster "created"  }}
     - name: {{ $cluster }}

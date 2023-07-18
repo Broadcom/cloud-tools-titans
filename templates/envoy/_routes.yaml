@@ -12,6 +12,7 @@
   {{- $ingressRoutesFromLocalMyapp := false -}}
   {{- $gatewayEnable := false }}
   {{- $defaultBackend := "local-myapp" }}
+  {{- $releaseBaseLabel := "0000-00-0" -}}
   {{- if $localMyApp.gateway  -}}
     {{- $gatewayEnable = ternary $localMyApp.gateway.enabled true (hasKey $localMyApp.gateway "enabled") }}
     {{- if $gatewayEnable }}
@@ -21,7 +22,6 @@
                 routes:
   {{- $routes := list }}
   {{- if $gatewayEnable }}
-    {{- $releaseBaseLabel := "0000-00-0" -}}
     {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "icdmClusters" $icdmClusters) | fromJson -}}
     {{- range $cn, $cl := $releaseClusters -}}
       {{- $sortedClusterReleases := keys $cl | sortAlpha -}}
@@ -72,10 +72,15 @@
       {{- end }}
     {{- end }} 
   {{- end }}
+  {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "icdmClusters" $icdmClusters) | fromJson -}}
   {{- range $routes }}
     {{- $route := .route }}
-    {{- if or .route .redirect .directResponse $ingressRoutesFromLocalMyapp }}
-      {{- $clusterName := $route.cluster }}
+    {{- $redirect := .redirect -}}
+    {{- $directResponse := .directResponse -}}
+    {{- $match := .match -}}
+    # {{ print "$route=" $route }}
+    {{- if or $route $redirect $directResponse $ingressRoutesFromLocalMyapp }}
+      {{- $clusterName := $route.cluster }}      
       {{- if not $clusterName }}
         {{- if eq $direction "ingress" }}
           {{- if $route }}
@@ -83,129 +88,261 @@
           {{- else }}
             {{- $clusterName = "" }}
           {{- end }}
-        {{- else if or .directResponse .redirect }}
+        {{- else if or $redirect $directResponset }}
           {{- $clusterName = "" }}
         {{- else }}
           {{- fail "egress route requires cluster name"}}
         {{- end }}
       {{- end }}
-      {{- $cluster := ternary (index $clusters $clusterName) .empty (ne $clusterName "") }}
-      {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default $remoteMyApp.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
-      {{- if or $cluster (or .directResponse .redirect) }}
-        {{- if not .match }}
-          {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}     
-          {{- range $cluster.routes }}
-            {{- $clusterRoute := .route }}
+      {{- if and (ne $clusterName "") (not (contains "local-" $clusterName)) -}}
+        {{- $clusterInfo := get $releaseClusters $clusterName -}}
+        {{- if $clusterInfo -}}
+          {{- range $relVer, $routesInfo := $clusterInfo -}}
+            {{- $cluster := index $clusters (ternary $clusterName (printf "%s-%s" $clusterName $relVer) (eq $relVer $releaseBaseLabel)) }}
+            {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default $remoteMyApp.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
+            {{- if or $cluster (or .directResponse .redirect) }}
+              {{- if not $match }}
+                {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}     
+                {{- range $cluster.routes }}
+                  {{- $clusterRoute := .route }}
                 - match:
-            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
-            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
-            {{- range  $route.disableFilters }}
-              {{- $disabledFilter := index $envoy.perRouteFilters . -}}
-              {{- if $disabledFilter }}
+                  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true "releaseLabel" $relVer) | nindent 18 }}
+                  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters "releaseLabel" $relVer) | nindent 18 }}
+                  {{- range  $route.disableFilters }}
+                    {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+                    {{- if $disabledFilter }}
                   typed_per_filter_config:
-                {{- printf "%s:" . | nindent 20 }}
-                {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
-                {{- print "disabled: true" | nindent 22 }}
-              {{- end }}
-            {{- end }}
+                      {{- printf "%s:" . | nindent 20 }}
+                      {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+                      {{- print "disabled: true" | nindent 22 }}
+                    {{- end }}
+                  {{- end }}
                   route:
-            {{- if $clusterRoute.prefixRewrite }}
+                  {{- if $clusterRoute.prefixRewrite }}
                     prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
-            {{- else if $clusterRoute.regexRewrite }}
+                  {{- else if $clusterRoute.regexRewrite }}
                     regex_rewrite:
                       pattern:
                         google_re2: {}
                         regex: {{ $clusterRoute.regexRewrite.pattern }}
                       substitution: {{ $clusterRoute.regexRewrite.substitution }}
-            {{- end }}
+                  {{- end }}
                     cluster: {{ $route.cluster }}
-            {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite }}
+                  {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite }}
                     auto_host_rewrite: true
-            {{- end }}
+                  {{- end }}
                     retry_policy:
                       num_retries: {{ coalesce $retryPolicy.numRetries "1" }}
                       retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
-            {{- if $retryPolicy.retriableStatusCode }}
+                  {{- if $retryPolicy.retriableStatusCode }}
                       retriable_status_codes: 
-              {{- range $retryPolicy.retriableStatusCode }}
+                    {{- range $retryPolicy.retriableStatusCode }}
                         - {{ . }}
-              {{- end }}
-            {{- end }}
-            {{- if $retryPolicy.hostSelectionRetryMaxAttempts }}
+                    {{- end }}
+                  {{- end }}
+                  {{- if $retryPolicy.hostSelectionRetryMaxAttempts }}
                       host_selection_retry_max_attempts: {{ $retryPolicy.hostSelectionRetryMaxAttempts }}
-            {{- end }}
+                  {{- end }}
                     timeout: {{ coalesce $route.timeout $clusterRoute.timeout (ternary $remoteMyApp.timeout $cluster.timeout (or $gatewayEnable (eq $direction "egress"))) "15s" }}
-          {{- end  }}
-        {{- else }}
+                {{- end  }}
+              {{- else }}
                 - match:
-          {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
-          {{- if ne $clusterName "" }}
-            {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
-            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
-            {{- range $route.disableFilters }}
-              {{- $disabledFilter := index $envoy.perRouteFilters . -}}
-              {{- if $disabledFilter }}
+                {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
+                {{- if ne $clusterName "" }}
+                  {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
+                  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
+                  {{- range $route.disableFilters }}
+                    {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+                    {{- if $disabledFilter }}
                   typed_per_filter_config:
-                {{- printf "%s:" . | nindent 20 }}
-                {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
-                {{- print "disabled: true" | nindent 22 }}
-              {{- end }}
-            {{- end }}
+                      {{- printf "%s:" . | nindent 20 }}
+                      {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+                      {{- print "disabled: true" | nindent 22 }}
+                    {{- end }}
+                  {{- end }}
                   route:
                     cluster: {{ $clusterName }} 
-            {{- if $route.prefixRewrite }}
+                  {{- if $route.prefixRewrite }}
                     prefix_rewrite: {{ $route.prefixRewrite }}
-            {{- else if $route.regexRewrite }}
+                  {{- else if $route.regexRewrite }}
                     regex_rewrite:
                       pattern:
                         google_re2: {}
                         regex: {{ $route.regexRewrite.pattern }}
                       substitution: {{ $route.regexRewrite.substitution }}
-            {{- end }}
-            {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite }}
+                  {{- end }}
+                  {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite }}
                     auto_host_rewrite: true
-            {{- end }}
+                  {{- end }}
                     retry_policy:
                       num_retries: {{ coalesce $retryPolicy.numRetries "1" }}
                       retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
-            {{- if $retryPolicy.retriableStatusCode }}
+                  {{- if $retryPolicy.retriableStatusCode }}
                       retriable_status_codes: 
-              {{- range $retryPolicy.retriableStatusCode }}
+                    {{- range $retryPolicy.retriableStatusCode }}
                         - {{ . }}
-              {{- end }}
-            {{- end }}
-            {{- if $retryPolicy.hostSelectionRetryMaxAttempts }}
+                    {{- end }}
+                  {{- end }}
+                  {{- if $retryPolicy.hostSelectionRetryMaxAttempts }}
                       host_selection_retry_max_attempts: {{ $retryPolicy.hostSelectionRetryMaxAttempts }}
-            {{- end }}
+                  {{- end }}
                     timeout: {{ coalesce $route.timeout (ternary $remoteMyApp.timeout $cluster.timeout (or $gatewayEnable (eq $direction "egress"))) "15s" }}
-            {{- if or $route.idleTimeout $cluster.idleTimeout }}
+                  {{- if or $route.idleTimeout $cluster.idleTimeout }}
                     idle_timeout: {{ coalesce $route.idleTimeout $cluster.idleTimeout }}
-            {{- end }}
-          {{- else if .directResponse }}
+                  {{- end }}
+                {{- else if .directResponse }}
                   direct_response:
                     status: {{ .directResponse.status }}
-            {{- if .directResponse.body }}
+                  {{- if .directResponse.body }}
                     body:
                       inline_string: {{ .directResponse.body | squote }}
-            {{- end }}
-          {{- else if .redirect }}
+                  {{- end }}
+                {{- else if .redirect }}
                   redirect:
-            {{- if eq .redirect.action "regex_rewrite" }}
+                  {{- if eq .redirect.action "regex_rewrite" }}
                     regex_rewrite:
                       pattern:
                         google_re2: 
                           max_program_size: {{ .redirect.maxlen }}
                         regex: {{ .redirect.regex | squote }}
                       substitution: {{ .redirect.value | squote }}
-            {{- else }}
+                  {{- else }}
                     {{ .redirect.action }}: {{ .redirect.value }}
-            {{- end }}
-            {{- if .redirect.responseCode }}
+                  {{- end }}
+                  {{- if .redirect.responseCode }}
                     response_code: {{ .redirect.responseCode }}  
+                  {{- end }}
+                {{- end }}
+              {{- end }}
             {{- end }}
-          {{- end }}
-        {{- end }}
-      {{- end }}
+
+          {{- end -}}
+
+        {{- end -}}
+      {{- else -}}
+            {{- $cluster := tenary .empty (index $clusters $clusterName) (eq $clusterName "") }}
+            {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default $remoteMyApp.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
+            {{- if or $cluster (or .directResponse .redirect) }}
+              {{- if not .match }}
+                {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}     
+                {{- range $cluster.routes }}
+                  {{- $clusterRoute := .route }}
+                - match:
+                  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
+                  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
+                  {{- range  $route.disableFilters }}
+                    {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+                    {{- if $disabledFilter }}
+                  typed_per_filter_config:
+                      {{- printf "%s:" . | nindent 20 }}
+                      {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+                      {{- print "disabled: true" | nindent 22 }}
+                    {{- end }}
+                  {{- end }}
+                  route:
+                  {{- if $clusterRoute.prefixRewrite }}
+                    prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
+                  {{- else if $clusterRoute.regexRewrite }}
+                    regex_rewrite:
+                      pattern:
+                        google_re2: {}
+                        regex: {{ $clusterRoute.regexRewrite.pattern }}
+                      substitution: {{ $clusterRoute.regexRewrite.substitution }}
+                  {{- end }}
+                    cluster: {{ $route.cluster }}
+                  {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite }}
+                    auto_host_rewrite: true
+                  {{- end }}
+                    retry_policy:
+                      num_retries: {{ coalesce $retryPolicy.numRetries "1" }}
+                      retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
+                  {{- if $retryPolicy.retriableStatusCode }}
+                      retriable_status_codes: 
+                    {{- range $retryPolicy.retriableStatusCode }}
+                        - {{ . }}
+                    {{- end }}
+                  {{- end }}
+                  {{- if $retryPolicy.hostSelectionRetryMaxAttempts }}
+                      host_selection_retry_max_attempts: {{ $retryPolicy.hostSelectionRetryMaxAttempts }}
+                  {{- end }}
+                    timeout: {{ coalesce $route.timeout $clusterRoute.timeout (ternary $remoteMyApp.timeout $cluster.timeout (or $gatewayEnable (eq $direction "egress"))) "15s" }}
+                {{- end  }}
+              {{- else }}
+                - match:
+                {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
+                {{- if ne $clusterName "" }}
+                  {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
+                  {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
+                  {{- range $route.disableFilters }}
+                    {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+                    {{- if $disabledFilter }}
+                  typed_per_filter_config:
+                      {{- printf "%s:" . | nindent 20 }}
+                      {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+                      {{- print "disabled: true" | nindent 22 }}
+                    {{- end }}
+                  {{- end }}
+                  route:
+                    cluster: {{ $clusterName }} 
+                  {{- if $route.prefixRewrite }}
+                    prefix_rewrite: {{ $route.prefixRewrite }}
+                  {{- else if $route.regexRewrite }}
+                    regex_rewrite:
+                      pattern:
+                        google_re2: {}
+                        regex: {{ $route.regexRewrite.pattern }}
+                      substitution: {{ $route.regexRewrite.substitution }}
+                  {{- end }}
+                  {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite }}
+                    auto_host_rewrite: true
+                  {{- end }}
+                    retry_policy:
+                      num_retries: {{ coalesce $retryPolicy.numRetries "1" }}
+                      retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
+                  {{- if $retryPolicy.retriableStatusCode }}
+                      retriable_status_codes: 
+                    {{- range $retryPolicy.retriableStatusCode }}
+                        - {{ . }}
+                    {{- end }}
+                  {{- end }}
+                  {{- if $retryPolicy.hostSelectionRetryMaxAttempts }}
+                      host_selection_retry_max_attempts: {{ $retryPolicy.hostSelectionRetryMaxAttempts }}
+                  {{- end }}
+                    timeout: {{ coalesce $route.timeout (ternary $remoteMyApp.timeout $cluster.timeout (or $gatewayEnable (eq $direction "egress"))) "15s" }}
+                  {{- if or $route.idleTimeout $cluster.idleTimeout }}
+                    idle_timeout: {{ coalesce $route.idleTimeout $cluster.idleTimeout }}
+                  {{- end }}
+                {{- else if .directResponse }}
+                  direct_response:
+                    status: {{ .directResponse.status }}
+                  {{- if .directResponse.body }}
+                    body:
+                      inline_string: {{ .directResponse.body | squote }}
+                  {{- end }}
+                {{- else if .redirect }}
+                  redirect:
+                  {{- if eq .redirect.action "regex_rewrite" }}
+                    regex_rewrite:
+                      pattern:
+                        google_re2: 
+                          max_program_size: {{ .redirect.maxlen }}
+                        regex: {{ .redirect.regex | squote }}
+                      substitution: {{ .redirect.value | squote }}
+                  {{- else }}
+                    {{ .redirect.action }}: {{ .redirect.value }}
+                  {{- end }}
+                  {{- if .redirect.responseCode }}
+                    response_code: {{ .redirect.responseCode }}  
+                  {{- end }}
+                {{- end }}
+              {{- end }}
+            {{- end }}
+
+
+      {{- end -}}
+
+      
+
     {{- end }}
   {{- end }}
   {{- if eq $direction "ingress" }}
