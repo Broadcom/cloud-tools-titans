@@ -1,0 +1,11 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.canary.service" -}}
+  {{- $releaseLabelPattern := "^[a-z-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" -}}
+  {{- $releaseLabelPatternLen :=  len "-0000-00-0" -}}
+  {{- if regexMatch $releaseLabelPattern . -}}
+    {{- $serviceName := substr 0 (sub (len .) $releaseLabelPatternLen) . -}}
+    {{- $releaseLabel := substr (add1 (len $serviceName)) (len .) . -}}
+    {{- dict "name" $serviceName "label" $releaseLabel | toJson -}}
+  {{- else -}}
+    {{- dict "name" . "label" "" | toJson -}}
+  {{- end -}}
+{{- end -}}
