@@ -3,6 +3,7 @@
   {{- $envoy := $titanSideCars.envoy -}}
   {{- $clusters := $envoy.clusters -}}
   {{- $icdmClusters := .icdmClusters -}}
+  {{- $requestServices := .services | default list -}}
   {{- $releaseClusters := dict -}}
   {{- $localApp := index $clusters "local-myapp" -}}
   {{- $remoteApp := index $clusters "remote-myapp" -}}
@@ -16,13 +17,15 @@
         {{- $serviceName = substr 0 (sub (len $cluster | int64 ) (len "-0000-00-0" | int64) | int ) $cluster -}}
         {{- $releaseLabel = substr (add1 (len $serviceName | int64) | int) (len $cluster) $cluster -}}
       {{- end -}}
-      {{- $versionRoutes := dict "routes" $value.routes -}}
-      {{- $service := get $releaseClusters $serviceName -}}
-      {{- if $service -}}
-        {{- $_ := set $service $releaseLabel $versionRoutes -}}
-      {{- else -}}
-        {{- $version := dict $releaseLabel $versionRoutes -}}
-        {{- $_ := set $releaseClusters $serviceName $version -}}
+      {{- if or (eq (len $requestServices) 0) (has $serviceName $requestServices) -}}
+        {{- $versionRoutes := dict "routes" $value.routes -}}
+        {{- $service := get $releaseClusters $serviceName -}}
+        {{- if $service -}}
+          {{- $_ := set $service $releaseLabel $versionRoutes -}}
+        {{- else -}}
+          {{- $version := dict $releaseLabel $versionRoutes -}}
+          {{- $_ := set $releaseClusters $serviceName $version -}}
+        {{- end -}}
       {{- end -}}
     {{- end -}}
   {{- end -}}
@@ -33,19 +36,21 @@
       {{- $serviceName = substr 0 (sub (len $cluster | int64) (len "-0000-00-0" | int64) | int) $cluster -}}
       {{- $releaseLabel = substr (add1 (len $serviceName | int64) | int) (len $cluster | int) $cluster -}}
     {{- end -}}
-    {{- $routes := list -}}
-    {{- range $value.routes -}}
-      {{- $match := dict .match .uri -}}
-      {{- $route := dict "match" $match -}}
-      {{- $routes = append $routes $route -}}
-    {{- end -}}
-    {{- $versionRoutes := dict "routes" $routes -}}
-    {{- $service := get $releaseClusters $serviceName -}}
-    {{- if $service -}}
-      {{- $_ := set $service $releaseLabel $versionRoutes -}}
-    {{- else -}}
-      {{- $version := dict $releaseLabel $versionRoutes -}}
-      {{- $_ := set $releaseClusters $serviceName $version -}}
+    {{- if or (eq (len $requestServices) 0) (has $serviceName $requestServices) -}}
+      {{- $routes := list -}}
+      {{- range $value.routes -}}
+        {{- $match := dict .match .uri -}}
+        {{- $route := dict "match" $match -}}
+        {{- $routes = append $routes $route -}}
+      {{- end -}}
+      {{- $versionRoutes := dict "routes" $routes -}}
+      {{- $service := get $releaseClusters $serviceName -}}
+      {{- if $service -}}
+        {{- $_ := set $service $releaseLabel $versionRoutes -}}
+      {{- else -}}
+        {{- $version := dict $releaseLabel $versionRoutes -}}
+        {{- $_ := set $releaseClusters $serviceName $version -}}
+      {{- end -}}
     {{- end -}}
   {{- end -}}
   {{- $releaseClusters | toJson  -}}

@@ -1,7 +1,7 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.clusters" }}
   {{- $titanSideCars := .titanSideCars }}
   {{- $releaseNamespace := .releaseNamespace }}
-  {{- $chartName := .chartName }}
+  {{- $appName := .appName }}
   {{- $issuers := $titanSideCars.issuers }}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
@@ -211,8 +211,34 @@
     {{- end }}  
   {{- end }}
   {{- range $issuers }}
-    {{ $cluster := required "value 'titanSideCars.issuers[].cluster' is required" .cluster }}
-    {{- if and (ne $cluster $chartName) (not (hasKey $myClusters $cluster)) }}
+    {{- $clusterReleaseLabel := "" -}}
+    {{- if eq .cluster "identity" -}}
+      {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "services" (list "identity")) | fromJson -}}
+      {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
+      {{- if ne $appInfo.label "" -}}
+        {{- $identity := get $releaseClusters "identity" -}}
+        {{- if $identity -}}
+          {{- $sortedReleases := keys $identity | sortAlpha -}}
+          {{- if has $appInfo.label $sortedReleases -}}
+            {{- $clusterReleaseLabel = printf "-%s" $appInfo.label -}}
+          {{- else if gt (len $sortedReleases) 1 -}}
+            {{- range $sortedReleases -}}
+              {{- if ne . "0000-00-0" -}}
+                {{- if le . $appInfo.label -}}
+                  {{- $clusterReleaseLabel = printf "-%s" . -}}
+                {{- else if eq $clusterReleaseLabel "" -}}
+                  {{- $clusterReleaseLabel = printf "-%s" . -}}
+                {{- end -}}
+              {{- end -}}
+            {{- end -}}
+          {{- else if ne (index $sortedReleases 0) "0000-00-0" -}}
+            {{- $clusterReleaseLabel = printf "-%s" (index $sortedReleases 0) -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}    
+    {{- end -}}
+    {{ $cluster := required "value 'titanSideCars.issuers[].cluster' is required" (printf "%s%s" .cluster $clusterReleaseLabel) }}
+    {{- if and (ne $cluster $appName) (not (hasKey $myClusters $cluster)) }}
       {{- $_ := set $myClusters $cluster "created"  }}
       {{- $clusterValue := index $clusters $cluster }} 
       {{- $serviceName := printf "%s%s" $cluster (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
