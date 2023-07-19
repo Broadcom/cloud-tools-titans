@@ -1,0 +1,33 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.canary.cluster" -}}
+  {{- $titanSideCars := .titanSideCars -}}
+  {{- $icdmClusters := .icdmClusters -}}
+  {{- $service := .service -}}
+  {{- $appName := .appName -}}
+  {{- $clusterReleaseLabel := "" -}}
+  {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "icdmClusters" $icdmClusters "services" (list $service)) | fromJson -}}
+  {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
+  {{- $cluster := get $releaseClusters $service -}}
+  {{- if $cluster -}}
+    {{- $sortedReleases := keys $cluster | sortAlpha -}}
+    {{- if ne $appInfo.label "" -}}
+      {{- if has $appInfo.label $sortedReleases -}}
+        {{- $clusterReleaseLabel = printf "-%s" $appInfo.label -}}
+      {{- else if gt (len $sortedReleases) 1 -}}
+        {{- range $sortedReleases -}}
+          {{- if ne . "0000-00-0" -}}
+            {{- if le . $appInfo.label -}}
+              {{- $clusterReleaseLabel = printf "-%s" . -}}
+            {{- else if eq $clusterReleaseLabel "" -}}
+              {{- $clusterReleaseLabel = printf "-%s" . -}}
+            {{- end -}}
+          {{- end -}}
+        {{- end -}}
+      {{- else if ne (index $sortedReleases 0) "0000-00-0" -}}
+        {{- $clusterReleaseLabel = printf "-%s" (index $sortedReleases 0) -}}
+      {{- end -}}
+    {{- else -}}
+      {{- $clusterReleaseLabel = printf "-%s" (index $sortedReleases 0) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- printf "%s%s" $service $clusterReleaseLabel -}}
+{{- end -}}
