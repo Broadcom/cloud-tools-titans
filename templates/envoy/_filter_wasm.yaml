@@ -19,13 +19,13 @@
       {{- end }}
     {{- end }}
   {{- else }}
-    {{- $routes = $requests.routes }}
+    {{- $routes = (ternary (list) $requests.routes ($requests.fallBackRoutesOnly | default false))}}
     {{- if and $requests (not $routes) }}
       {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
         {{ $routes = $localMyApp.routes }}
       {{- end }}
     {{- end }}
-    {{- $additionalRoutes := $requests.additionalRoutes }}
+    {{- $additionalRoutes := (ternary (list) $requests.additionalRoutes ($requests.fallBackRoutesOnly | default false)) }}
     {{- if $additionalRoutes }}
       {{- if $routes }}
         {{- $routes = concat $additionalRoutes $routes }}

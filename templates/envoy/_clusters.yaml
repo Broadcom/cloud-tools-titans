@@ -90,7 +90,7 @@
       {{- $clusterInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $cluster | fromJson -}}
       {{- if not $gatewayEnable }}
         {{- $setupCluster = false }}
-        {{- range $egress.routes }}
+        {{- range (ternary (list) $egress.routes ($egress.fallBackRoutesOnly | default false)) }}
           {{- if .route }}
             {{- if .route.cluster }} 
               {{- if eq .route.cluster $clusterInfo.name }}
@@ -99,7 +99,7 @@
             {{- end }}
           {{- end }}
         {{- end }}
-        {{- range $egress.additionalRoutes }}
+        {{- range (ternary (list) $egress.additionalRoutes ($egress.fallBackRoutesOnly | default false)) }}
           {{- if .route }}
             {{- if .route.cluster }} 
               {{- if eq .route.cluster $clusterInfo.name }}

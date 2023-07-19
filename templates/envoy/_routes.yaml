@@ -58,14 +58,14 @@
       {{- end -}}
     {{- end -}}
   {{- else }}
-    {{- $routes = ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
+    {{- $routes = ternary (ternary (list) $ingress.routes ($ingress.fallBackRoutesOnly | default false)) (ternary (list) $egress.routes ($egress.fallBackRoutesOnly | default false)) (eq "ingress" $direction) }}
     {{- if and (eq "ingress" $direction) (not $routes) }}
       {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
         {{- $routes = $localMyApp.routes -}}
         {{- $ingressRoutesFromLocalMyapp = true -}}
       {{- end }}
     {{- end }}
-    {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
+    {{- $additionalRoutes := ternary (ternary (list) $ingress.additionalRoutes ($ingress.fallBackRoutesOnly | default false)) (ternary (list) $egress.additionalRoutes ($egress.fallBackRoutesOnly | default false)) (eq "ingress" $direction) }}
     {{- if $additionalRoutes }}
       {{- if $routes }}
         {{- $routes = concat $additionalRoutes $routes }}
