@@ -1,0 +1,22 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" -}}
+  {{- $titanSideCars := .titanSideCars -}}
+  {{- $envoy := $titanSideCars.envoy -}}
+  {{- $clusters := $envoy.clusters -}}
+  {{- range $cluster, $value := $clusters -}}
+    {{- $routes := $value.routes | default list -}}
+    {{- if eq (len $routes ) 0 -}}
+      {{- range $value.public -}}
+        {{- $uri := .uri -}}
+        {{- if not (hasPrefix "/" $uri) -}}
+          {{- $uri = printf "/%s" $uri -}}
+        {{- end -}}
+        {{- $match := dict .match .uri -}}
+        {{- $route := dict "match" $match -}}
+        {{- $routes = append $routes $route -}}
+      {{- end -}}
+      {{- if $routes -}}
+        {{- $_ := set $value "routes" $routes -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}  
+{{- end -}}

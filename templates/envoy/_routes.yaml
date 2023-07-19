@@ -2,7 +2,6 @@
   {{- $titanSideCars := .titanSideCars }}
   {{- $appName := .appName -}}
   {{- $direction := .direction -}}
-  {{- $icdmClusters := .icdmClusters -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
@@ -12,6 +11,7 @@
   {{- $ingressRoutesFromLocalMyapp := false -}}
   {{- $gatewayEnable := false }}
   {{- $defaultBackend := "local-myapp" }}
+  {{ include "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" (dict "titanSideCars" $titanSideCars) }}
   {{- if $localMyApp.gateway  -}}
     {{- $gatewayEnable = ternary $localMyApp.gateway.enabled true (hasKey $localMyApp.gateway "enabled") }}
     {{- if $gatewayEnable }}
@@ -22,7 +22,7 @@
   {{- $routes := list }}
   {{- if $gatewayEnable }}
     {{- $releaseBaseLabel := "0000-00-0" -}}
-    {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "icdmClusters" $icdmClusters) | fromJson -}}
+    {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars) | fromJson -}}
     {{- range $cn, $cl := $releaseClusters -}}
       {{- if ne $cn $appName -}}
         {{- $sortedClusterReleases := keys $cl | sortAlpha -}}
