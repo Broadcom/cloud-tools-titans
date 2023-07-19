@@ -8,8 +8,6 @@
   {{- $ratelimit := $titanSideCars.ratelimit -}}
   {{- $ingress := $titanSideCars.ingress  }}
   {{- $egress := $titanSideCars.egress  }}
-  # {{- print "$.Values.titanSideCars.egress=" $.Values.titanSideCars.egress }}
-  # {{- print "$egress=" $egress }}
   {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
   {{- $clusters := $envoy.clusters  }}
   {{- if not $clusters }}
