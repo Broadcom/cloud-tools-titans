@@ -85,14 +85,33 @@
                   port_value: {{  $localApp.port | default "8080" }}
         {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $localApp.scheme  "envoy" $envoy) | nindent 6 }}
       {{- end }}
-    {{- else }}
+    {{- else if ne $cluster $appName }}
       {{- $setupCluster := true }}
+      {{- $clusterInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $cluster | fromJson -}}
       {{- if not $gatewayEnable }}
         {{- $setupCluster = false }}
         {{- range $egress.routes }}
           {{- if .route }}
             {{- if .route.cluster }} 
-              {{- if eq .route.cluster $cluster }}
+              {{- if eq .route.cluster $clusterInfo.name }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- range $egress.additionalRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $clusterInfo.name }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- range $egress.fallBackRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $clusterInfo.name }}
                 {{- $setupCluster = true  }}
               {{- end }}
             {{- end }}
@@ -101,14 +120,32 @@
         {{- range $ingress.routes }}
           {{- if .route }}
             {{- if .route.cluster }} 
-              {{- if eq .route.cluster $cluster }}
+              {{- if eq .route.cluster $clusterInfo.name }}
                 {{- $setupCluster = true }}
               {{- end }}
             {{- end }}           
           {{- end }}
         {{- end }}
+        {{- range $ingress.additionalRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $clusterInfo.name }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- range $ingress.fallBackRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $clusterInfo.name }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
         {{- range $addAdditionalClustersForFilters }}
-          {{- if eq . $cluster }}
+          {{- if eq . $clusterInfo.name }}
             {{- $setupCluster = true }}
           {{- end }}
         {{- end }}
@@ -215,10 +252,10 @@
     {{- if eq .cluster "identity" -}}
       {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "services" (list "identity")) | fromJson -}}
       {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
-      {{- if ne $appInfo.label "" -}}
-        {{- $identity := get $releaseClusters "identity" -}}
-        {{- if $identity -}}
-          {{- $sortedReleases := keys $identity | sortAlpha -}}
+      {{- $identity := get $releaseClusters "identity" -}}
+      {{- if $identity -}}
+        {{- $sortedReleases := keys $identity | sortAlpha -}}
+        {{- if ne $appInfo.label "" -}}
           {{- if has $appInfo.label $sortedReleases -}}
             {{- $clusterReleaseLabel = printf "-%s" $appInfo.label -}}
           {{- else if gt (len $sortedReleases) 1 -}}
@@ -234,6 +271,8 @@
           {{- else if ne (index $sortedReleases 0) "0000-00-0" -}}
             {{- $clusterReleaseLabel = printf "-%s" (index $sortedReleases 0) -}}
           {{- end -}}
+        {{- else -}}
+          {{- $clusterReleaseLabel = printf "-%s" (index $sortedReleases 0) -}}
         {{- end -}}
       {{- end -}}    
     {{- end -}}
