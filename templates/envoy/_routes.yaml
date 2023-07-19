@@ -19,7 +19,7 @@
   {{- end }}
                 routes:
   {{- $routes := list }}
-  {{- if $gatewayEnable }}
+  {{- if and $gatewayEnable (eq $direction "ingress") }}
     {{- $releaseBaseLabel := "0000-00-0" -}}
     {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars) | fromJson -}}
     {{- range $cn, $cl := $releaseClusters -}}
