@@ -15,7 +15,6 @@
   {{- $gatewayEnable := $gateway.enabled }}
   {{- $defaultBackend := "local-myapp" }}
   {{- $addAdditionalClustersForFilters := $envoy.filterClusters }}
-  {{ include "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" (dict "titanSideCars" $titanSideCars) }}
   {{- if $gatewayEnable }} 
     {{- $defaultBackend = $gateway.defaultBackend | default "" }}  
   {{- end }}

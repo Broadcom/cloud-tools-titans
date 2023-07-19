@@ -11,7 +11,6 @@
   {{- $ingressRoutesFromLocalMyapp := false -}}
   {{- $gatewayEnable := false }}
   {{- $defaultBackend := "local-myapp" }}
-  {{ include "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" (dict "titanSideCars" $titanSideCars) }}
   {{- if $localMyApp.gateway  -}}
     {{- $gatewayEnable = ternary $localMyApp.gateway.enabled true (hasKey $localMyApp.gateway "enabled") }}
     {{- if $gatewayEnable }}
