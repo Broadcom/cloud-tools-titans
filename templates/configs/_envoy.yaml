@@ -162,7 +162,7 @@ envoy.yaml: |
               - h2
               - http/1.1
   {{- end }}
-  {{- if $egress.routes }}
+  {{- if or $egress.routes $egress.additionalRoutes $egress.fallBackRoutes }}
     - name: {{ $appName }}-egress
       address:
         socket_address:

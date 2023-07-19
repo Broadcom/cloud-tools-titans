@@ -24,33 +24,35 @@
     {{- $releaseBaseLabel := "0000-00-0" -}}
     {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "icdmClusters" $icdmClusters) | fromJson -}}
     {{- range $cn, $cl := $releaseClusters -}}
-      {{- $sortedClusterReleases := keys $cl | sortAlpha -}}
-      {{- $orderedClusterReleases := list -}}
-      {{- range $sortedClusterReleases -}}
-        {{- $orderedClusterReleases = prepend $orderedClusterReleases . -}}
-      {{- end -}}
-      {{- $oldestRelease := first $sortedClusterReleases -}}
-      {{- range $orderedClusterReleases -}}
-        {{- $relVer := . -}}
-        {{- $value := get $cl $relVer -}}
-        {{- if eq $relVer $oldestRelease -}}
-          {{- range $value.routes -}}
-            {{- $newcluster := ternary $cn (printf "%s-%s" $cn $relVer) (eq $relVer $releaseBaseLabel) -}}
-            {{- $route := dict "cluster" $newcluster -}}
-            {{- $routes = append $routes (dict "match" .match "route" $route "ratelimit" .ratelimit) -}}
-          {{- end -}}
-        {{- else -}}
-          {{- range $value.routes -}}
-            {{- $newcluster := printf "%s-%s" $cn $relVer -}}
-            {{- $route := dict "cluster" $newcluster -}}
-            {{- $match := .match -}}
-            {{- $headers := get $match "headers" -}}
-            {{- if $headers -}}
-              {{- $headers = append $headers (dict "key" "x-epmp-route-by-release" "eq" $relVer) -}}
-            {{- else -}}
-              {{- $_ := set $match "headers" (list (dict "key" "x-epmp-route-by-release" "eq" $relVer)) -}}
+      {{- if ne $cn $appName -}}
+        {{- $sortedClusterReleases := keys $cl | sortAlpha -}}
+        {{- $orderedClusterReleases := list -}}
+        {{- range $sortedClusterReleases -}}
+          {{- $orderedClusterReleases = prepend $orderedClusterReleases . -}}
+        {{- end -}}
+        {{- $oldestRelease := first $sortedClusterReleases -}}
+        {{- range $orderedClusterReleases -}}
+          {{- $relVer := . -}}
+          {{- $value := get $cl $relVer -}}
+          {{- if eq $relVer $oldestRelease -}}
+            {{- range $value.routes -}}
+              {{- $newcluster := ternary $cn (printf "%s-%s" $cn $relVer) (eq $relVer $releaseBaseLabel) -}}
+              {{- $route := dict "cluster" $newcluster -}}
+              {{- $routes = append $routes (dict "match" .match "route" $route "ratelimit" .ratelimit) -}}
             {{- end -}}
-            {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) -}}
+          {{- else -}}
+            {{- range $value.routes -}}
+              {{- $newcluster := printf "%s-%s" $cn $relVer -}}
+              {{- $route := dict "cluster" $newcluster -}}
+              {{- $match := .match -}}
+              {{- $headers := get $match "headers" -}}
+              {{- if $headers -}}
+                {{- $headers = append $headers (dict "key" "x-epmp-route-by-release" "eq" $relVer) -}}
+              {{- else -}}
+                {{- $_ := set $match "headers" (list (dict "key" "x-epmp-route-by-release" "eq" $relVer)) -}}
+              {{- end -}}
+              {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) -}}
+            {{- end -}}
           {{- end -}}
         {{- end -}}
       {{- end -}}
@@ -64,11 +66,19 @@
       {{- end }}
     {{- end }}
     {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}
-    {{- if and $additionalRoutes }}
+    {{- if $additionalRoutes }}
       {{- if $routes }}
         {{- $routes = concat $additionalRoutes $routes }}
       {{- else }}
         {{- $routes = $additionalRoutes }}
+      {{- end }}
+    {{- end }}
+    {{- $fallBackRoutes := ternary $ingress.fallBackRoutes $egress.fallBackRoutes (eq "ingress" $direction) }}
+    {{- if $fallBackRoutes }}
+      {{- if $routes }}
+        {{- $routes = concat $routes $fallBackRoutes }}
+      {{- else }}
+        {{- $routes = $fallBackRoutes }}
       {{- end }}
     {{- end }} 
   {{- end }}
