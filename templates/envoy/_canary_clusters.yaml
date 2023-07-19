@@ -8,7 +8,6 @@
   {{- $remoteApp := index $clusters "remote-myapp" -}}
   {{- $releaseBaseLabel := "0000-00-0" -}}
   {{- $releaseLabelPattern := "^[a-z-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" -}}
-  {{ include "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" (dict "titanSideCars" $titanSideCars) }}
   {{- range $cluster, $value := $clusters -}}
     {{- if and (ne $cluster "remote-myapp") (not (hasPrefix "local-" $cluster)) -}}
       {{- $serviceName := $cluster -}}
