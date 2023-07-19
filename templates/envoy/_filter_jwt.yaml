@@ -1,7 +1,9 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.jwt" }}
   {{- $requests := .requests  }}
   {{- $issuers := .issuers  }}
-  {{- $localMyApp := .localMyApp  }}
+  {{- $appName := .appName }}
+  {{- $localMyApp := .localMyApp }}
+  {{- $titanSideCars := .titanSideCars }}
   {{- $providers := list  }}
   {{- $tokenValidation := false  }}
   {{- $tokenValidationBypass := false  }}
@@ -18,7 +20,16 @@
     {{- else }}
       {{- $routes = $additionalRoutes }}
     {{- end }}
-  {{- end }} 
+  {{- end }}
+  {{- $fallBackRoutes := $requests.fallBackRoutes }}
+  {{- if $fallBackRoutes }}
+    {{- if $routes }}
+      {{- $routes = concat $routes $fallBackRoutes }}
+    {{- else }}
+      {{- $routes = $fallBackRoutes }}
+    {{- end }}
+  {{- end }}
+
   {{- range $routes  }}
     {{- $tokenCheck := ternary .tokenCheck (default ($requests.tokenCheck | default false)) (hasKey . "tokenCheck")  }}
     {{- $tokenBypass := ternary (not .tokenCheck) (ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck")) (hasKey . "tokenCheck")  }}
@@ -35,6 +46,34 @@
     "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
     providers:
     {{- range $issuers }}
+      {{- $clusterReleaseLabel := "" -}}
+      {{- if eq .cluster "identity" -}}
+        {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "services" (list "identity")) | fromJson -}}
+        {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
+        {{- $identity := get $releaseClusters "identity" -}}
+        {{- if $identity -}}
+          {{- $sortedReleases := keys $identity | sortAlpha -}}
+          {{- if ne $appInfo.label "" -}}
+            {{- if has $appInfo.label $sortedReleases -}}
+              {{- $clusterReleaseLabel = printf "-%s" $appInfo.label -}}
+            {{- else if gt (len $sortedReleases) 1 -}}
+              {{- range $sortedReleases -}}
+                {{- if ne . "0000-00-0" -}}
+                  {{- if le . $appInfo.label -}}
+                    {{- $clusterReleaseLabel = printf "-%s" . -}}
+                  {{- else if eq $clusterReleaseLabel "" -}}
+                    {{- $clusterReleaseLabel = printf "-%s" . -}}
+                  {{- end -}}
+                {{- end -}}
+              {{- end -}}
+            {{- else if ne (index $sortedReleases 0) "0000-00-0" -}}
+              {{- $clusterReleaseLabel = printf "-%s" (index $sortedReleases 0) -}}
+            {{- end -}}
+          {{- else -}}
+            {{- $clusterReleaseLabel = printf "-%s" (index $sortedReleases 0) -}}
+          {{- end -}}
+        {{- end -}}    
+      {{- end -}}
       {{- $provider := printf "provider-%s" (adler32sum .issuer)  }}
       {{- $providers = append $providers $provider  }}
       {{ $provider }}:
@@ -64,7 +103,7 @@
             seconds: {{ .cacheDuration | default "31556952" }} 
           http_uri:
             uri: {{ required "value 'titanSideCars.issuers[].jwks' is required to retrieve issuer's public keys" .jwks }}
-            cluster: {{ .cluster }}
+            cluster: {{ printf "%s%s" .cluster $clusterReleaseLabel }}
             timeout:
               seconds: {{ .timeout | default "1" }}
     {{- end }}
