@@ -170,6 +170,7 @@
           {{- if $clusterValue.external }}
             {{- $serviceName = $clusterValue.alias | default $cluster }}
           {{- end }}
+          {{- $clusterHostname := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $clusterInfo.name ($clusterValue.namespace | default $releaseNamespace)) }}
           {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
           {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
           {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
@@ -222,9 +223,7 @@
         endpoints:
         - lb_endpoints:
           - endpoint:
-            {{- if ne $clusterIpAddress $clusterAddress }}
-              hostname: {{ $clusterAddress }}
-            {{- end }}
+              hostname: {{ $clusterHostname }}
               address:
                 socket_address:
                   address: {{ ternary "127.0.0.1" $clusterIpAddress (hasPrefix "local-" $cluster) }}
