@@ -1,5 +1,12 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" }}
   {{- $clusters := .clusters -}}
+  {{- $opa := .opa }}
+  {{- $opaEnabled := $opa.enabled }}
+  {{- $opaMonitorByEnvoy := $opa.monitorByEnvoy -}}
+  {{- $ratelimit := .ratelimit }}
+  {{- $ratelimitEnabled := $ratelimit.enabled }}
+  {{- $ratelimitMonitorByEnvoy := $ratelimit.monitorByEnvoy -}}
+  {{- $ratelimitIncludeIntoHealthState := $ratelimit.includeIntoHealthState -}}
   {{- $remoteApp := index $clusters "remote-myapp" -}}
   {{- $localApp := index $clusters "local-myapp" }}
   {{- $gateway := $localApp.gateway }}
@@ -34,6 +41,14 @@
     cluster_min_healthy_percentages:
       local-myapp:
         value: 100
+    {{- if and $opaEnabled $opaMonitorByEnvoy }}
+      opa-health:
+        value: 100
+    {{- end }}
+    {{- if and $ratelimitEnabled $ratelimitMonitorByEnvoy $ratelimitIncludeIntoHealthState }}
+      ratelimit-health:
+        value: 100
+    {{- end }}
   {{- end }}
     headers:
     - name: :path

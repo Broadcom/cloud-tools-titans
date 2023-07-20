@@ -1,0 +1,7 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.tls-cert" }}
+  {{- $envoy := .envoy -}}
+tls_certificate_sds_secret_configs:
+- name: tls_sds
+  sds_config:
+    path: {{ printf "%s/envoy-sds.yaml" ($envoy.configFolder | default "/envoy") }}
+{{- end }}

@@ -6,8 +6,8 @@
 {{- if $titanSideCars }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- $ratelimitEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
-  {{- $opa := $titanSideCars.opa -}}
   {{- $ratelimit := $titanSideCars.ratelimit -}}
+  {{- $ratelimitMonitorByEnvoy := $ratelimit.monitorByEnvoy -}}
   {{- $ratelimitCPU := $ratelimit.cpu -}}
   {{- $ratelimitMemory := $ratelimit.memory -}}
   {{- $ratelimitStorage := $ratelimit.ephemeralStorage -}}
@@ -17,7 +17,6 @@
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
   {{- $localApp := index $clusters "local-myapp" }}
-  {{- $hasRatelimit := false }}
 
   {{- $gateway := $localApp.gateway }}
   {{- $gatewayEnable := $gateway.enabled }}
@@ -48,11 +47,7 @@
     {{- end }}
   {{- end }}
   
-  {{- range $routes }}
-    {{- $ratelimit := .ratelimit }}
-    {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
-  {{- end }}
-  {{- if and $envoyEnabled $ratelimitEnabled $hasRatelimit }}
+  {{- if and $envoyEnabled $ratelimitEnabled }}
 - name: {{include "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($ratelimit.imageName | default "ratelimit") ($ratelimit.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
@@ -83,17 +78,11 @@
     - name: USE_STATSD
       value: {{ $ratelimit.userStatsD | default "true" | quote  }}
     - name: STATSD_PORT
-      value: {{ ( $ratelimit.statsdPort | default "8126" ) | quote  }}
     - name: STATSD_PROTOCOL
       value: {{ ( $ratelimit.statsdProtocol | default "udp" ) | quote  }}
     - name: STATSD_HOST
       value: {{ ( $ratelimit.statsdHost | default "127.0.0.1" ) | quote  }}
     - name: NEAR_LIMIT_RATIO
-      value: {{ ( $ratelimit.statsdNear_limit_ratio | default "0.8" ) | quote  }}
-    - name: DETAILED_METRICS_MODE
-      value: {{ ( $ratelimit.statsdDetailed_metrics_mode | default "true" ) | quote  }}
-    - name: SHADOW_MODE
-      value: {{ ( $ratelimit.Shadow_mode | default "false" ) | quote  }}
     - name: PORT
       value: {{ ( $ratelimit.port | default 8070 ) | quote  }}
     - name: NAMESPACE
@@ -111,6 +100,7 @@
         fieldRef:
           apiVersion: v1
           fieldPath: metadata.uid
+    {{- if not $ratelimitMonitorByEnvoy }}
   livenessProbe:
     httpGet:
       path: {{ $ratelimit.healthCheckPath | default "/healthcheck" }}
@@ -136,13 +126,14 @@
       cpu: {{ $ratelimitCPU.request | default "250m" | quote }}
       memory: {{ $ratelimitMemory.request | default "256Mi" | quote }}
       ephemeral-storage: {{ $ratelimitStorage.request | default "100Mi" | quote }}
+    {{- end }}
   terminationMessagePath: /dev/termination-log
   volumeMounts:
     - mountPath: /configs/ratelimit/config/ratelimit_config.yaml
       name: titan-configs
       subPath: ratelimit_config.yaml
     - mountPath: /logs/
-      name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}    
+      name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
     {{- end }}
 {{- end }}
 {{- end }}

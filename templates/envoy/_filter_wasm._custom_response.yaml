@@ -1,0 +1,170 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.custome.response" }}
+  {{- $clusters := .clusters }}
+  {{- $requests := .requests  }}
+  {{- $envoy := .envoy }}
+  {{- $config := $requests.customResponse | default dict }}
+  {{- $localMyApp := .localMyApp  }}
+  {{- $gateway := $localMyApp.gateway }}
+  {{- $gatewayEnable := $gateway.enabled }}
+  {{- $routes := list }}
+  {{- if $gatewayEnable }}
+    {{- range $cn, $cv := $clusters }}
+      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
+        {{- range $cv.routes }}
+          {{- $routes = append $routes . }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- else }}
+    {{- $routes = $requests.routes }}
+    {{- if and $requests (not $routes) }}
+      {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
+        {{ $routes = $localMyApp.routes }}
+      {{- end }}
+    {{- end }}
+    {{- $additionalRoutes := $requests.additionalRoutes }}
+    {{- if $additionalRoutes }}
+      {{- if $routes }}
+        {{- $routes = concat $additionalRoutes $routes }}
+      {{- else }}
+        {{- $routes = $additionalRoutes }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- $customResponses := list }}
+  {{- range $routes }}
+    {{- $customResponse := .customResponse }}
+    {{- $customResponseEnabled := ternary $customResponse.enabled true (hasKey $customResponse "enabled") }}
+    {{- if $customResponseEnabled }}
+      {{- $cusResp := dict }}
+      {{- $match := .match }}
+      {{- $headerMatches := list }}
+      {{- $pathPrefix := $match.prefix | default "" }}
+      {{- $pathMatch := $match.path | default "" }}
+      {{- $pathRegex := $match.regex | default "" }}
+      {{- $method := $match.method | default "" }}
+      {{- if ne $pathPrefix "" }}
+        {{- $hdr := dict "name" ":path" }}
+        {{- $_ := set $hdr "pattern" "sw" }}
+        {{- $_ := set $hdr "value" $pathPrefix }}
+        {{- $headerMatches = append $headerMatches $hdr }}
+      {{- end }}
+      {{- if ne $pathMatch "" }}
+        {{- $hdr := dict "name" ":path" }}
+        {{- $_ := set $hdr "pattern" "eq" }}
+        {{- $_ := set $hdr "value" $pathMatch }}
+        {{- $headerMatches = append $headerMatches $hdr }}
+      {{- end }}
+      {{- if ne $pathRegex "" }}
+        {{- $hdr := dict "name" ":path" }}
+        {{- $_ := set $hdr "pattern" "regex" }}
+        {{- $_ := set $hdr "value" $pathRegex }}
+        {{- $headerMatches = append $headerMatches $hdr }}        
+      {{- end }}
+      {{- if ne $method "" }}
+        {{- $hdr := dict "name" ":method" }}
+        {{- $_ := set $hdr "pattern" "eq" }}
+        {{- $_ := set $hdr "value" $method }}
+        {{- $headerMatches = append $headerMatches $hdr }}        
+      {{- end }}
+      {{- range $match.headers }}
+        {{- $hdr := dict "name" .key }}
+        {{- if .source }}
+          {{- $_ := set $hdr "source" .source }}
+        {{- end }}
+        {{- if .eq }}
+          {{- $_ := set $hdr "pattern" "eq" }}
+          {{- $_ := set $hdr "value" .eq }}
+        {{- else if .neq }}
+          {{- $_ := set $hdr "pattern" "eq" }}
+          {{- $_ := set $hdr "value" .neq }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- else if .sw }}
+          {{- $_ := set $hdr "pattern" "sw" }}
+          {{- $_ := set $hdr "value" .sw }}
+        {{- else if .nsw }}
+          {{- $_ := set $hdr "pattern" "sw" }}
+          {{- $_ := set $hdr "value" .nsw }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- else if .ew }}
+          {{- $_ := set $hdr "pattern" "ew" }}
+          {{- $_ := set $hdr "value" .ew }}
+        {{- else if .new }}
+          {{- $_ := set $hdr "pattern" "ew" }}
+          {{- $_ := set $hdr "value" .new }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- else if .co }}
+          {{- $_ := set $hdr "pattern" "co" }}
+          {{- $_ := set $hdr "value" .co }}
+        {{- else if .nco }}
+          {{- $_ := set $hdr "pattern" "co" }}
+          {{- $_ := set $hdr "value" .nco }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- else if .lk }}
+          {{- $_ := set $hdr "pattern" "regex" }}
+          {{- $_ := set $hdr "value" .lk }}
+        {{- else if .nlk }}
+          {{- $_ := set $hdr "pattern" "regex" }}
+          {{- $_ := set $hdr "value" .nlk }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- else if .pr }}
+          {{- $_ := set $hdr "pattern" "ex" }}
+        {{- else if .npr }}
+          {{- $_ := set $hdr "pattern" "ex" }}
+          {{- $_ := set $hdr "invert" true }}
+        {{- end }}
+        {{- $headerMatches = append $headerMatches $hdr }}
+      {{- end }}
+      {{- if $customResponse.addHeaders }}
+        {{- $_ := set $cusResp "add_headers" $customResponse.addHeaders }}
+        {{- $_ := set $cusResp "match_headers" $headerMatches }}
+      {{- end }}
+      {{- if $cusResp }}
+        {{- $customResponses = append $customResponses $cusResp }}
+      {{- end }}
+    {{- end }}
+  {{- end  }}
+  {{- if gt (len $customResponses) 0 }}
+    {{- $ := set $config "custom_responses" $customResponses }}
+  {{- end }}
+  {{- if eq (include "titan-mesh-helm-lib-chart.envoy.filter.custom.response.enabled" (dict "requests" $requests "routes" $routes)) "true" }}
+- name: envoy.filters.http.custom_response
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+    config:
+    {{- $customResponsefilterFailOpen := "true" }}
+    {{- if $envoy.customResponsefilter }}
+      {{- if hasKey $envoy.customResponsefilter  "failedOpen" }}
+        {{- $customResponsefilterFailOpen = $envoy.customResponsefilter.failedOpen }}
+      {{- end }}    
+    {{- end }}
+      fail_open: {{ $customResponsefilterFailOpen }}      
+      configuration:
+        "@type": type.googleapis.com/google.protobuf.StringValue
+{{ print "value: |" | indent 8 }}
+{{ toPrettyJson $config| indent 10 }}
+    {{- $customResponseFilterName := "envoy_proxy_wasm_custom_response_filter.wasm" }}
+    {{- $customResponseFilterAllowedPrecompiled := "true" }}
+    {{- $customResponseFilterWasmRuntime := "envoy.wasm.runtime.v8" }}
+    {{- if $envoy.customResponseFilter }}
+      {{- if $envoy.customResponseFilter.filename }}
+        {{- $customResponseFilterName = $envoy.customResponseFilter.filename }}
+      {{- end }}
+      {{- if $envoy.customResponseFilter.wasmRuntime }}
+        {{- $customResponseFilterWasmRuntime = $envoy.customResponseFilter.wasmRuntime }}
+      {{- end }}
+      {{- if hasKey $envoy.customResponseFilter "allowPrecompiled" }}
+        {{- $customResponseFilterAllowedPrecompiled = $envoy.customResponseFilter.allowPrecompiled }}
+      {{- end }}    
+    {{- end }}
+      name: sps.proxy.wasm.custom_response.filter
+      root_id: wasm_filters
+      vm_config:
+        vm_id: vm.wasm_filters
+        runtime: {{ $customResponseFilterWasmRuntime | quote }}
+        allow_precompiled: {{ $customResponseFilterAllowedPrecompiled }}
+        code:
+          local:
+            filename: {{ printf "/envoy/%s" $customResponseFilterName | quote }}        
+  {{- end }}
+{{- end }}

@@ -1,0 +1,32 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.enrichment.enabled" -}}
+{{- $requests := .requests -}}
+{{- $routes := .routes -}}
+{{- $auditEnabled := false -}}
+{{- $rbacEnabled := false -}}
+{{- $enrichEnabled := false -}}
+{{- $workloadIdentity:= $requests.workloadIdentity -}}
+{{- $disableAudit := $requests.disableAudit -}}
+{{- $disableRbac := $requests.disableRbac -}}
+{{- $disableEnrich := $requests.disableEnrich -}}
+{{- range $routes -}}
+  {{- if .audit -}}
+    {{- $audit := .audit -}}
+    {{- if and (not $disableAudit) (ternary $audit.enabled true (hasKey $audit "enabled")) -}}
+      {{- $auditEnabled = true -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if .rbac -}}
+    {{- $rbac := .rbac -}}
+    {{- if and (not $disableRbac) (ternary $rbac.enabled true (hasKey $rbac "enabled")) -}}
+      {{- $rbacEnabled = true -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if .enrich -}}
+    {{- $enrich := .enrich -}}
+    {{- if and (not $disableEnrich) (ternary $enrich.enabled true (hasKey $enrich "enabled")) -}}
+      {{- $enrichEnabled = true -}}
+    {{- end -}}
+  {{- end -}}
+{{-  end -}}
+{{- if or $workloadIdentity.enabled $auditEnabled $rbacEnabled $enrichEnabled -}}true{{- else -}}false{{- end -}}
+{{- end -}}

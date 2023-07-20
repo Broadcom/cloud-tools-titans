@@ -27,11 +27,27 @@
       type: STATIC
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
-        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $localApp.scheme  "cluster" $localApp "addSocket" true) | nindent 6 }}
+        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $localApp.scheme  "cluster" $localApp ) | nindent 6 }}
       connect_timeout: {{ $localApp.connectionTimeout | default "0.25s" }}
       common_lb_config:
         healthy_panic_threshold:
-          value: {{ $localApp.healthyPanicThreshold | default "25" }} 
+          value: {{ $localApp.healthyPanicThreshold | default "25" }}
+        {{- $outlierDetection := $localApp.outlierDetection }}
+        {{- $hasOutlierDetection := false }}
+        {{- if $outlierDetection }}
+          {{- $hasOutlierDetection = true }}
+        {{- end }}
+      outlier_detection:
+        enforcing_consecutive_5xx: {{ ternary ($outlierDetection.enforcingConsecutive5xx | default "0") "0" $hasOutlierDetection }}
+        enforcing_success_rate: {{ ternary ($outlierDetection.enforcingSuccessRate | default "0") "0" $hasOutlierDetection }}
+        enforcing_consecutive_gateway_failure: {{ ternary ($outlierDetection.enforcingConsecutiveGatewayFailure | default "0") "0" $hasOutlierDetection }}
+        enforcing_failure_percentage: {{ ternary ($outlierDetection.enforcingFailurePercentage | default "0") "0" $hasOutlierDetection }}
+        {{- if (ternary ($outlierDetection.splitExternalLocalOriginErrors | default false) false $hasOutlierDetection) }}
+        split_external_local_origin_errors: true  
+        enforcing_consecutive_local_origin_failure: {{ ternary ($outlierDetection.enforcingConsecutiveLocalOriginFailure | default "0") "0" $hasOutlierDetection }}
+        enforcing_local_origin_success_rate: {{ ternary ($outlierDetection.enforcingLocalOriginSuccessRate | default "0") "0" $hasOutlierDetection }}
+        enforcing_failure_percentage_local_origin: {{ ternary ($outlierDetection.enforcingFailurePercentageLocalOrigin | default "0") "0" $hasOutlierDetection }}
+        {{- end }}
         {{- $circuitBreakers := mergeOverwrite ($circuitLocal | default dict) ( $localApp.circuitBreakers | default dict) }}
       circuit_breakers:
         thresholds:
@@ -57,6 +73,7 @@
         timeout: {{ $localApp.healthChecks.timeout | default "1s" }}
         healthy_threshold: {{ coalesce $localApp.healthyThreshold "1" }}
         unhealthy_threshold: {{ $localApp.healthChecks.unhealthyThreahold | default "1" }}
+        no_traffic_interval: {{ $localApp.healthChecks.noTrafficInterval | default "3s" }}
       load_assignment:
         cluster_name: local-myapp
         endpoints:
@@ -66,6 +83,7 @@
                 socket_address:
                   address: 127.0.0.1
                   port_value: {{  $localApp.port | default "8080" }}
+        {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $localApp.scheme  "envoy" $envoy) | nindent 6 }}
       {{- end }}
     {{- else }}
       {{- $setupCluster := true }}
@@ -113,10 +131,31 @@
             {{- $serviceName = $clusterValue.alias | default $cluster }}
           {{- end }}
           {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
+          {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
+          {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
       connect_timeout: {{ $clusterValue.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
-      type: STRICT_DNS
+      {{- if $clusterValue.dnsRefreshRate }}
+      dns_refresh_rate: {{ $clusterValue.dnsRefreshRate }}
+      {{- end }}
+      type: {{ $clusterType }}
       ignore_health_on_host_removal: true
       dns_lookup_family: V4_ONLY
+          {{- $outlierDetection := $clusterValue.outlierDetection }}
+          {{- $hasOutlierDetection := false }}
+          {{- if $outlierDetection }}
+            {{- $hasOutlierDetection = true }}
+          {{- end }}
+      outlier_detection:
+        enforcing_consecutive_5xx: {{ ternary ($outlierDetection.enforcingConsecutive5xx | default "0") "0" $hasOutlierDetection }}
+        enforcing_success_rate: {{ ternary ($outlierDetection.enforcingSuccessRate | default "0") "0" $hasOutlierDetection }}
+        enforcing_consecutive_gateway_failure: {{ ternary ($outlierDetection.enforcingConsecutiveGatewayFailure | default "0") "0" $hasOutlierDetection }}
+        enforcing_failure_percentage: {{ ternary ($outlierDetection.enforcingFailurePercentage | default "0") "0" $hasOutlierDetection }}
+          {{- if (ternary ($outlierDetection.splitExternalLocalOriginErrors | default false) false $hasOutlierDetection) }}
+        split_external_local_origin_errors: true  
+        enforcing_consecutive_local_origin_failure: {{ ternary ($outlierDetection.enforcingConsecutiveLocalOriginFailure | default "0") "0" $hasOutlierDetection }}
+        enforcing_local_origin_success_rate: {{ ternary ($outlierDetection.enforcingLocalOriginSuccessRate | default "0") "0" $hasOutlierDetection }}
+        enforcing_failure_percentage_local_origin: {{ ternary ($outlierDetection.enforcingFailurePercentageLocalOrigin | default "0") "0" $hasOutlierDetection }}
+          {{- end }}
           {{- $circuitBreakers := mergeOverwrite ((ternary $circuitLocal $circuitRemote (hasPrefix "local-" $cluster)) | default dict) ( $clusterValue.circuitBreakers | default dict) }}
       circuit_breakers:
         thresholds:
@@ -135,18 +174,20 @@
             budget_percent:
               value: {{ $circuitBreakers.retryBudgetPercentage | default "20.0" }}
             min_retry_concurrency: {{ $circuitBreakers.minRetryConcurrency | default "3" }}
-          {{- $scheme := ternary ( $clusterValue.scheme | default "HTTP") ( $clusterValue.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
-          {{- $sni := ternary $clusterAddress "" (or  $clusterValue.sniValidation (hasKey  $clusterValue "address") | default false) }}
-          {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "addSocket" true "sni" $sni "cluster" (index $clusters $cluster)) | nindent 6 }}
-      lb_policy: LEAST_REQUEST
+        {{- $scheme := ternary ( $clusterValue.scheme | default "HTTP") ( $clusterValue.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
+        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "cluster" (index $clusters $cluster)) | nindent 6 }}
+      lb_policy: {{ $clusterValue.lbPolicy | default "LEAST_REQUEST" }}
       load_assignment:
         cluster_name: {{ $cluster }}
         endpoints:
         - lb_endpoints:
           - endpoint:
+            {{- if ne $clusterIpAddress $clusterAddress }}
+              hostname: {{ $clusterAddress }}
+            {{- end }}
               address:
                 socket_address:
-                  address: {{ ternary "127.0.0.1" $clusterAddress (hasPrefix "local-" $cluster) }}
+                  address: {{ ternary "127.0.0.1" $clusterIpAddress (hasPrefix "local-" $cluster) }}
             {{- if $gatewayEnable }}
                   port_value: {{ coalesce $clusterValue.tergetPort $clusterValue.port "9443" }}
             {{- else }}
@@ -163,6 +204,8 @@
         timeout: {{ $healthCheck.timeout | default "1s" }}
         healthy_threshold: {{ $healthCheck.healthyThreahold | default "1" }}
         unhealthy_threshold: {{ $healthCheck.unhealthyThreahold | default "1" }}
+        no_traffic_interval: {{ $healthCheck.noTrafficInterval | default "3s" }}
+          {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $scheme  "envoy" $envoy "sni" $clusterAddress) | nindent 6 }}
         {{- end }}
       {{- end }}
     {{- end }}  
@@ -171,58 +214,55 @@
     {{ $cluster := required "value 'titanSideCars.issuers[].cluster' is required" .cluster }}
     {{- if and (ne $cluster $chartName) (not (hasKey $myClusters $cluster)) }}
       {{- $_ := set $myClusters $cluster "created"  }}
-    - name: {{ $cluster }}
+      {{- $clusterValue := index $clusters $cluster }} 
       {{- $serviceName := printf "%s%s" $cluster (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
+      {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
+      {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
+      {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
+    - name: {{ $cluster }}
       {{- if .external }}
         {{- $serviceName = $cluster }}
       {{- end }}
-      {{- $clusterAddress := .address | default (printf "%s.%s.svc.cluster.local" $serviceName (.namespace | default $releaseNamespace)) }}
-      connect_timeout: "3s"
-      type: STRICT_DNS
+      connect_timeout: {{ $clusterValue.connectionTimeout | default (ternary "0.25s" "3s" (hasPrefix "local-" $cluster)) }}
+      type: {{ $clusterType }}
       ignore_health_on_host_removal: true
       dns_lookup_family: V4_ONLY
-      {{- $scheme := .scheme | default "HTTPS" }}
-      {{- if ne $scheme "HTTP" }}
-        {{- if or (eq $scheme "HTTP2") (eq $scheme "H2C") }}
-      http2_protocol_options: {}
-        {{- end }}
-        {{- if ne $scheme "H2C" }}
-      transport_socket:
-        name: envoy.transport_sockets.tls
-        typed_config:
-          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-          {{- if or .address .sniValidation }}
-          sni: {{ $clusterAddress }}
-          {{- end }}
-        {{- end }}
-      {{- end }}
+      {{- $scheme := ternary ( $clusterValue.scheme | default "HTTP") ( $clusterValue.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
+      {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "cluster" $clusterValue) | nindent 6 }}
       lb_policy: LEAST_REQUEST
       load_assignment:
         cluster_name: {{ $cluster }}
         endpoints:
         - lb_endpoints:
           - endpoint:
+            {{- if ne $clusterIpAddress $clusterAddress }}
+              hostname: {{ $clusterAddress }}
+            {{- end }}
               address:
                 socket_address:
-                  address: {{ $clusterAddress }}
-                  port_value: {{ .port | default "9443" }}
+                  address: {{ $clusterIpAddress }}
+                  port_value: {{ $clusterValue.port | default "9443" }}
       common_lb_config:
         healthy_panic_threshold:
-          value: {{ .healthyPanicThreshold | default "25" }}
-      {{- $healthCheck := .healtChecks  }}
+          value: {{  $clusterValue.healthyPanicThreshold | default "25" }}
       health_checks:
+          {{- $healthCheck :=  $clusterValue.healthChecks  }}
       - http_health_check: 
           path: {{ $healthCheck.path | default "/healthz" }}
         interval: {{ $healthCheck.interval | default "5s" }}
-        timeout: {{ $healthCheck.timeout | default "1s" }}
+        timeout: {{ $healthCheck.timeout | default "2s" }}
         healthy_threshold: {{ $healthCheck.healthyThreahold | default "1" }}
         unhealthy_threshold: {{ $healthCheck.unhealthyThreahold | default "1" }}
+        no_traffic_interval: {{ $healthCheck.noTrafficInterval | default "3s" }}
+      {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $scheme  "envoy" $envoy "sni" $clusterAddress) | nindent 6 }}
     {{- end }}
   {{- end }}
   {{- $ratelimit := $titanSideCars.ratelimit -}}
+  {{- $ratelimitMonitorByEnvoy := $ratelimit.monitorByEnvoy -}}
   {{- $ratelimitEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
-  {{- $hasRatelimit := false }}
-
+  {{- $opaEnabled := eq (include "static.titan-mesh-helm-lib-chart.opaEnabled" $titanSideCars) "true" -}}
+  {{- $opa := $titanSideCars.opa -}}
+  {{- $opaMonitorByEnvoy := $opa.monitorByEnvoy -}}
   {{- $gateway := $localApp.gateway }}
   {{- $gatewayEnable := $gateway.enabled }}
   {{- $routes := list }}
@@ -251,12 +291,7 @@
       {{- end }}
     {{- end }}
   {{- end }}
-
-  {{- range $routes }}
-    {{- $rt := .ratelimit }}
-    {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled ($rt | default false) (hasKey $rt "enabled")) }}
-  {{- end }}
-  {{- if and $ratelimitEnabled $hasRatelimit }}
+  {{- if $ratelimitEnabled }}
     - name: ratelimit
       type: STATIC
       dns_lookup_family: V4_ONLY
@@ -282,5 +317,59 @@
                 socket_address:
                   address: {{ $ratelimit.address | default "127.0.0.1" }}
                   port_value: {{ $ratelimit.port | default "8081" }}
+    {{- if $ratelimitMonitorByEnvoy }}
+    - name: ratelimit-health
+      type: STATIC
+      dns_lookup_family: V4_ONLY
+      lb_policy: LEAST_REQUEST
+      connect_timeout: {{ $ratelimit.healthConnectTimeout | default "0.25s" }}
+      common_lb_config:
+        healthy_panic_threshold:
+          value: 25
+      health_checks:
+      - http_health_check:
+          path: {{ $ratelimit.healthCheckPath | default "/healthcheck" }}
+        interval: {{ $ratelimit.healthCheckInterval |  default "3s" }}
+        timeout: {{ $ratelimit.healthCheckTimeout |  default "2s" }}
+        healthy_threshold: {{ $ratelimit.healthThreshold |  default "1" }}
+        unhealthy_threshold: {{ $ratelimit.unhealthThreshold |  default "1" }}
+        no_traffic_interval: {{ $ratelimit.noTrafficInterval | default "3s" }}
+      load_assignment:
+        cluster_name: ratelimit-health
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address:
+                  address: 127.0.0.1
+                  port_value: {{ $ratelimit.healthCheckPort | default "8070" }}
+    {{- end }} 
+  {{- end }}
+  {{- if and $opaEnabled $opaMonitorByEnvoy }}
+    - name: opa-health
+      type: STATIC
+      dns_lookup_family: V4_ONLY
+      lb_policy: LEAST_REQUEST     
+      connect_timeout: {{ $opa.healthConnectTimeout |  default "0.25s" }}
+      common_lb_config:
+        healthy_panic_threshold:
+          value: 25
+      health_checks:
+      - http_health_check:
+          path: {{ $opa.healthCheckPath | default "/health?plugins" }}
+        interval: {{ $opa.healthCheckInterval |  default "3s" }}
+        timeout: {{ $opa.healthCheckTimeout |  default "2s" }}
+        healthy_threshold: {{ $opa.healthThreshold |  default "1" }}
+        unhealthy_threshold: {{ $opa.unhealthThreshold |  default "1" }}
+        no_traffic_interval: {{ $opa.noTrafficInterval | default "3s" }}
+      load_assignment:
+        cluster_name: opa-health
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address:
+                  address: 127.0.0.1
+                  port_value: {{ $opa.healthCheckPort | default "8282" }}
   {{- end }}
 {{- end }}

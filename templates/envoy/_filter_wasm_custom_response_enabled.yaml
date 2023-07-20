@@ -1,0 +1,15 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.custom.response.enabled" -}}
+{{- $requests := .requests -}}
+{{- $routes := .routes -}}
+{{- $customResponseEnabled := false -}}
+{{- $disableCustomResponse := $requests.disableCustomResponse -}}
+{{- range $routes -}}
+  {{- if .customResponse -}}
+    {{- $customResponse := .customResponse -}}
+    {{- if and (not $disableCustomResponse) (ternary $customResponse.enabled true (hasKey $customResponse "enabled")) -}}
+      {{- $customResponseEnabled = true -}}
+    {{- end -}}
+  {{- end -}}
+{{-  end -}}
+{{- if $customResponseEnabled -}}true{{- else -}}false{{- end -}}
+{{- end -}}

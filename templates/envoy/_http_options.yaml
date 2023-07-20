@@ -2,28 +2,11 @@
   {{- $cluster := .cluster }}
   {{- $httpOptions :=$cluster.httpOptions }}
   {{- $httpScheme := .httpScheme | default "HTTP" }}
-  {{- $addSocket := .addSocket }}
-  {{- $sni := .sni }}
   {{- if or (eq $httpScheme "HTTP2") (eq $httpScheme "H2C") }}
-    {{- if $httpOptions }}
 http2_protocol_options:
-      {{- if $httpOptions.maxConcurrentStreams }}
+  allow_connect: true
   max_concurrent_streams: {{ $httpOptions.maxConcurrentStreams | default "1024" }}
-      {{- end }}
-    {{- else }}
-http2_protocol_options: {}
-    {{- end }}
-  {{- end }}
-  {{- if or (eq $httpScheme "HTTPS") (eq $httpScheme "HTTP2") }}
-    {{- if $addSocket }}
-transport_socket:
-  name: envoy.transport_sockets.tls
-  typed_config:
-    "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-      {{- if and (ne $sni "") (or (eq $httpScheme "HTTP2") (eq $httpScheme "HTTPS")) }}
-    sni: {{ $sni }}
-      {{- end }}
-    {{- end }}
-  {{- else }}
+  initial_connection_window_size: {{ $httpOptions.initialConnectionWindowSize | default "1048576" }}
+  initial_stream_window_size: {{ $httpOptions.initialStreamWindowSize | default "65536" }}
   {{- end }}
 {{- end }}
