@@ -114,7 +114,8 @@
         {{- end }}
       {{- end }}
       {{- if and (ne $clusterName "") (ne $clusterName "local-myapp") -}}
-        {{- $clustersWithHeaders = include "titan-mesh-helm-lib-chart.envoy.canary.egress.clusters.headers" (dict "titanSideCars" $titanSideCars "appName" $appName "service" $clusterName) | fromJson -}}
+        {{- $clusterInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $clusterName | fromJson -}}
+        {{- $clustersWithHeaders = include "titan-mesh-helm-lib-chart.envoy.canary.egress.clusters.headers" (dict "titanSideCars" $titanSideCars "appName" $appName "service" $clusterInfo.name) | fromJson -}}
       {{- end -}}
       {{- $sortedClusters := keys $clustersWithHeaders | sortAlpha -}}
       {{- $orderedClusters := list -}}
