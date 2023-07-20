@@ -1,0 +1,55 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.canary.egress.clusters.headers" -}}
+  {{- $titanSideCars := .titanSideCars -}}
+  {{- $canaryRouteHeaderName := "x-epmp-route-by-release" -}}
+  {{- if $titanSideCars.canary -}}
+    {{- if $titanSideCars.canary.routeHeaderName -}}
+      {{- $canaryRouteHeaderName = $titanSideCars.canary.routeHeaderName -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $service := .service -}}
+  {{- $appName := .appName -}}
+  {{- $clusterReleaseLabel := "" -}}
+  {{- $clusterReleaseBaseLabel := "0000-00-0" -}}
+  {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "services" (list $service)) | fromJson -}}
+  {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
+  {{- $clusters := dict -}}
+  {{- $cluster := get $releaseClusters $service -}}
+  {{- if $cluster -}}
+    {{- $sortedReleases := keys $cluster | sortAlpha -}}
+    {{- $orderedReleases := list -}}
+    {{- range $sortedReleases -}}
+      {{- $orderedReleases = prepend $orderedReleases . -}}
+    {{- end -}}
+    {{- if ne $appInfo.label "" -}}
+      {{- if eq (last $orderedReleases) $clusterReleaseBaseLabel -}}
+        {{- $_ := set $clusters $service (dict "headers" list) -}}
+      {{- else -}}
+        {{- $done := false -}}
+        {{- range $orderedReleases -}}
+          {{- if ge . $appInfo.label -}}
+            {{- if eq (last $orderedReleases) . -}}
+              {{- $_ := set $clusters (printf "%s%s" $service (printf "-%s" .)) (dict "headers" list) -}}
+            {{- else -}}
+              {{- $_ := set $clusters (printf "%s%s" $service (printf "-%s" .)) (dict "headers" (list (dict "key" $canaryRouteHeaderName "eq" .))) -}}
+              {{- if eq . $appInfo.label -}}
+                {{- $done = true -}}
+              {{- end -}}
+            {{- end -}}
+          {{- else if not $done -}}
+            {{- $_ := set $clusters (printf "%s%s" $service (printf "-%s" .)) (dict "headers" list) -}}
+            {{- $done = true -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- else -}}
+      {{- range $orderedReleases -}}
+        {{- if eq (last $orderedReleases) . -}}
+          {{- $_ := set $clusters (printf "%s%s" $service (ternary "" (printf "-%s" .) (eq $clusterReleaseBaseLabel .))) (dict "headers" list) -}}
+        {{- else -}}
+          {{- $_ := set $clusters (printf "%s%s" $service (printf "-%s" .)) (dict "headers" (list (dict "key" $canaryRouteHeaderName "eq" .))) -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $clusters | toJson -}}
+{{- end -}}
