@@ -1,6 +1,11 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.matcher-route" }}
-  {{- $route := .route }}
-  {{- $headers := list }}
+  {{- $route := .route -}}
+  {{- $additionalHeaders := .headers -}}
+  {{- $headers := list -}}
+  {{- range $additionalHeaders -}}
+    {{- $headers = append $headers . -}}
+  {{- end -}}
+
   {{- if .routing }}
     {{- if $route.prefix }}
   prefix: {{ $route.prefix | quote }}
