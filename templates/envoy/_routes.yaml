@@ -29,38 +29,8 @@
     {{- $releaseBaseLabel := "0000-00-0" -}}
     {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars) | fromJson -}}
     {{- range $cn, $cl := $releaseClusters -}}
-      {{- if ne $cn $appName -}}
-        {{- $sortedClusterReleases := keys $cl | sortAlpha -}}
-        {{- $orderedClusterReleases := list -}}
-        {{- range $sortedClusterReleases -}}
-          {{- $orderedClusterReleases = prepend $orderedClusterReleases . -}}
-        {{- end -}}
-        {{- $oldestRelease := first $sortedClusterReleases -}}
-        {{- range $orderedClusterReleases -}}
-          {{- $relVer := . -}}
-          {{- $value := get $cl $relVer -}}
-          {{- if eq $relVer $oldestRelease -}}
-            {{- range $value.routes -}}
-              {{- $newcluster := ternary $cn (printf "%s-%s" $cn $relVer) (eq $relVer $releaseBaseLabel) -}}
-              {{- $route := dict "cluster" $newcluster -}}
-              {{- $routes = append $routes (dict "match" .match "route" $route "ratelimit" .ratelimit) -}}
-            {{- end -}}
-          {{- else -}}
-            {{- range $value.routes -}}
-              {{- $newcluster := printf "%s-%s" $cn $relVer -}}
-              {{- $route := dict "cluster" $newcluster -}}
-              {{- $match := .match -}}
-              {{- $headers := get $match "headers" -}}
-              {{- if $headers -}}
-                {{- $headers = append $headers (dict "key" $canaryRouteHeaderName "eq" $relVer) -}}
-              {{- else -}}
-                {{- $_ := set $match "headers" (list (dict "key" $canaryRouteHeaderName "eq" $relVer)) -}}
-              {{- end -}}
-              {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) -}}
-            {{- end -}}
-          {{- end -}}
-        {{- end -}}
-      {{- end -}}
+      {{- $route := dict "cluster" $cn -}}
+      {{- $routes = append $routes (dict "route" $route) -}}
     {{- end -}}
   {{- else }}
     {{- $routes = ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
