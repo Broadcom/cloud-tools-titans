@@ -43,38 +43,16 @@
     {{- end }}
   {{- end }}
 
-  {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "services" (list "identity" "authmgmt")) | fromJson -}}
-  {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
-  {{- range $clusterName, $clusterVers := $releaseClusters -}}
-    {{- $clusterReleaseLabel := "" -}}
-    {{- $sortedReleases := keys $clusterVers | sortAlpha -}}
-    {{- if ne $appInfo.label "" -}}
-      {{- if has $appInfo.label $sortedReleases -}}
-        {{- $clusterReleaseLabel = printf "-%s" $appInfo.label -}}
-      {{- else if gt (len $sortedReleases) 1 -}}
-        {{- range $sortedReleases -}}
-          {{- if ne . "0000-00-0" -}}
-            {{- if le . $appInfo.label -}}
-              {{- $clusterReleaseLabel = printf "-%s" . -}}
-            {{- else if eq $clusterReleaseLabel "" -}}
-              {{- $clusterReleaseLabel = printf "-%s" . -}}
-            {{- end -}}
-          {{- end -}}
-        {{- end -}}
-      {{- else if ne (index $sortedReleases 0) "0000-00-0" -}}
-        {{- $clusterReleaseLabel = printf "-%s" (index $sortedReleases 0) -}}
-      {{- end -}}
-    {{- else -}}
-      {{- $clusterReleaseLabel = printf "-%s" (index $sortedReleases 0) -}}
+  {{- if not (hasKey $enrichment "identity_host") -}}
+    {{- $identity_host := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" "identity") -}}
+    {{- if ne $identity_host "identity" -}}
+      {{- $_ := set $enrichment "identity_host" $identity_host -}}
     {{- end -}}
-    {{- if eq $clusterName "identity" -}}
-      {{- if not (hasKey $enrichment "identity_host") -}}
-        {{- $_ := set $enrichment "identity_host" (printf "identity%s" $clusterReleaseLabel) -}}
-      {{- end -}}
-    {{- else if eq $clusterName "authmgmt" -}}
-      {{- if not (hasKey $enrichment "auth_host") -}}
-        {{- $_ := set $enrichment "auth_host" (printf "authmgmt%s" $clusterReleaseLabel) -}}
-      {{- end -}}
+  {{- end -}}
+  {{- if not (hasKey $enrichment "auth_host") -}}
+    {{- $auth_host := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" "authmgmt") -}}
+    {{- if ne $auth_host "authmgmt" -}}
+      {{- $_ := set $enrichment "auth_host" $auth_host -}}
     {{- end -}}
   {{- end -}}
 

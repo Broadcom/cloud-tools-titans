@@ -75,7 +75,7 @@
           {{- else }}
             {{- $clusterName = "" }}
             {{- $_ := set $clustersWithHeaders $noCluster (dict "headers" (list)) -}}
-          {{- end }}match
+          {{- end }}
         {{- else if or $directResponse $redirect }}
           {{- $clusterName = "" }}
           {{- $_ := set $clustersWithHeaders $noCluster (dict "headers" (list)) -}}
