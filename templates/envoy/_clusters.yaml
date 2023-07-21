@@ -258,6 +258,7 @@
       {{- $_ := set $myClusters $cluster "created"  }}
       {{- $clusterValue := index $clusters $cluster }} 
       {{- $serviceName := printf "%s%s" $cluster (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
+      {{- $clusterHostname := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" .cluster ($clusterValue.namespace | default $releaseNamespace)) }}      
       {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
       {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
       {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
@@ -277,9 +278,7 @@
         endpoints:
         - lb_endpoints:
           - endpoint:
-            {{- if ne $clusterIpAddress $clusterAddress }}
-              hostname: {{ $clusterAddress }}
-            {{- end }}
+              hostname: {{ $clusterHostname }}
               address:
                 socket_address:
                   address: {{ $clusterIpAddress }}
