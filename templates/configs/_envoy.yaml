@@ -1,7 +1,10 @@
 {{- define "titan-mesh-helm-lib-chart.configs.envoy" }}
   {{- $global := $.Values.global  }}
+  {{- $icdmService := $.Values.service  }}
+  {{- $icdmInbound := $.Values.inbound  }}
+  {{- $icdmOutbound := $.Values.outbound  }}
   {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) }}
-  {{- include "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" (dict "titanSideCars" $titanSideCars) -}}
+  {{- include "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" (dict "titanSideCars" $titanSideCars "service" $icdmService "inbound" $icdmInbound "outbound" $icdmOutbound) -}}
   {{- $envoy := $titanSideCars.envoy  }}
   {{- $logs := $titanSideCars.logs  }}
   {{- $opa := $titanSideCars.opa  }}
