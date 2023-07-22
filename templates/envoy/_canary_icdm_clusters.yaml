@@ -1,5 +1,8 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" -}}
   {{- $titanSideCars := .titanSideCars -}}
+  {{- $icdmService := .service -}}
+  {{- $icdmInbound := .inbound -}}
+  {{- $icdmOutbound := .outbound -}}
   {{- $envoy := $titanSideCars.envoy -}}
   {{- $clusters := $envoy.clusters -}}
   {{- range $cluster, $value := $clusters -}}
@@ -18,5 +21,53 @@
         {{- $_ := set $value "routes" $routes -}}
       {{- end -}}
     {{- end -}}
-  {{- end -}}  
+  {{- end -}}
+  {{- if $icdmService -}}
+    {{- $healthCheckPath := "" -}}
+    {{- $port := "8080" -}}
+    {{- $ports := $icdmService.ports -}}
+    {{- if $ports.http -}}
+      {{- $http := $ports.http -}}
+      {{- if $http.healthCheckPath -}}
+        {{- $healthCheckPath = $http.healthCheckPath -}}
+      {{- end -}}
+      {{- if $http.port -}}
+        {{- $port := $http.port -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if ne $healthCheckPath "" -}}
+      {{- $localMyApp := get $clusters "local-myapp" -}}
+      {{- if not (hasKey $clusters "local-myapp") -}}
+        {{- $_ := set $envoy "local-myapp" (dict "healthChecks" (dict "path" $healthCheckPath "port" $port)) -}}
+      {{- else -}}
+        {{- $_ := set $localMyApp "healthChecks" (dict "path" $healthCheckPath "port" $port) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if $icdmInbound -}}
+    {{- $routes := list -}}
+    {{- range $icdmInbound.public -}}
+      {{- $uri := .uri -}}
+      {{- if not (hasPrefix "/" $uri) -}}
+        {{- $uri = printf "/%s" $uri -}}
+      {{- end -}}
+      {{- $match := dict .match .uri -}}
+      {{- $route := dict "match" $match "tokenCheck" (ternary .tokenCheck false (hasKey . "tokenCheck")) -}}
+      {{- $routes = append $routes $route -}}
+    {{- end -}}
+    {{- if gt (len $routes) 0 -}}
+      {{- $_ := set $titanSideCars "ingress" (dict "routes" $routes) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if $icdmOutbound -}}
+    {{- $routes := list -}}
+    {{- range $cn, $cv := $icdmOutbound -}}
+      {{- if ternary $cv.enabled "true" (hasKey $cv "enabled") -}}
+        {{- $routes = append $routes (dict "route" (dict "cluster" $cn)) -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if gt (len $routes) 0 -}}
+      {{- $_ := set $titanSideCars "egress" (dict "routes" $routes) -}}
+    {{- end -}}
+  {{- end -}}
 {{- end -}}
