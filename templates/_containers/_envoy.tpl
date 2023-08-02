@@ -182,6 +182,10 @@
       name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
     - mountPath: /secrets
       name: titan-secrets-tls
+  {{- if $envoy.intTlsCert }}  
+    - mountPath: /secrets/int
+      name: titan-secrets-tls-int
+  {{- end }}
   {{- end }}
 {{- end }}
 {{- end }}

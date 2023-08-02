@@ -13,7 +13,11 @@ transport_socket:
       validation_context:
         trusted_ca:
       {{- if hasSuffix "svc.cluster.local" $sni }}
+        {{- if $envoy.intTlsCert }}
+          filename: {{ printf "%s/ca.crt" ( $envoy.intSecretsFolder | default "/secrets/int" ) }}
+        {{- else }}
           filename: {{ printf "%s/ca.crt" ( $envoy.secretsFolder | default "/secrets" ) }}
+        {{- end }}
       {{- else }}
           filename: {{ $envoy.trustCAcert | default "/etc/ssl/certs/ca-bundle.trust.crt" }}
       {{- end }}

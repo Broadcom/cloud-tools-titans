@@ -19,7 +19,12 @@
     {{- end }}
 - name: titan-secrets-tls
   secret:
-    secretName: {{ $envoy.tlsCert | default (print $appName "-envoy-tls-cert") }}
+    secretName: {{ $envoy.tlsCert | default (print $appInfo.name "-envoy-tls-cert") }}
+  {{- if $envoy.intTlsCert }}
+- name: titan-secrets-tls-int
+  secret:
+    secretName: {{ $envoy.intTlsCert }}
+  {{- end }}
 - name: titan-configs
   configMap:
     name: {{ $.Release.Name }}-{{ printf "%s-titan-configs" $appName }}
