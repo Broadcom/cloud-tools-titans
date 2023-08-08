@@ -19,7 +19,7 @@ metadata:
   name: {{ $appInfo.name }}
   namespace: {{ .Release.Namespace }}
   annotations:
-    "helm.sh/hook": pre-install
+    "helm.sh/hook": {{ $cert.certHook | default "pre-install, pre-upgrade" }}
     "helm.sh/hook-weight": "-10"
 
 ---
@@ -29,7 +29,7 @@ metadata:
   name: {{ print $appInfo.name "-token" }}
   annotations:
     kubernetes.io/service-account.name: {{ $appInfo.name }}
-    "helm.sh/hook": pre-install
+    "helm.sh/hook": {{ $cert.certHook | default "pre-install, pre-upgrade" }}
     "helm.sh/hook-weight": "-10"
 type: kubernetes.io/service-account-token
 
@@ -40,7 +40,7 @@ metadata:
   name: {{ $certname }}
   namespace: {{ $.Release.Namespace }}
   annotations:
-    "helm.sh/hook": {{ $cert.certHook | default "pre-install" }}
+    "helm.sh/hook": {{ $cert.certHook | default "pre-install, pre-upgrade" }}
     "helm.sh/hook-weight": "5"
 spec:
   secretName: {{ print $appInfo.name "-envoy-tls-cert" }}
