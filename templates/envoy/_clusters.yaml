@@ -1,7 +1,7 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.clusters" }}
   {{- $titanSideCars := .titanSideCars }}
   {{- $releaseNamespace := .releaseNamespace }}
-  {{- $chartName := .chartName }}
+  {{- $appName := .appName }}
   {{- $issuers := $titanSideCars.issuers }}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
@@ -85,14 +85,33 @@
                   port_value: {{  $localApp.port | default "8080" }}
         {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $localApp.scheme  "envoy" $envoy) | nindent 6 }}
       {{- end }}
-    {{- else }}
+    {{- else if ne $cluster $appName }}
       {{- $setupCluster := true }}
+      {{- $clusterInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $cluster | fromJson -}}
       {{- if not $gatewayEnable }}
         {{- $setupCluster = false }}
         {{- range $egress.routes }}
           {{- if .route }}
             {{- if .route.cluster }} 
-              {{- if eq .route.cluster $cluster }}
+              {{- if eq .route.cluster $clusterInfo.name }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- range $egress.additionalRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $clusterInfo.name }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- range $egress.fallBackRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $clusterInfo.name }}
                 {{- $setupCluster = true  }}
               {{- end }}
             {{- end }}
@@ -101,15 +120,36 @@
         {{- range $ingress.routes }}
           {{- if .route }}
             {{- if .route.cluster }} 
-              {{- if eq .route.cluster $cluster }}
+              {{- if eq .route.cluster $clusterInfo.name }}
                 {{- $setupCluster = true }}
               {{- end }}
             {{- end }}           
           {{- end }}
         {{- end }}
+        {{- range $ingress.additionalRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $clusterInfo.name }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- range $ingress.fallBackRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }} 
+              {{- if eq .route.cluster $clusterInfo.name }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
         {{- range $addAdditionalClustersForFilters }}
-          {{- if eq . $cluster }}
-            {{- $setupCluster = true }}
+          {{- if eq . $clusterInfo.name }}
+            {{- $clusterName := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" $clusterInfo.name) -}}
+            {{- if eq $clusterName $cluster -}}
+              {{- $setupCluster = true }}
+            {{- end -}}
           {{- end }}
         {{- end }}
         {{- if and (hasPrefix "local-" $cluster) (not $setupCluster) }}
@@ -130,6 +170,7 @@
           {{- if $clusterValue.external }}
             {{- $serviceName = $clusterValue.alias | default $cluster }}
           {{- end }}
+          {{- $clusterHostname := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $clusterInfo.name ($clusterValue.namespace | default $releaseNamespace)) }}
           {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
           {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
           {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
@@ -182,9 +223,7 @@
         endpoints:
         - lb_endpoints:
           - endpoint:
-            {{- if ne $clusterIpAddress $clusterAddress }}
-              hostname: {{ $clusterAddress }}
-            {{- end }}
+              hostname: {{ $clusterHostname }}
               address:
                 socket_address:
                   address: {{ ternary "127.0.0.1" $clusterIpAddress (hasPrefix "local-" $cluster) }}
@@ -211,11 +250,15 @@
     {{- end }}  
   {{- end }}
   {{- range $issuers }}
-    {{ $cluster := required "value 'titanSideCars.issuers[].cluster' is required" .cluster }}
-    {{- if and (ne $cluster $chartName) (not (hasKey $myClusters $cluster)) }}
+    {{- $cluster := .cluster -}}
+    {{- if eq $cluster "identity" -}}
+      {{- $cluster = include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" $cluster) -}}
+    {{- end -}}
+    {{- if and (ne $cluster $appName) (not (hasKey $myClusters $cluster)) }}
       {{- $_ := set $myClusters $cluster "created"  }}
       {{- $clusterValue := index $clusters $cluster }} 
       {{- $serviceName := printf "%s%s" $cluster (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
+      {{- $clusterHostname := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" .cluster ($clusterValue.namespace | default $releaseNamespace)) }}      
       {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
       {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
       {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
@@ -235,9 +278,7 @@
         endpoints:
         - lb_endpoints:
           - endpoint:
-            {{- if ne $clusterIpAddress $clusterAddress }}
-              hostname: {{ $clusterAddress }}
-            {{- end }}
+              hostname: {{ $clusterHostname }}
               address:
                 socket_address:
                   address: {{ $clusterIpAddress }}

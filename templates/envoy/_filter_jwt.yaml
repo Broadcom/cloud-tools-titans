@@ -1,11 +1,14 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.jwt" }}
   {{- $requests := .requests  }}
   {{- $issuers := .issuers  }}
-  {{- $localMyApp := .localMyApp  }}
+  {{- $appName := .appName }}
+  {{- $localMyApp := .localMyApp }}
+  {{- $titanSideCars := .titanSideCars }}
   {{- $providers := list  }}
   {{- $tokenValidation := false  }}
   {{- $tokenValidationBypass := false  }}
   {{- $routes := $requests.routes }}
+  {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
   {{- if and $localMyApp (not $routes) }}
     {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
       {{ $routes = $localMyApp.routes }}
@@ -18,7 +21,16 @@
     {{- else }}
       {{- $routes = $additionalRoutes }}
     {{- end }}
-  {{- end }} 
+  {{- end }}
+  {{- $fallBackRoutes := $requests.fallBackRoutes }}
+  {{- if $fallBackRoutes }}
+    {{- if $routes }}
+      {{- $routes = concat $routes $fallBackRoutes }}
+    {{- else }}
+      {{- $routes = $fallBackRoutes }}
+    {{- end }}
+  {{- end }}
+
   {{- range $routes  }}
     {{- $tokenCheck := ternary .tokenCheck (default ($requests.tokenCheck | default false)) (hasKey . "tokenCheck")  }}
     {{- $tokenBypass := ternary (not .tokenCheck) (ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck")) (hasKey . "tokenCheck")  }}
@@ -35,6 +47,18 @@
     "@type": type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication
     providers:
     {{- range $issuers }}
+      {{- $cluster := .cluster -}}
+      {{- $jwks := .jwks -}}
+      {{- if eq $cluster "identity" -}}
+        {{- if eq $appInfo.name "identity" -}}
+          {{- $cluster = "local-myapp" -}}
+          {{- if hasPrefix "https:" $jwks -}}
+            {{- $jwks = printf "http:%s" (trimPrefix "https:" $jwks) -}}
+          {{- end -}}
+        {{- else -}}
+          {{- $cluster = include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" $cluster) -}}
+        {{- end -}}      
+      {{- end -}}
       {{- $provider := printf "provider-%s" (adler32sum .issuer)  }}
       {{- $providers = append $providers $provider  }}
       {{ $provider }}:
@@ -63,8 +87,8 @@
           cache_duration:
             seconds: {{ .cacheDuration | default "31556952" }} 
           http_uri:
-            uri: {{ required "value 'titanSideCars.issuers[].jwks' is required to retrieve issuer's public keys" .jwks }}
-            cluster: {{ .cluster }}
+            uri: {{ required "value 'titanSideCars.issuers[].jwks' is required to retrieve issuer's public keys" $jwks }}
+            cluster: {{ $cluster }}
             timeout:
               seconds: {{ .timeout | default "1" }}
     {{- end }}

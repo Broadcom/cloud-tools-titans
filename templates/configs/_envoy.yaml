@@ -1,6 +1,10 @@
 {{- define "titan-mesh-helm-lib-chart.configs.envoy" }}
   {{- $global := $.Values.global  }}
+  {{- $icdmService := $.Values.service  }}
+  {{- $icdmInbound := $.Values.inbound  }}
+  {{- $icdmOutbound := $.Values.outbound  }}
   {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) }}
+  {{- include "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" (dict "titanSideCars" $titanSideCars "service" $icdmService "inbound" $icdmInbound "outbound" $icdmOutbound) -}}
   {{- $envoy := $titanSideCars.envoy  }}
   {{- $logs := $titanSideCars.logs  }}
   {{- $opa := $titanSideCars.opa  }}
@@ -49,7 +53,7 @@ envoy.yaml: |
     {{- $envoy.statsConfigRaw | toYaml | nindent 2 }}
   {{- end }}
   static_resources:
-  {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" .Release.Namespace "chartName" $.Chart.Name) }}
+  {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" .Release.Namespace "appName" $appName) }}
   {{- if and $ingress (not $ingress.enabled) }}
     listeners:
     - name: {{ $appName }}-ingress
@@ -91,14 +95,14 @@ envoy.yaml: |
         {{- include .name $ | nindent 12 }}
       {{- end }}
     {{- end }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.ingress "issuers" $titanSideCars.issuers "localMyApp" $localMyApp) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.ingress "issuers" $titanSideCars.issuers "localMyApp" $localMyApp "titanSideCars" $titanSideCars "appName" $appName) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "EnrichmentAndAccessCheck" }}
         {{- include .name $ | nindent 12 }}
       {{- end }}
     {{- end }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.ingress "localMyApp" $localMyApp "envoy" $envoy) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.ingress "localMyApp" $localMyApp "envoy" $envoy "titanSideCars" $titanSideCars "appName" $appName) | nindent 12 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.opa" (dict "titanSideCars" $titanSideCars "opa" $opa "ingress" $ingress) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
@@ -162,7 +166,8 @@ envoy.yaml: |
               - h2
               - http/1.1
   {{- end }}
-  {{- if $egress.routes }}
+  {{- $egressEnabled := ternary $egress.enabled true (hasKey $egress "enabled") -}}
+  {{- if and $egressEnabled (or $egress.routes $egress.additionalRoutes $egress.fallBackRoutes) }}
     - name: {{ $appName }}-egress
       address:
         socket_address:
@@ -182,8 +187,8 @@ envoy.yaml: |
     {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" "HTTP2" "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
             http_filters:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.custome.response" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy) | nindent 12 }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers) | nindent 12 }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers "titanSideCars" $titanSideCars "appName" $appName) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy "titanSideCars" $titanSideCars "appName" $appName) | nindent 12 }}
             - name: envoy.filters.http.router
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router

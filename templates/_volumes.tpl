@@ -12,6 +12,8 @@
   {{- $envoy := $titanSideCars.envoy -}}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
+  {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
+
   {{- if $envoyEnabled }}
     {{- if eq (include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $ ) "titan-logs" }}
 - name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $ }}
@@ -19,15 +21,10 @@
     {{- end }}
 - name: titan-secrets-tls
   secret:
-    secretName: {{ $envoy.tlsCert | default (print $appName "-envoy-tls-cert") }}
-  {{- if $envoy.intTlsCert }}
-- name: titan-secrets-tls-int
-  secret:
-    secretName: {{ $envoy.intTlsCert }}
-  {{- end }}
+    secretName: {{ $envoy.tlsCert | default (print  $appInfo.name "-envoy-tls-cert") }}
 - name: titan-configs
   configMap:
-    name: {{ $.Release.Name }}-{{ printf "%s-titan-configs" $appName }}
+    name: {{ $.Release.Name }}-{{ printf "%s-titan-configs" $appInfo.name }}
     defaultMode: 420
   {{- end }}
 {{- end }}

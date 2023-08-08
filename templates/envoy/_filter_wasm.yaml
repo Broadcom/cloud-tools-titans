@@ -1,6 +1,8 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.enrichment" }}
   {{- $clusters := .clusters }}
   {{- $requests := .requests  }}
+  {{- $appName := .appName }}
+  {{- $titanSideCars := .titanSideCars }}
   {{- $enableAudit := ternary (not $requests.disableAudit) true (hasKey $requests "disableAudit") }}
   {{- $envoy := .envoy }}
   {{- $enrichment := $requests.enrichment | default dict }}
@@ -31,7 +33,29 @@
         {{- $routes = $additionalRoutes }}
       {{- end }}
     {{- end }}
+    {{- $fallBackRoutes := $requests.fallBackRoutes }}
+    {{- if $fallBackRoutes }}
+      {{- if $routes }}
+        {{- $routes = concat $routes $fallBackRoutes }}
+      {{- else }}
+        {{- $routes = $fallBackRoutes }}
+      {{- end }}
+    {{- end }}
   {{- end }}
+
+  {{- if not (hasKey $enrichment "identity_host") -}}
+    {{- $identity_host := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" "identity") -}}
+    {{- if ne $identity_host "identity" -}}
+      {{- $_ := set $enrichment "identity_host" $identity_host -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if not (hasKey $enrichment "auth_host") -}}
+    {{- $auth_host := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" "authmgmt") -}}
+    {{- if ne $auth_host "authmgmt" -}}
+      {{- $_ := set $enrichment "auth_host" $auth_host -}}
+    {{- end -}}
+  {{- end -}}
+
   {{- $actions := list }}
   {{- $rbacs := list }}
   {{- $audits := list }}

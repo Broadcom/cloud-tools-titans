@@ -1,0 +1,32 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.canary.clusters" -}}
+  {{- $titanSideCars := .titanSideCars -}}
+  {{- $envoy := $titanSideCars.envoy -}}
+  {{- $clusters := $envoy.clusters -}}
+  {{- $requestServices := .services | default list -}}
+  {{- $releaseClusters := dict -}}
+  {{- $localApp := index $clusters "local-myapp" -}}
+  {{- $remoteApp := index $clusters "remote-myapp" -}}
+  {{- $releaseBaseLabel := "0000-00-0" -}}
+  {{- $releaseLabelPattern := "^[a-z-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" -}}
+  {{- range $cluster, $value := $clusters -}}
+    {{- if and (ne $cluster "remote-myapp") (not (hasPrefix "local-" $cluster)) -}}
+      {{- $serviceName := $cluster -}}
+      {{- $releaseLabel := $releaseBaseLabel -}}
+      {{- if regexMatch $releaseLabelPattern $cluster -}}
+        {{- $serviceName = substr 0 (sub (len $cluster | int64 ) (len "-0000-00-0" | int64) | int ) $cluster -}}
+        {{- $releaseLabel = substr (add1 (len $serviceName | int64) | int) (len $cluster) $cluster -}}
+      {{- end -}}
+      {{- if or (eq (len $requestServices) 0) (has $serviceName $requestServices) -}}
+        {{- $versionRoutes := dict "routes" $value.routes -}}
+        {{- $service := get $releaseClusters $serviceName -}}
+        {{- if $service -}}
+          {{- $_ := set $service $releaseLabel $versionRoutes -}}
+        {{- else -}}
+          {{- $version := dict $releaseLabel $versionRoutes -}}
+          {{- $_ := set $releaseClusters $serviceName $version -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $releaseClusters | toJson  -}}
+{{- end -}}
