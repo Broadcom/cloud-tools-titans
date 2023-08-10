@@ -172,12 +172,8 @@
     timeoutSeconds: {{ $envoy.readinessTimeoutSeconds | default "5" }}
   {{- end }}
   volumeMounts:
-    - mountPath: /envoy/envoy.yaml
+    - mountPath: /envoy
       name: titan-configs
-      subPath: envoy.yaml
-    - mountPath: /envoy/envoy-sds.yaml
-      name: titan-configs
-      subPath: envoy-sds.yaml
     - mountPath: /logs/
       name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
     - mountPath: /secrets

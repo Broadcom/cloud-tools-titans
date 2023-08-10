@@ -2,6 +2,7 @@
   {{- $titanSideCars := .titanSideCars }}
   {{- $releaseNamespace := .releaseNamespace }}
   {{- $chartName := .chartName }}
+  {{- $useDynamicConfiguration := .useDynamicConfiguration }}
   {{- $issuers := $titanSideCars.issuers }}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
@@ -19,11 +20,13 @@
     {{- $defaultBackend = $gateway.defaultBackend | default "" }}  
   {{- end }}
   {{- $myClusters := dict }}
-    clusters:
   {{- range $cluster, $value := $clusters }}
     {{- if eq $cluster "local-myapp" }}
       {{- if eq $defaultBackend "local-myapp" }}
     - name: local-myapp
+        {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+        {{- end }}
       type: STATIC
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
@@ -124,6 +127,9 @@
         {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp")) }}
           {{- $_ := set $myClusters $cluster "created"  }}
     - name: {{ $cluster }}
+          {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+          {{- end }}
           {{- $clusterValue := mergeOverwrite (deepCopy $remoteApp) $value }}
           {{- $serviceName := $clusterValue.alias | default $cluster }}
           {{- $serviceName = printf "%s%s" $serviceName (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
@@ -220,6 +226,9 @@
       {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
       {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
     - name: {{ $cluster }}
+      {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+      {{- end }}
       {{- if .external }}
         {{- $serviceName = $cluster }}
       {{- end }}
@@ -293,6 +302,9 @@
   {{- end }}
   {{- if $ratelimitEnabled }}
     - name: ratelimit
+    {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+    {{- end }}
       type: STATIC
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST      
@@ -319,6 +331,9 @@
                   port_value: {{ $ratelimit.port | default "8081" }}
     {{- if $ratelimitMonitorByEnvoy }}
     - name: ratelimit-health
+      {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+      {{- end }}
       type: STATIC
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
@@ -347,6 +362,9 @@
   {{- end }}
   {{- if and $opaEnabled $opaMonitorByEnvoy }}
     - name: opa-health
+    {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+    {{- end }}
       type: STATIC
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST     
