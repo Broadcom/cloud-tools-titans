@@ -148,6 +148,7 @@
     {{- $ := set $enrichment "audits" $audits }}
   {{- end }}
   {{- if eq (include "titan-mesh-helm-lib-chart.envoy.filter.enrichment.enabled" (dict "requests" $requests "routes" $routes)) "true" }}
+    {{- $envoyFiltersFolder := $envoy.filtersFolder | default "/envoy" }}
 - name: envoy.filters.http.enrichment
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
@@ -185,6 +186,6 @@
         allow_precompiled: {{ $enrichfilterAllowedPrecompiled }}
         code:
           local:
-            filename: {{ printf "/envoy/%s" $enrichfilterName | quote }}        
+            filename: {{ printf "%s/%s" (trimSuffix "/" $envoyFiltersFolder) $enrichfilterName | quote }}        
   {{- end }}
 {{- end }}

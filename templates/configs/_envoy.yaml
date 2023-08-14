@@ -19,6 +19,7 @@
   {{- if or (and $ingress (not $ingress.enabled)) (and $egress (not $egress.enabled)) }}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
     {{- if $useDynamicConfiguration }}
+      {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
 envoy.yaml: |
   node:
     cluster: {{ $appName }}
@@ -26,9 +27,9 @@ envoy.yaml: |
 
   dynamic_resources:
     cds_config:
-      path: /envoy/cds.yaml
+      path: {{ printf "%s/cds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
     lds_config:
-      path: /envoy/lds.yaml
+      path: {{ printf "%s/lds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
 
   admin:
     access_log_path: /dev/stdout
