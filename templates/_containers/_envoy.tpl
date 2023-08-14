@@ -8,6 +8,8 @@
 {{- if $titanSideCars -}}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- $envoy := $titanSideCars.envoy -}}
+  {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" -}}
+  {{- $envoyScriptsFolder := $envoy.scriptsFolder | default "/envoy" -}}
   {{- $envars := $envoy.env -}}
   {{- $clusters := $envoy.clusters }}
   {{- $remoteMyApp := index $clusters "remote-myapp" -}}
@@ -57,7 +59,7 @@
   command: 
     - /usr/local/bin/envoy 
     - -c
-    - /envoy/envoy.yaml
+    - {{ printf "%s/envoy.yaml" (trimSuffix "/" $envoyConfigFolder) }}
     - --service-cluster
     - {{ .appName }}
     - --service-node
@@ -92,7 +94,7 @@
       {{- if $envoyHealthChecksStartup.useCustomhealthCheckCmds }}
     exec:
       command:
-        - {{ print ($envoyHealthChecksStartup.customHealthCheckCmdScript | default "/envoy/health_check_restart_pod.sh") | quote }} 
+        - {{ print ($envoyHealthChecksStartup.customHealthCheckCmdScript | default (printf "%s/health_check_restart_pod.sh" (trimSuffix "/" $envoyScriptsFolder))) | quote }} 
         - "startup"
         - {{ print ($envoy.startupFailureThreshold | default "300") | quote }}
         {{- if $wasmFilterUsed }}
@@ -120,7 +122,7 @@
       {{- if $envoyHealthChecksLiveness.useCustomhealthCheckCmds }}
     exec:
       command:
-        - {{ print ($envoyHealthChecksLiveness.customHealthCheckCmdScript | default "/envoy/health_check_restart_pod.sh") | quote }} 
+        - {{ print ($envoyHealthChecksLiveness.customHealthCheckCmdScript | default (printf "%s/health_check_restart_pod.sh" (trimSuffix "/" $envoyScriptsFolder))) | quote }} 
         - "liveness"
         - {{ print ($envoy.livenessFailureThreshold | default "2") | quote }}
         {{- if $wasmFilterUsed }}
@@ -148,7 +150,7 @@
       {{- if $envoyHealthChecksReadiness.useCustomhealthCheckCmds }}
     exec:
       command:
-        - {{ print ($envoyHealthChecksReadiness.customHealthCheckCmdScript | default "/envoy/health_check_restart_pod.sh") | quote }} 
+        - {{ print ($envoyHealthChecksReadiness.customHealthCheckCmdScript | default (printf "%s/health_check_restart_pod.sh" (trimSuffix "/" $envoyScriptsFolder))) | quote }} 
         - "readiness"
         - {{ print ($envoy.readinessFailureThreshold | default "1") | quote }}
         {{- if $wasmFilterUsed }}
@@ -172,7 +174,7 @@
     timeoutSeconds: {{ $envoy.readinessTimeoutSeconds | default "5" }}
   {{- end }}
   volumeMounts:
-    - mountPath: /envoy
+    - mountPath: {{ $envoyConfigFolder }}
       name: titan-configs
     - mountPath: /logs/
       name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}

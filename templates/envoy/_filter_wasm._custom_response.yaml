@@ -128,6 +128,7 @@
     {{- $ := set $config "custom_responses" $customResponses }}
   {{- end }}
   {{- if eq (include "titan-mesh-helm-lib-chart.envoy.filter.custom.response.enabled" (dict "requests" $requests "routes" $routes)) "true" }}
+    {{- $envoyFiltersFolder := $envoy.filtersFolder | default "/envoy" }}
 - name: envoy.filters.http.custom_response
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
@@ -165,6 +166,6 @@
         allow_precompiled: {{ $customResponseFilterAllowedPrecompiled }}
         code:
           local:
-            filename: {{ printf "/envoy/%s" $customResponseFilterName | quote }}        
+            filename: {{ printf "%s/%s" (trimSuffix "/" $envoyFiltersFolder) $customResponseFilterName | quote }}        
   {{- end }}
 {{- end }}
