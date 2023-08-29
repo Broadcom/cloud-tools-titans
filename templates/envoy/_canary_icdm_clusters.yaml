@@ -2,26 +2,34 @@
   {{- $titanSideCars := .titanSideCars -}}
   {{- $icdmService := .service -}}
   {{- $icdmInbound := .inbound -}}
-  {{- $icdmOutbound := .outbound -}}
+  {{- $icdmOutbound := .outbound -}}  
   {{- $envoy := $titanSideCars.envoy -}}
   {{- $clusters := $envoy.clusters -}}
-  {{- range $cluster, $value := $clusters -}}
-    {{- $routes := $value.routes | default list -}}
-    {{- if eq (len $routes ) 0 -}}
-      {{- range $value.public -}}
-        {{- $uri := .uri -}}
-        {{- if not (hasPrefix "/" $uri) -}}
-          {{- $uri = printf "/%s" $uri -}}
+  {{- $icdmClustersProcessedCount := $titanSideCars.icdmClustersProcessedCount | default 0 -}}
+  {{- $icdmClustersConversionCount := $titanSideCars.icdmClustersConversionCount | default 0 -}}
+  {{- if lt $icdmClustersConversionCount 1 -}}
+    {{- range $cluster, $value := $clusters -}}
+      {{- $routes := $value.routes | default list -}}
+      {{- if eq (len $routes ) 0 -}}
+        {{- range $value.public -}}
+          {{- $uri := .uri -}}
+          {{- if not (hasPrefix "/" $uri) -}}
+            {{- $uri = printf "/%s" $uri -}}
+          {{- end -}}
+          {{- $match := dict .match .uri -}}
+          {{- $route := dict "match" $match -}}
+          {{- $routes = append $routes $route -}}
         {{- end -}}
-        {{- $match := dict .match .uri -}}
-        {{- $route := dict "match" $match -}}
-        {{- $routes = append $routes $route -}}
-      {{- end -}}
-      {{- if $routes -}}
-        {{- $_ := set $value "routes" $routes -}}
+        {{- if $routes -}}
+          {{- $_ := set $value "routes" $routes -}}
+        {{- end -}}
       {{- end -}}
     {{- end -}}
+    {{- $icdmClustersConversionCount = add1 $icdmClustersConversionCount -}}
+    {{- $_ := set $titanSideCars "icdmClustersConversionCount" $icdmClustersConversionCount -}}
   {{- end -}}
+  {{- $icdmClustersProcessedCount = add1 $icdmClustersProcessedCount -}}
+  {{- $_ := set $titanSideCars "icdmClustersProcessedCount" $icdmClustersProcessedCount -}}
   {{- if $icdmService -}}
     {{- $healthCheckPath := "" -}}
     {{- $port := "8080" -}}
