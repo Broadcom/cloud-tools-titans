@@ -48,7 +48,7 @@ spec:
   renewBefore: {{ $certRenewBefore }}
   commonName: {{ $certdomain }}
   issuerRef:
-    name: vault-issuer
+    name: {{ $cert.issuer | default "vault-issuer" }}
   dnsNames:
   - {{ $certdomain }}
     {{- range $cert.dnsNames }}

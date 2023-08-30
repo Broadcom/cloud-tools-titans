@@ -1,0 +1,21 @@
+{{- define "titan-mesh-helm-lib-chart.configmap.checksum" -}}
+  {{- $global := $.Values.global -}}
+  {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
+  {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
+  {{- $envoy := $titanSideCars.envoy -}}
+  {{- $ingress := $titanSideCars.ingress -}}
+  {{- $egress := $titanSideCars.egress  -}}
+  {{- if or (and $ingress (not $ingress.enabled)) (and $egress (not $egress.enabled)) -}}
+    {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false -}}
+    {{- $configmap := include "titan-mesh-helm-lib-chart.configs.envoy" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" $.Release.Namespace "chartName" $.Chart.Name "useDynamicConfiguration" $useDynamicConfiguration) | fromYaml -}}
+    {{- $envoyFile := dict -}}
+    {{- range $k, $v := $configmap -}}
+      {{- if eq $k "envoy.yaml" -}}
+        {{- $envoyFile = $v -}}
+      {{- end -}}
+    {{- end -}}
+    {{- print $envoyFile | sha256sum -}}
+  {{- else -}}
+    {{- print "notused" | sha256sum -}}
+  {{- end -}}
+{{- end -}}
