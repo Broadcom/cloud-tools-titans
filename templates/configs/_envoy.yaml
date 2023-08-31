@@ -54,7 +54,7 @@ lds.yaml: |
 
 cds.yaml: |
   resources:
-      {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration) }}
+      {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
       
     {{- else -}}
 envoy.yaml: |
@@ -80,7 +80,7 @@ envoy.yaml: |
       {{- end }}
   static_resources:
     clusters:
-      {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration) }}
+      {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
     listeners:
       {{- include "titan-mesh-helm-lib-chart.envoy.listeners" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
     {{- end }}

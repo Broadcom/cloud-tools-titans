@@ -1,11 +1,10 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.canary.cluster" -}}
-  {{- $titanSideCars := .titanSideCars -}}
   {{- $service := .service -}}
   {{- $appName := .appName -}}
+  {{- $clusters := .clusters -}}
   {{- $clusterReleaseLabel := "" -}}
   {{- $clusterReleaseBaseLabel := "0000-00-0" -}}
-
-  {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "services" (list $service)) | fromJson -}}
+  {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "clusters" $clusters "services" (list $service)) | fromJson -}}
   {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
   {{- $cluster := get $releaseClusters $service -}}
   {{- if $cluster -}}

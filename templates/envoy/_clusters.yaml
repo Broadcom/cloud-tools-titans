@@ -150,7 +150,7 @@
         {{- end }}
         {{- range $addAdditionalClustersForFilters }}
           {{- if eq . $clusterInfo.name }}
-            {{- $clusterName := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" $clusterInfo.name) -}}
+            {{- $clusterName := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "clusters" $clusters "appName" $appName "service" $clusterInfo.name) -}}
             {{- if eq $clusterName $cluster -}}
               {{- $setupCluster = true }}
             {{- end -}}
@@ -259,7 +259,7 @@
   {{- range $issuers }}
     {{- $cluster := .cluster -}}
     {{- if eq $cluster "identity" -}}
-      {{- $cluster = include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" $cluster) -}}
+      {{- $cluster = include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "clusters" $clusters "appName" $appName "service" $cluster) -}}
     {{- end -}}
     {{- if and (ne $cluster $appName) (not (hasKey $myClusters $cluster)) }}
       {{- $_ := set $myClusters $cluster "created"  }}

@@ -1,16 +1,18 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.canary.egress.clusters.headers" -}}
   {{- $titanSideCars := .titanSideCars -}}
+  {{- $service := .service -}}
+  {{- $appName := .appName -}}
+  {{- $envoy := $titanSideCars.envoy -}}
   {{- $canaryRouteHeaderName := "x-epmp-route-by-release" -}}
   {{- if $titanSideCars.canary -}}
     {{- if $titanSideCars.canary.routeHeaderName -}}
       {{- $canaryRouteHeaderName = $titanSideCars.canary.routeHeaderName -}}
     {{- end -}}
   {{- end -}}
-  {{- $service := .service -}}
-  {{- $appName := .appName -}}
+  {{- $globalClusters := $envoy.clusters -}}
   {{- $clusterReleaseLabel := "" -}}
   {{- $clusterReleaseBaseLabel := "0000-00-0" -}}
-  {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "titanSideCars" $titanSideCars "services" (list $service)) | fromJson -}}
+  {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "clusters" $globalClusters "services" (list $service)) | fromJson -}}
   {{- $appInfo := include "titan-mesh-helm-lib-chart.envoy.canary.service" $appName | fromJson -}}
   {{- $clusters := dict -}}
   {{- $cluster := get $releaseClusters $service -}}

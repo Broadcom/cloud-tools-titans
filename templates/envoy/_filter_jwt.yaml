@@ -4,6 +4,8 @@
   {{- $appName := .appName }}
   {{- $localMyApp := .localMyApp }}
   {{- $titanSideCars := .titanSideCars }}
+  {{- $envoy := $titanSideCars.envoy }}
+  {{- $clusters := $envoy.clusters }}
   {{- $providers := list  }}
   {{- $tokenValidation := false  }}
   {{- $tokenValidationBypass := false  }}
@@ -56,7 +58,7 @@
             {{- $jwks = printf "http:%s" (trimPrefix "https:" $jwks) -}}
           {{- end -}}
         {{- else -}}
-          {{- $cluster = include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "titanSideCars" $titanSideCars "appName" $appName "service" $cluster) -}}
+          {{- $cluster = include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "clusters" $clusters "appName" $appName "service" $cluster) -}}
         {{- end -}}      
       {{- end -}}
       {{- $provider := printf "provider-%s" (adler32sum .issuer)  }}

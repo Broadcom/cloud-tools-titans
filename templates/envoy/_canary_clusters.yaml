@@ -1,7 +1,5 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.canary.clusters" -}}
-  {{- $titanSideCars := .titanSideCars -}}
-  {{- $envoy := $titanSideCars.envoy -}}
-  {{- $clusters := $envoy.clusters -}}
+  {{- $clusters := .clusters -}}
   {{- $requestServices := .services | default list -}}
   {{- $releaseClusters := dict -}}
   {{- $localApp := index $clusters "local-myapp" -}}
