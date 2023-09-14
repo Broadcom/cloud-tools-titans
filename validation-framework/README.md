@@ -1,4 +1,4 @@
-# validation framework
+# Validation framework
 
 ## generate docker-compose.yaml
 ```bash
@@ -16,7 +16,6 @@ gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set sel
 gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set select="lds.yaml" > envoy/lds.yaml
 gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set select="envoy-sds.yaml" > envoy/envoy-sds.yaml
 gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set select="ratelimit_config.yaml" > envoy/ratelimit/ratelimit_config.yaml
-
 ```
 ## Authors
 
