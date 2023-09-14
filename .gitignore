@@ -1,3 +1,6 @@
 .DS_Store
-tmp
+tmp/
 titan-mesh-helm-lib-chart-*.tgz
+validation-framework/envoy/
+validation-framework/charts/
+validation-framework/tests/logs/
