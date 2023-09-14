@@ -1,15 +1,10 @@
 resources:
   - name: local-myapp
     "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
-    type: STATIC
+    type:   STRICT_DNS
     dns_lookup_family: V4_ONLY
     lb_policy: LEAST_REQUEST
     
-    http2_protocol_options:
-      allow_connect: true
-      max_concurrent_streams: 1024
-      initial_connection_window_size: 1048576
-      initial_stream_window_size: 65536
     connect_timeout: 0.25s
     common_lb_config:
       healthy_panic_threshold:
@@ -29,7 +24,7 @@ resources:
           min_retry_concurrency: 3
     health_checks:
     - http_health_check:
-        path: /healthz
+        path: /id_epmp_i/health
       interval: 1s
       timeout: 1s
       healthy_threshold: 1
@@ -42,7 +37,33 @@ resources:
         - endpoint:
             address:
               socket_address:
-                address: 127.0.0.1
+                address: myapp 
                 port_value: 8080
     
+  - name: ratelimit
+    "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+    type: STATIC
+    dns_lookup_family: V4_ONLY
+    lb_policy: LEAST_REQUEST      
+    connect_timeout: 1s
+    protocol_selection: USE_CONFIGURED_PROTOCOL
+    http2_protocol_options: {}
+    circuit_breakers:
+      thresholds:
+      - priority: "DEFAULT"
+        max_requests: 409600
+        max_pending_requests: 204800
+        retry_budget:
+          budget_percent:
+            value: 20.0
+          min_retry_concurrency: 3
+    load_assignment:
+      cluster_name: ratelimit
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: ratelimit
+                port_value: 8081
 

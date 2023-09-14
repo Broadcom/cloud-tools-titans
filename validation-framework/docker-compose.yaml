@@ -4,10 +4,8 @@ services:
     domainname: mesh.localhost
     image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/envoy:1.18.3-redhat-fips-titan-proxy-wasm-bundle.20
     volumes:
-      - ./envoy/envoy.yaml:/envoy/envoy.yaml
-      - ./envoy/cds.yaml:/envoy/cds.yaml
-      - ./envoy/lds.yaml:/envoy/lds.yaml
-      - ./envoy/ratelimit/config/ratelimit_config.yaml:/envoy/ratelimit/config/ratelimit_config.yaml
+      - ./envoy:/envoy
+      - ./secrets:/secrets
     depends_on:
       - myapp
       - ratelimit
@@ -70,7 +68,19 @@ services:
       - ./tests:/tests
     environment:
       - PORT=8080
-  
+  engine:
+    domainname: mesh.localhost
+    image: cfmanteiga/alpine-bash-curl-jq:latest
+    command: /tests/validation-test.sh
+    depends_on:
+      - redis
+      - ratelimit
+      - proxy
+    networks:
+      - envoymesh
+    volumes:
+      - ./tests:/tests
+      - ./secrets:/secrets
 volumes:
   redis:
     driver: local

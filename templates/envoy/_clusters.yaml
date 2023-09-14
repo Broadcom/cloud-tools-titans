@@ -27,7 +27,7 @@
         {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
         {{- end }}
-      type: STATIC
+      type:   {{ $localApp.type | default "STATIC" }}
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
         {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $localApp.scheme  "cluster" $localApp ) | nindent 6 }}
@@ -84,7 +84,7 @@
           - endpoint:
               address:
                 socket_address:
-                  address: 127.0.0.1
+                  address: {{  $localApp.address | default "127.0.0.1" }} 
                   port_value: {{  $localApp.port | default "8080" }}
         {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $localApp.scheme  "envoy" $envoy) | nindent 6 }}
       {{- end }}
@@ -356,7 +356,7 @@
           - endpoint:
               address:
                 socket_address:
-                  address: 127.0.0.1
+                  address: {{ $ratelimit.healthCheckAddress | default "127.0.0.1" }}
                   port_value: {{ $ratelimit.healthCheckPort | default "8070" }}
     {{- end }} 
   {{- end }}

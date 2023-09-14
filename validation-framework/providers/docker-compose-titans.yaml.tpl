@@ -3,13 +3,13 @@
 {{- $validation := $titanSideCars.validation | default dict -}}
 {{- $validationEnabled := ternary $validation.enabled true (hasKey $validation "enabled") -}}
 {{- if $validationEnabled -}}
-  {{- $environment := $validation.environment | default list -}}
-  {{- $containers := $environment.containers | default list -}}
-  {{- $proxy := $containers.proxy }}
-  {{- $myapp := $containers.myapp }}
-  {{- $ratelimit := $containers.ratelimit }}
-  {{- $redis := $containers.redis }}
-  {{- $engine := $containers.engine }}
+  {{- $environment := $validation.environment | default dict -}}
+  {{- $containers := $environment.containers | default dict -}}
+  {{- $proxy := $containers.proxy | default (dict "image" "envoyproxy/envoy:latest") }}
+  {{- $myapp := $containers.myapp | default (dict "image" "ealen/echo-server:latest") }}
+  {{- $ratelimit := $containers.ratelimit | default (dict "image" "envoyproxy/ratelimit") }}
+  {{- $redis := $containers.redis |default  (dict "image" "redislabs/redistimeseries:latest") }}
+  {{- $engine := $containers.engine | default (dict "image" "cfmanteiga/alpine-bash-curl-jq:latest") }}
   {{- $ratelimitEnabled := false -}}
   {{- range $ingress.routes -}}
     {{- if .ratelimit -}}
@@ -23,6 +23,7 @@ services:
     image: {{ $proxy.image }}
     volumes:
       - ./envoy:/envoy
+      - ./secrets:/secrets
     depends_on:
       - myapp
       - ratelimit
@@ -87,10 +88,10 @@ services:
       - ./tests:/tests
     environment:
       - PORT=8080
-  {{/* engine:
+  engine:
     domainname: mesh.localhost
     image: {{ $engine.image }}
-    command: /home/validation/test.sh
+    command: /tests/validation-test.sh
     depends_on:
       - redis
       - ratelimit
@@ -98,7 +99,8 @@ services:
     networks:
       - envoymesh
     volumes:
-      - ./tests:/tests */}}
+      - ./tests:/tests
+      - ./secrets:/secrets
 volumes:
   redis:
     driver: local
