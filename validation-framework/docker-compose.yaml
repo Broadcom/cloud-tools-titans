@@ -1,0 +1,78 @@
+version: '2'
+services:
+  proxy:
+    domainname: mesh.localhost
+    image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/envoy:1.18.3-redhat-fips-titan-proxy-wasm-bundle.20
+    volumes:
+      - ./envoy/envoy.yaml:/envoy/envoy.yaml
+      - ./envoy/cds.yaml:/envoy/cds.yaml
+      - ./envoy/lds.yaml:/envoy/lds.yaml
+      - ./envoy/ratelimit/config/ratelimit_config.yaml:/envoy/ratelimit/config/ratelimit_config.yaml
+    depends_on:
+      - myapp
+      - ratelimit
+    networks:
+      - envoymesh
+    expose:
+      - "9443"
+    ports:
+      - "9443:9443"
+    entrypoint:
+    - /usr/local/bin/envoy
+    - -c
+    - /envoy/envoy.yaml
+    - -l
+    - warn
+  redis:
+    domainname: mesh.localhost
+    image: redislabs/redistimeseries:latest
+    restart: always
+    expose:
+      - "6379"
+    command: redis-server --save 20 1 --loglevel warning
+    volumes: 
+      - redis:/data
+    networks:
+      - envoymesh
+
+  ratelimit:
+    domainname: mesh.localhost
+    image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/ratelimit:v1.4.0.3-redhat-fips-master.1
+    command: /bin/ratelimit
+    expose:
+      - "8070"
+      - "8081"
+      - "6070"
+    depends_on:
+      - redis
+    networks:
+      - envoymesh
+    volumes:
+      - ./envoy:/envoy
+    environment:
+      - USE_STATSD=false
+      - LOG_LEVEL=warn
+      - REDIS_SOCKET_TYPE=tcp
+      - REDIS_URL=redis:6379
+      - REDIS_USE_TLS=false
+      - RUNTIME_ROOT=/envoy
+      - RUNTIME_SUBDIRECTORY=ratelimit
+      - RUNTIME_WATCH_ROOT=false
+      - PORT=8070
+  myapp:
+    domainname: mesh.localhost
+    image: ealen/echo-server:latest
+    expose:
+     - "8080"
+    networks:
+      - envoymesh
+    volumes:
+      - ./tests:/tests
+    environment:
+      - PORT=8080
+  
+volumes:
+  redis:
+    driver: local
+networks:
+  envoymesh: {}

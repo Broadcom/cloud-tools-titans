@@ -1,0 +1,25 @@
+# replace from the ratelimit_config.yaml of the tested service copied from generated AIO envoy configuration
+domain: identity
+
+descriptors:
+- key: header_match
+  value: authentication_712fda0ac76a762c
+  descriptors:
+  - key: key_fcabb9b521a449bf
+    rate_limit:
+      unit: hour
+      requests_per_unit: 2
+- key: header_match
+  value: post_oauth2_token_a81e53878254a8c9
+  descriptors:
+  - key: key_5b1113c376afcdfb
+    rate_limit:
+      unit: hour
+      requests_per_unit: 2
+- key: header_match
+  value: token_validation_ver_1_ccd1100bcc781ba3
+  descriptors:
+  - key: key_6f057dbb85bce0b4
+    rate_limit:
+      unit: hour
+      requests_per_unit: 2

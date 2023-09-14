@@ -1,0 +1,20 @@
+titanSideCars:
+  ratelimit:
+    enabled: true
+  envoy:
+    useDynamicConfiguration: true
+  validation:
+    # uncomment the line below to disable validation
+    # enabled: false
+    environment:
+      containers:
+        proxy:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/envoy:1.18.3-redhat-fips-titan-proxy-wasm-bundle.20
+        myapp: 
+          image: ealen/echo-server:latest
+        ratelimit: 
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/ratelimit:v1.4.0.3-redhat-fips-master.1
+        redis: 
+          image: redislabs/redistimeseries:latest
+        engine:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/validation-engine:1.1

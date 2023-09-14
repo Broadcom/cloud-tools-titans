@@ -1,0 +1,48 @@
+resources:
+  - name: local-myapp
+    "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+    type: STATIC
+    dns_lookup_family: V4_ONLY
+    lb_policy: LEAST_REQUEST
+    
+    http2_protocol_options:
+      allow_connect: true
+      max_concurrent_streams: 1024
+      initial_connection_window_size: 1048576
+      initial_stream_window_size: 65536
+    connect_timeout: 0.25s
+    common_lb_config:
+      healthy_panic_threshold:
+        value: 25
+    outlier_detection:
+      enforcing_consecutive_5xx: 0
+      enforcing_success_rate: 0
+      enforcing_consecutive_gateway_failure: 0
+      enforcing_failure_percentage: 0
+    circuit_breakers:
+      thresholds:
+      - priority: "DEFAULT"
+        track_remaining: true
+        retry_budget:
+          budget_percent:
+            value: 20.0
+          min_retry_concurrency: 3
+    health_checks:
+    - http_health_check:
+        path: /healthz
+      interval: 1s
+      timeout: 1s
+      healthy_threshold: 1
+      unhealthy_threshold: 1
+      no_traffic_interval: 3s
+    load_assignment:
+      cluster_name: local-myapp
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: 127.0.0.1
+                port_value: 8080
+    
+

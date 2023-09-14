@@ -1,0 +1,554 @@
+aliases:
+  serviceNamespace:  &svcNS sedicdsaas-dev--aio
+
+oAuthClientOwnershipFieldChangeEnforced: true
+
+replicas: 1
+verbose: info
+apiVersion: v2
+logFolderPath: &logFolder /usr/local/symantec/id_epmp_i/logs
+containers:
+  main:
+    image:
+      name: identity
+      tag: 2.202.3
+      pullPolicy: IfNotPresent
+    appFolderPath: /usr/local/symantec/id_epmp_i
+    logFileName: id_epmp_i.log
+    configFolderPath: &configFolder /usr/local/symantec/id_epmp_i/config
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+      - name: configs
+        mountPath: /usr/local/symantec/id_epmp_i/configs
+      - name: configs
+        mountPath: /usr/local/symantec/id_epmp_i/id_epmp_i_support-override.properties
+        subPath: id_epmp_i_support-override.properties
+      - name: configs
+        mountPath: /usr/local/symantec/id_epmp_i/application.properties
+        subPath: application.properties
+      - name: configs
+        mountPath: /usr/local/symantec/id_epmp_i/vault.properties
+        subPath: vault.properties
+    envs:
+      CONFIG_FOLDER: *configFolder
+      LOG_FOLDER: *logFolder
+      JAVA_OPTS: "-Dsun.net.inetaddr.ttl=60 -Dsun.net.inetaddr.negative.ttl=10 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.rmi.port=17264 -Dcom.sun.management.jmxremote.port=17264 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Djava.rmi.server.hostname=127.0.0.1 -XX:+ExitOnOutOfMemoryError -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ConcGCThreads=4 -XX:ParallelGCThreads=4 -XX:G1ReservePercent=15 -XX:InitiatingHeapOccupancyPercent=35 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=17264 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dlogging.config=/usr/local/symantec/id_epmp_i/config/logback.xml -Dlogging.config=file:/usr/local/symantec/id_epmp_i/config/logback.xml"
+    command:
+      - dumb-init
+      - --
+      - sh
+      - -c
+      - exec java $JAVA_OPTS $SERVICE_OPTS -server -jar id_epmp_i.jar 2>&1 | tee -a "${LOG_FOLDER}/stdout.log"
+  sidecars:
+
+outbound:
+  user-directory:
+    enabled: true
+    namespacePtr: serviceNamespace
+    routeMatch:
+    - pathPrefix: /user-directory/
+  authmgmt:
+    enabled: true
+    namespacePtr: serviceNamespace
+    routeMatch:
+    - pathPrefix: /authmgmt_epmp_i/
+  r3:
+    enabled: true
+    namespacePtr: serviceNamespace
+    routeMatch:
+      - pathPrefix: /
+        headers:
+        - name: x-epmpi-cluster
+          exactMatch: epmp.asset.request.exchange
+        prefixRewrite: /r3_epmp_i/
+      - pathPrefix: /
+        headers:
+        - name: x-epmpi-cluster
+          exactMatch: epmp.r3.service_request
+        prefixRewrite: /r3_epmp_i/
+  globalcatalog:
+    enabled: true
+  userdirectory:
+      enabled: true
+  mdr:
+    enabled: false
+  builtin:
+    enabled: false
+  norton:
+    enabled: false
+  colp:
+    enabled: false
+  ldap:
+    enabled: false
+  oidc:
+    enabled: false
+  asset:
+    enabled: true
+  cnc:
+    enabled: false
+service:
+  staticHttpRouteConfigRoutes:
+    type: HTTP
+    services:
+      uds:
+        - httpProps: httpProps
+          socketTimeout: 60000
+          namespace: *svcNS
+          prefix: http://127.0.0.1:9565
+          connectTimeout: 100
+          addHeaders:
+            - key: x-epmpi-cluster
+              value: epmp.uds.service_request
+      ams:
+        - httpProps: httpProps
+          socketTimeout: 60000
+          connectTimeout: 100
+          namespace: *svcNS
+          prefix: http://127.0.0.1:9565
+          addHeaders:
+            - key: x-epmpi-cluster
+              value: epmp.ams.service_request
+      mdr:
+        - httpProps: httpProps
+          socketTimeout: 60000
+          connectTimeout: 100
+          namespace: *svcNS
+          prefix: http://127.0.0.1:9565
+          addHeaders:
+            - key: x-epmpi-cluster
+              value: epmp.asset.request.exchange
+  name: identity
+  maxHeaderSize: 16384
+  maxConcurrentStreams: 1024
+  maxConcurrentStreamExecution: 50
+  streamReadTimeout: -1
+  readTimeout: -1
+  type: ClusterIP # optional, ClusterIP will be set as default
+  ports:
+    http:
+      port: 8080
+      healthCheckPath: '/id_epmp_i/health'
+      http2Enabled: false
+mesh:
+  enabled: true
+
+vault:
+  secretsMap:
+    - '"identity/mysql:username":"spring.datasource.username"'
+    - '"identity/mysql:password":"spring.datasource.password"'
+    - '"identity/keys:oidc":"identity.oidc.keys"'
+    - '"identity/cert-keys:signing-keys":"identity.cert-key-pairs"'
+    - '"rabbitmq/identity:username":"rabbit.username"'
+    - '"rabbitmq/identity:password":"rabbit.password"'
+  injector:
+    enabled: true
+    saveAsJson:
+      - mysql
+      - bootstrap-users/sbo_sps_health_check_pdl
+
+# backend information will be exposed to containers' through environmental varaibles
+# expose BACKEND_MYSQL_ADDR=mmysql.svc.cluster.local
+# expose BACKEND_MYSQL_PORT=3306
+backends:
+  vault:
+    enabled: true
+  idsupport: true
+  mysql:
+    enabled: true
+  rabbitmq:
+    enabled: true
+
+troubleshooting:
+  main:
+    enable: false
+    command:
+      - "sh"
+      - "-c"
+      - "touch /tmp/healthy; while true; do echo hello; sleep 10;done"
+
+domainRemapping: true
+
+titanSideCars:
+  # imageRegistry: gcr.io/broadcom/sps-images
+  envoy:
+    clusters:
+      local-myapp: # reserved keyword
+        # Settings for envoy proxy sidecar to communicate with your local application  
+        healthChecks:
+          path: /id_epmp_i/health
+      remote-myapp: # reserved keyword
+        healthChecks:
+          startup:
+            customHealthCheckCmdScript: "/envoy/health_check_restart_pod_identity.sh"
+          liveness:
+            customHealthCheckCmdScript: "/envoy/health_check_restart_pod_identity.sh"
+
+        routes:
+        - match:
+            prefix: /oauth2/
+        - match:
+            prefix: /id_epmp_i/
+        - match:
+            prefix: /identity/
+        - match:
+            prefix: /.well-known/
+
+  ingress:
+    disableAudit: false
+    enrichment:
+      tenancy_check: true
+      identity_host: "local-myapp"
+      authentication_path: "/id_epmp_i/v1/authentication?response_type=token"
+    ratelimit:
+      limits:
+        oidc_login: 1000/hour
+        authentication: 1000/hour
+        post_oauth2_token: 1000/hour
+        token_validation_ver_1: 1000/hour
+    tokenCheck: false
+    accessPolicy:
+      defaultAction: DENY
+    routes:
+    - match:
+        prefix: /identity/v1/authentication
+        headers:
+        - key: ":method"
+          eq: POST
+        - key: "x-epmp-ratelimit-sp"
+          pr: true
+      enrich:
+        actions:
+        - action: extract
+          from: header.x-epmp-ratelimit-sp
+          to: x-auth-audit-sp 
+      ratelimit:
+        name: oidc_login
+        actions:
+        - match:
+          - key: x-epmp-ratelimit-sp
+          limit: oidc_login
+      audit:
+        enabled: true
+      route:
+        prefixRewrite: /id_epmp_i/v1/authentication
+    - match:
+        prefix: /identity/v1/authentication
+        headers:
+        - key: ":method"
+          eq: POST
+        - key: "x-epmp-ratelimit-sp"
+          npr: true      
+      metrics:
+        name: post_authentication
+      ratelimit:
+        name: authentication
+        actions:
+        - match:
+          - key: x-epmp-domain-id
+          limit: authentication
+      audit:
+        enabled: true
+        additionalInfo:
+        - request.body[email]
+      route:
+        prefixRewrite: /id_epmp_i/v1/authentication
+    - match:
+        prefix: /oauth2/tokens
+        headers:
+        - key: ":method"
+          eq: POST
+      audit:
+        enabled: true
+        additionalInfo:
+        - request.headers[x-auth-client-id]
+      metrics:
+        name: post_oauth2_tokens         
+      enrich:
+        actions:
+        - action: extract
+          from: header.Authorization
+          transforms:
+          - func: trim_prefix
+            parameters:
+            - "Basic "
+          - func: base64_decode
+          - func: scanf
+            parameters:
+            - "%s:%_"
+          to: x-auth-client-id
+        - action: extract
+          from: header.x-auth-client-id
+          transforms:
+          - func: scanf
+            parameters:
+            - "O2ID.%_.%s.%_"
+          to: x-auth-domain-id
+        - action: extract
+          from: query.refresh_token
+          transforms:
+          - func: scanf
+            parameters:
+            - "%_.%_.%s.%_"
+          to: x-auth-domain-id
+      route:
+        prefixRewrite: /id_epmp_i/oauth2/tokens
+
+    - match:
+        prefix: /oauth2/tokens
+        headers:
+        - key: ":method"
+          eq: POST
+        - key: "x-auth-client-id"
+          pr: true
+        - key: "x-auth-domain-id"
+          eq: "symantecdomain1"
+      ratelimit:
+        name: post_oauth2_token_symantec_domain
+        actions:
+        - match:
+          - key: x-auth-client-id             
+          limit: post_oauth2_token
+    - match:
+        prefix: /oauth2/tokens
+        headers:
+        - key: ":method"
+          eq: POST
+        - key: "x-auth-client-id"
+          pr: true
+        - key: "x-auth-domain-id"
+          neq: "symantecdomain1"
+      ratelimit:
+        name: post_oauth2_token
+        actions:
+        - match:
+          - key: x-auth-domain-id             
+          limit: post_oauth2_token
+
+    - match:
+        prefix: /identity/v1/tokens/
+        headers:
+        - key: ":method"
+          eq: GET
+      metrics:
+        name: get_v1_token  
+      enrich:
+        actions:
+        - action: extract
+          from: token.domain_id
+          to: x-auth-domain-id
+      ratelimit:
+        name: token_validation_ver_1
+        actions:
+        - match:
+          - key: x-auth-domain-id             
+          limit: token_validation_ver_1
+      audit:
+        enabled: true
+        additionalInfo:
+        - request.headers[x-auth-audit-sp]
+        - request.headers[x-auth-customer-sp]
+        - request.headers[x-auth-domain-sp]
+      route:
+        prefixRewrite: /id_epmp_i/v1/tokens/
+    - match:
+        prefix: /oauth2/tokens/
+        headers:
+        - key: ":method"
+          eq: GET
+      tokenCheck: true
+      metrics:
+        name: get_v2_token  
+      enrich:
+        actions:
+        - action: decode
+          path_prefix: /oauth2/tokens/
+      audit:
+        enabled: true
+        additionalInfo:
+        - request.headers[x-auth-audit-sp]
+        - request.headers[x-auth-customer-sp]
+        - request.headers[x-auth-domain-sp]
+    - match:
+        prefix: /oauth2/tokens/
+        headers:
+        - key: ":method"
+          eq: GET
+        - key: ":status"
+          eq: "401"
+          source: response
+      customResponse:
+        addHeaders:
+        - name: "x-auth-resp-audit-event"
+          value: "true"
+    - match:
+        prefix: /identity/v1/tokens/
+        headers:
+        - key: ":method"
+          eq: GET
+        - key: ":status"
+          eq: "401"
+          source: response
+      customResponse:
+        addHeaders:
+        - name: "x-auth-resp-audit-event"
+          value: "true"
+    - match:
+        prefix: /id_epmp_i/v1/tokens/
+        headers:
+        - key: ":method"
+          eq: GET
+        - key: ":status"
+          eq: "401"
+          source: response
+      customResponse:
+        addHeaders:
+        - name: "x-auth-resp-audit-event"
+          value: "true"
+    - match:
+        prefix: /identity/v3/jobs
+      tokenCheck: true
+      rbac:
+        policies:
+        - name: jobs
+          rules:
+          - lop: request.token[scope]
+            op: "co"
+            val: system
+          - lop: request.token[privs]
+            op: "co"
+            val: icds:maint:purge
+      route:
+        prefixRewrite: /id_epmp_i/v3/jobs
+    - match:
+        prefix: /.well-known/
+      metrics:
+        name: get_openid_document
+      route:
+        prefixRewrite: /id_epmp_i/.well-known/
+    - match:
+        prefix: /oauth2/clients
+        headers:
+        - key: ":method"
+          neq: GET
+        - key: "Authorization"
+          sw: "Basic "
+      enrich:
+        actions:
+        - action: extract
+          from: header.Authorization
+          transforms:
+          - func: trim_prefix
+            parameters:
+            - "Basic "
+          - func: base64_decode
+          - func: scanf
+            parameters:
+            - "%s:%_"
+          to: x-auth-client-id
+        - action: extract
+          from: header.x-auth-client-id
+          transforms:
+          - func: scanf
+            parameters:
+            - "O2ID.%_.%s.%_"
+          to: x-auth-domain-id
+        - action: extract
+          from: header.x-auth-client-id
+          transforms:
+          - func: scanf
+            parameters:
+            - "O2ID.%s.%_.%_"
+          to: x-auth-customer-id
+      audit:
+        enabled:
+        additionalInfo:
+        - request.headers[x-auth-client-id]
+      route:
+        prefixRewrite: /id_epmp_i/oauth2/clients
+    - match:
+        prefix: /oauth2/
+      metrics:
+        name: all_oauth2_calls
+      route:
+        prefixRewrite: /id_epmp_i/oauth2/
+    - match:
+        prefix: /identity/maintenance/v1/domain_remapping
+        headers:
+        - key: ":method"
+          eq: POST
+      audit:
+        enabled:
+        additionalInfo:
+        - request.body
+      rbac:
+        policies:
+        - name: domain_remapping
+          rules:
+          - lop: request.token[scope]
+            op: "co"
+            val: system
+          - lop: request.token[privs]
+            op: "co"
+            val: domain_remapping
+      route:
+        prefixRewrite: /id_epmp_i/maintenance/v1/domain_remapping
+    - match:
+        prefix: /identity/maintenance/v1/domain_remapping
+      rbac:
+        policies:
+        - name: domain_remapping
+          rules:
+          - lop: request.token[scope]
+            op: "co"
+            val: system
+          - lop: request.token[privs]
+            op: "co"
+            val: domain_remapping
+      route:
+        prefixRewrite: /id_epmp_i/maintenance/v1/domain_remapping
+    - match:
+        prefix: /identity/
+      metrics:
+        name: all_identity_calls
+      route:
+        prefixRewrite: /id_epmp_i/
+# v2 under API host hack -temporary
+    - match:
+        prefix: /r3_epmp_i/v1/mdr/
+      route:
+        prefixRewrite: /v1/mdr/
+        cluster: mdr-aurora
+    - match:
+        prefix: /r3_epmp_i/
+      route:
+        prefixRewrite: /id_epmp_i/
+
+
+  # egress:
+  #   routes:
+  #   - route:
+  #       cluster: identity # hack to allow jwt filter to fetch certificate
+  #   - route: 
+  #       cluster: gc
+  #   - route: 
+  #       cluster: authmgmt
+  #   - route: 
+  #       cluster: user-directory
+  #   - route:
+  #       cluster: r3
+  #   - match:
+  #       prefix: /
+  #       headers:
+  #       - key: x-epmpi-cluster
+  #         eq: epmp.asset.request.exchange
+  #     route:
+  #       prefixRewrite: /r3_epmp_i/
+  #       cluster: r3
+  #   - match:
+  #       prefix: /
+  #       headers:
+  #       - key: x-epmpi-cluster
+  #         eq: epmp.r3.service_request
+  #     route:
+  #       prefixRewrite: /r3_epmp_i/
+  #       cluster: r3
