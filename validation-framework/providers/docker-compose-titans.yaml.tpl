@@ -33,8 +33,7 @@ services:
       - envoymesh
     expose:
       - "9443"
-    ports:
-      - "9443:9443"
+      - "9565"
     entrypoint:
     - /usr/local/bin/envoy
     - -c

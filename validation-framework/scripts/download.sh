@@ -43,8 +43,6 @@ echo "chart ver= $chartver"
 
 mkdir -p tmp
 
-chartresponse=$(helm package . -d tmp)
-
 response=$(curl -H "X-JFrog-Art-Api:$apikey" --output tmp/$chartname-$chartver.tgz --write-out '%{http_code}' https://usw1.packages.broadcom.com/artifactory/sbo-sps-helm-release-local/$chartname/$chartname-$chartver.tgz)
 
 if [ "$response" != "200" ]

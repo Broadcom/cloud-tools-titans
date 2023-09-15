@@ -6,7 +6,8 @@
 ## Prepare your test environment
 * Copy values.yaml from your service helm chart here
 * Modify values-test.yaml to change default images for your test environment
-
+* Download the desired icds-all-in-one helm chart here
+  
 ## Build test environment
 ```bash
 ./build.sh

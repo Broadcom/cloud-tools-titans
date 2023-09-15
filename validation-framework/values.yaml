@@ -524,31 +524,31 @@ titanSideCars:
         prefixRewrite: /id_epmp_i/
 
 
-  # egress:
-  #   routes:
-  #   - route:
-  #       cluster: identity # hack to allow jwt filter to fetch certificate
-  #   - route: 
-  #       cluster: gc
-  #   - route: 
-  #       cluster: authmgmt
-  #   - route: 
-  #       cluster: user-directory
-  #   - route:
-  #       cluster: r3
-  #   - match:
-  #       prefix: /
-  #       headers:
-  #       - key: x-epmpi-cluster
-  #         eq: epmp.asset.request.exchange
-  #     route:
-  #       prefixRewrite: /r3_epmp_i/
-  #       cluster: r3
-  #   - match:
-  #       prefix: /
-  #       headers:
-  #       - key: x-epmpi-cluster
-  #         eq: epmp.r3.service_request
-  #     route:
-  #       prefixRewrite: /r3_epmp_i/
-  #       cluster: r3
+  egress:
+    routes:
+    - route:
+        cluster: identity # hack to allow jwt filter to fetch certificate
+    - route: 
+        cluster: gc
+    - route: 
+        cluster: authmgmt
+    - route: 
+        cluster: user-directory
+    - route:
+        cluster: r3
+    - match:
+        prefix: /
+        headers:
+        - key: x-epmpi-cluster
+          eq: epmp.asset.request.exchange
+      route:
+        prefixRewrite: /r3_epmp_i/
+        cluster: r3
+    - match:
+        prefix: /
+        headers:
+        - key: x-epmpi-cluster
+          eq: epmp.r3.service_request
+      route:
+        prefixRewrite: /r3_epmp_i/
+        cluster: r3
