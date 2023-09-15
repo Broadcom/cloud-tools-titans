@@ -305,7 +305,7 @@
     {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
     {{- end }}
-      type: STATIC
+      type: {{ $ratelimit.type | default "STATIC" }}
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST      
       connect_timeout: 1s
@@ -334,7 +334,7 @@
       {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
       {{- end }}
-      type: STATIC
+      type: {{ $ratelimit.healthCheckType| default "STATIC" }}
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
       connect_timeout: {{ $ratelimit.healthConnectTimeout | default "0.25s" }}

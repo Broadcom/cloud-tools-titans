@@ -22,8 +22,10 @@ services:
     domainname: mesh.localhost
     image: {{ $proxy.image }}
     volumes:
-      - ./envoy:/envoy
+      - ./envoy/config:/envoy/config
+      - ./envoy/ratelimit:/envoy/ratelimit
       - ./secrets:/secrets
+      - ./tests:/tests
     depends_on:
       - myapp
       - ratelimit
@@ -36,9 +38,11 @@ services:
     entrypoint:
     - /usr/local/bin/envoy
     - -c
-    - /envoy/envoy.yaml
+    - /envoy/config/envoy.yaml
     - -l
     - warn
+    - '--log-path'
+    - /tests/logs/envoy.application.log
   {{- if $ratelimitEnabled }}
   redis:
     domainname: mesh.localhost

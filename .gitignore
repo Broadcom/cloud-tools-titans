@@ -4,3 +4,4 @@ titan-mesh-helm-lib-chart-*.tgz
 validation-framework/envoy/
 validation-framework/charts/
 validation-framework/tests/logs/
+validation-framework/docker-compose.yaml
