@@ -28,9 +28,30 @@ function preCheck {
   fi
 }
 
+function processAIOAdvance {
+  if [ -f "tmp/$chartname-$chartver.tgz" ]; then
+    echo "found tmp/$chartname-$chartver.tgz"
+  else
+    ./scripts/download.sh $chartname $chartver
+  fi
+  cd tmp
+  tar xf $chartname-$chartver.tgz
+  gotpl ../gomplate/fix-umbrella-chart.tpl -f "$chartname/Chart.yaml" --set path="$chartname" > handlalice.sh
+  chmod a+x handlalice.sh
+  ./handlalice.sh
+  for file in "$chartname"/charts/*; do
+    if [[ -d "$file" ]]; then
+      gotpl ../gomplate/extract_routes.tpl -f "$file/values.yaml" --set cluster="$(basename $file)" >> clusters.yaml
+    fi
+  done
+  gotpl ../gomplate/build_cluster.tpl -f clusters.yaml > ../values-test-clusters.yaml
+  cd ..
+}
 
 function processAIO {
-  if [ -z "tmp/$chartname-$chartver.tgz" ]; then
+  if [ -f "tmp/$chartname-$chartver.tgz" ]; then
+    echo "found tmp/$chartname-$chartver.tgz"
+  else
     ./scripts/download.sh $chartname $chartver
   fi
   cd tmp
@@ -63,7 +84,7 @@ function prepareEnvoyConfigurations {
 }
 
 preCheck
-processAIO
+processAIOAdvance
 prepareDockerCompose
 prepareEnvoyConfigurations
 
