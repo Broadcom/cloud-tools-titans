@@ -11,9 +11,28 @@ if [ "$2" ];then
   chartver="$2"
 fi
 
-function processAIO {
+function preCheck {
+  if [ "$chartname" == "" ] && [ "$chartver" == "" ]; then
+    echo "Please specify your umbrella helm chart name and version, e.g."
+    echo "./build.sh icds-all-in-one 1.203.48"
+    exit 1
+  fi
   rm -rf tmp
-  ./scripts/download.sh $chartname $chartver
+  mkdir -p tmp
+  if [ -f "$chartname-$chartver.tgz" ]; then
+    echo "found $chartname-$chartver.tgz"
+    mv "$chartname-$chartver.tgz" tmp
+  else
+    echo "$chartname-$chartver.tgz is not found in current directory"
+    echo "Will try to download as internal broadcom environment"
+  fi
+}
+
+
+function processAIO {
+  if [ -z "tmp/$chartname-$chartver.tgz" ]; then
+    ./scripts/download.sh $chartname $chartver
+  fi
   cd tmp
   tar xf $chartname-$chartver.tgz
   for file in "$chartname"/charts/*; do
@@ -43,6 +62,7 @@ function prepareEnvoyConfigurations {
   gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set select="ratelimit_config.yaml" > envoy/ratelimit/config/ratelimit_config.yaml
 }
 
+preCheck
 processAIO
 prepareDockerCompose
 prepareEnvoyConfigurations

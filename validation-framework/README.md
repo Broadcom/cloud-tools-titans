@@ -6,11 +6,12 @@
 ## Prepare your test environment
 * Copy values.yaml from your service helm chart here
 * Modify values-test.yaml to change default images for your test environment
-* Download the desired icds-all-in-one helm chart here
+* Download the desired umbrella helm chart here
   
 ## Build test environment
+* run ./build.sh with required umbrella chart name and chart version, see example command
 ```bash
-./build.sh
+./build.sh icds-all-in-one 1.203.48
 ```
 
 ## Run it up
