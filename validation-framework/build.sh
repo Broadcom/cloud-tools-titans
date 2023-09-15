@@ -8,6 +8,8 @@ function prepareDockerCompose {
 
 function prepareEnvoyConfigurations {
   helm template validation . --output-dir "$PWD/tmp" -n validation -f values.yaml -f values-test.yaml
+  rm -rf envoy
+  rm -rf tests/logs
   mkdir -p envoy/config
   mkdir -p envoy/ratelimit/config
   mkdir -p tests/logs

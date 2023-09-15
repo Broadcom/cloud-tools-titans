@@ -355,7 +355,7 @@ titanSideCars:
         headers:
         - key: ":method"
           eq: GET
-      # tokenCheck: true
+      tokenCheck: true
       metrics:
         name: get_v2_token  
       enrich:
@@ -406,7 +406,7 @@ titanSideCars:
           value: "true"
     - match:
         prefix: /identity/v3/jobs
-      # tokenCheck: true
+      tokenCheck: true
       rbac:
         policies:
         - name: jobs

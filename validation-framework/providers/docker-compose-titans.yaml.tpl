@@ -10,6 +10,7 @@
   {{- $ratelimit := $containers.ratelimit | default (dict "image" "envoyproxy/ratelimit") }}
   {{- $redis := $containers.redis |default  (dict "image" "redislabs/redistimeseries:latest") }}
   {{- $engine := $containers.engine | default (dict "image" "cfmanteiga/alpine-bash-curl-jq:latest") }}
+  {{- $tokenGenerator := index $containers "token-generator" }}
   {{- $ratelimitEnabled := false -}}
   {{- range $ingress.routes -}}
     {{- if .ratelimit -}}
@@ -19,7 +20,6 @@
 version: '2'
 services:
   proxy:
-    domainname: mesh.localhost
     image: {{ $proxy.image }}
     volumes:
       - ./envoy/config:/envoy/config
@@ -45,7 +45,6 @@ services:
     - /tests/logs/envoy.application.log
   {{- if $ratelimitEnabled }}
   redis:
-    domainname: mesh.localhost
     image: {{ $redis.image }}
     restart: always
     expose:
@@ -57,7 +56,6 @@ services:
       - envoymesh
 
   ratelimit:
-    domainname: mesh.localhost
     image: {{ $ratelimit.image }}
     command: /bin/ratelimit
     expose:
@@ -82,7 +80,6 @@ services:
       - PORT=8070
   {{- end }}
   myapp:
-    domainname: mesh.localhost
     image: {{ $myapp.image }}
     expose:
      - "8080"
@@ -92,8 +89,23 @@ services:
       - ./tests:/tests
     environment:
       - PORT=8080
+  {{- if $tokenGenerator }}
+  token-generator:
+    image: {{ $tokenGenerator.image }}
+    entrypoint: 
+      - /usr/local/broadcom/tokentools/token-generator 
+      - -logfile
+      - stdout
+      - -issuer
+      - http://token-generator
+    expose:
+     - "8080"
+    networks:
+      - envoymesh
+    environment:
+      - PORT=8080
+  {{- end }}
   engine:
-    domainname: mesh.localhost
     image: {{ $engine.image }}
     command: /tests/validation-test.sh
     depends_on:

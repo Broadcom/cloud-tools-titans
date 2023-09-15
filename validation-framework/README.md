@@ -1,22 +1,20 @@
 # Validation framework
 
-## generate docker-compose.yaml
+## Working directory
+* All commands running under the same directory of this **README.md**
+
+## Prepare your test environment
+* Copy values.yaml from your service helm chart here
 * Modify values-test.yaml to change default images for your test environment
+
+## Build test environment
 ```bash
-gotpl providers/docker-compose-titans.yaml.tpl -f values.yaml -f values-test.yaml > docker-compose.yaml
-```
-## generate configmap for envoy configuration
-```bash
-helm template validation . --output-dir "$PWD/tmp" -n validation -f values.yaml -f values-test.yaml
+./build.sh
 ```
 
-## extract envoy configuration files from configmap
+## Run it up
 ```bash
-gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set select="envoy.yaml" > envoy/envoy.yaml
-gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set select="cds.yaml" > envoy/config/cds.yaml
-gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set select="lds.yaml" > envoy/config/lds.yaml
-gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set select="envoy-sds.yaml" > envoy/config/envoy-sds.yaml
-gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap.yaml --set select="ratelimit_config.yaml" > envoy/ratelimit/ratelimit_config.yaml
+docker-compose up
 ```
 ## Authors
 
