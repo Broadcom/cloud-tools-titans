@@ -1,5 +1,13 @@
 # Validation framework
 
+## Prerequsite
+* docker-compose
+  * https://docs.docker.com/compose/install/
+* helm
+  * https://helm.sh/docs/intro/quickstart/
+* gotpl
+  * https://github.com/Broadcom/gotpl-titans
+
 ## Working directory
 * All commands running under the same directory of this **README.md**
 
