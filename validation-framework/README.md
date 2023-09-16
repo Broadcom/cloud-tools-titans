@@ -47,16 +47,12 @@ titanSideCars:
         token-generator:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/token-generator:0.0.1
 ```
-## Build test environment
+## Build test environment and execute tests
 * run ./build.sh with required umbrella chart name and chart version, see example command
 ```bash
 ./build.sh icds-all-in-one 1.203.48
 ```
 
-## Run it up
-```bash
-docker-compose up
-```
 ## Authors
 
 * **Anker Tsaur** - *anker.tsaur@broadcom.com**
