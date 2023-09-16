@@ -54,7 +54,7 @@ function set_system_token_content() {
   echo "symantecdomain2" > "/tests/data/domain_id"
   echo "symantecinfra2" > "/tests/data/customer_id"
   echo "<domain::core::CC_Onboard_Service_User>" > "/tests/data/roles"
-  echo "assign_any_role_member core_internal_access create_customer_token create_idp_user create_orders create_system_token create_users delete_events delete_users deprovision_customer domain_remapping edit_users enroll_devices epmp_internal_access extend_licenses file_upload login manage_adsync_jobs manage_customer manage_devices manage_domain manage_domain_status manage_domain_subscription manage_groups manage_licenses manage_org_units manage_organization manage_products manage_services manage_subscription manage_support_notification manage_tenant_remap manage_user_profiles manage_users oauth_client_mgmt provision_customer provision_users read_all_organizations read_any_role read_organization read_workflow require_second_factor_auth retry_workflow saas_create_customer saas_manage_workflow scan_all_users send_user_message support_view_news_article unblock_bounced_email update_account_default use_licenses usvc_search_login view_access_profile view_customers view_domain view_domain_subscription view_events view_external_idp view_groups view_idp view_idp_user view_org_units view_products view_roles view_services view_subscriptions view_system_registry view_user_profiles view_users view_utilization write_roles write_user_profiles write_users write_workflow" > "/tests/data/privs"
+  echo "assign_any_role_member core_internal_access create_customer_token create_idp_user create_orders create_system_token create_users delete_events delete_users deprovision_customer domain_remapping edit_users enroll_devices epmp_internal_access extend_licenses file_upload icds:maint:purge login manage_adsync_jobs manage_customer manage_devices manage_domain manage_domain_status manage_domain_subscription manage_groups manage_licenses manage_org_units manage_organization manage_products manage_services manage_subscription manage_support_notification manage_tenant_remap manage_user_profiles manage_users oauth_client_mgmt provision_customer provision_users read_all_organizations read_any_role read_organization read_workflow require_second_factor_auth retry_workflow saas_create_customer saas_manage_workflow scan_all_users send_user_message support_view_news_article unblock_bounced_email update_account_default use_licenses usvc_search_login view_access_profile view_customers view_domain view_domain_subscription view_events view_external_idp view_groups view_idp view_idp_user view_org_units view_products view_roles view_services view_subscriptions view_system_registry view_user_profiles view_users view_utilization write_roles write_user_profiles write_users write_workflow" > "/tests/data/privs"
 }
 
 
@@ -171,6 +171,8 @@ jwttoken=$(cat /tests/data/token | jq -r '.access_token')
   {{- $method := "GET" -}}
   {{- $headers := dict -}}
   {{- if hasKey $routing "match" -}}
+    {{- $supported := true }}
+    {{- $tokenCheck := $routing.tokenCheck | default false }}
     {{- $match := $routing.match -}}
     {{- if hasKey $match "method" -}}
       {{- $method = $match.method -}}
@@ -181,139 +183,148 @@ jwttoken=$(cat /tests/data/token | jq -r '.access_token')
       {{- $path = printf "%s" $match.path -}}
     {{- else if hasKey $match "regex" -}}
       {{/* $path = randomRegex $match.regex */}}
+      {{- $supported = false }}
     {{- end -}}
-    {{- if hasKey $match "headers" -}}
-      {{- range $match.headers -}}
-        {{- $key := .key -}}
-        {{- $val := "" -}}
-        {{- if eq $key "Authorization" -}}
-          {{- if hasPrefix "Basic" .sw -}}
-            {{- $val = printf "Basic %s" (b64enc "test:test") -}}
-          {{- end -}}
-        {{- else if hasKey . "eq" -}}
-          {{- $val = .eq -}}
-        {{- else if hasKey . "sw" -}}
-          {{- $val = printf "%s%s" .sw (randAscii 5) -}}          
-        {{- else if hasKey . "ew" -}}
-          {{- $val = printf "%s%s" (randAscii 5) .ew -}}             
-        {{- else if hasKey . "co" -}}
-          {{- $val = printf "%s%s%s" (randAscii 5) .co (randAscii 5) -}}              
-        {{- else if hasKey . "lk" -}}
-          {{/*- $val = randomRegex .lk -*/}}
-        {{- else if hasKey . "pr" -}}
-          {{- if .pr -}}
-            {{- $val = "def" -}}          
-          {{- end }}
-        {{- else if hasKey . "neq" -}}
-          {{- $val = printf "%s%s" .neq (randAscii 5) -}}          
-        {{- else if hasKey . "nsw" -}}
-          {{- $val = printf "%s%s" (randAscii 5) .nsw -}}          
-        {{- else if hasKey . "new" -}}
-          {{- $val = printf "%s%s" .new (randAscii 5) -}} 
-        {{- else if hasKey . "nco" -}}
-          {{- $val = printf "%s" (randAscii 5) -}} 
-        {{- else if hasKey . "nlk" -}}
-        {{/* {{- $val = printf "%s" (randAscii 5) -}}  */}}
-        {{- end -}}
-        {{- if ne $val "" -}}
-          {{- if eq $key ":path" -}}
-            {{- $path = $val -}}
-          {{- else if eq $key ":method" -}}
-            {{- if .eq }}
-              {{- $method = upper .eq -}}
-            {{- else if .neq -}}
-              {{- $neq := upper .neq -}}
-              {{- if ne "GET" $neq -}}
-                {{- $method = $neq -}}
-              {{- else if ne "POST" $neq -}}
-                {{- $method = $neq -}}
-              {{- else if ne "PUT" $neq -}}
-                {{- $method = $neq -}}
-              {{- else if ne "DELETE" $neq -}}
-                {{- $method = $neq -}}
-              {{- else if ne "PATCH" $neq -}}
-                {{- $method = $neq -}}
-              {{- end -}}
+    {{- if $supported }}
+      {{- if hasKey $match "headers" -}}
+        {{- range $match.headers -}}
+          {{- $key := .key -}}
+          {{- $val := "" -}}
+          {{- if eq $key "Authorization" -}}
+            {{- if hasPrefix "Basic" .sw -}}
+              {{- $val = printf "Basic %s" (b64enc "test:test") -}}
+            {{- end -}}
+          {{- else if hasKey . "eq" -}}
+            {{- $val = .eq -}}
+          {{- else if hasKey . "sw" -}}
+            {{- $val = printf "%s%s" .sw (randAscii 5) -}}          
+          {{- else if hasKey . "ew" -}}
+            {{- $val = printf "%s%s" (randAscii 5) .ew -}}             
+          {{- else if hasKey . "co" -}}
+            {{- $val = printf "%s%s%s" (randAscii 5) .co (randAscii 5) -}}              
+          {{- else if hasKey . "lk" -}}
+            {{/*- $val = randomRegex .lk -*/}}
+          {{- else if hasKey . "pr" -}}
+            {{- if .pr -}}
+              {{- $val = "def" -}}          
             {{- end }}
-          {{- else -}}
-            {{- $_ := set $headers $key $val -}}
+          {{- else if hasKey . "neq" -}}
+            {{- $val = printf "%s%s" .neq (randAscii 5) -}}          
+          {{- else if hasKey . "nsw" -}}
+            {{- $val = printf "%s%s" (randAscii 5) .nsw -}}          
+          {{- else if hasKey . "new" -}}
+            {{- $val = printf "%s%s" .new (randAscii 5) -}} 
+          {{- else if hasKey . "nco" -}}
+            {{- $val = printf "%s" (randAscii 5) -}} 
+          {{- else if hasKey . "nlk" -}}
+          {{/* {{- $val = printf "%s" (randAscii 5) -}}  */}}
           {{- end -}}
-        {{- end -}}
+          {{- if ne $val "" -}}
+            {{- if eq $key ":path" -}}
+              {{- $path = $val -}}
+            {{- else if eq $key ":method" -}}
+              {{- if .eq }}
+                {{- $method = upper .eq -}}
+              {{- else if .neq -}}
+                {{- $neq := upper .neq -}}
+                {{- if ne "GET" $neq -}}
+                  {{- $method = $neq -}}
+                {{- else if ne "POST" $neq -}}
+                  {{- $method = $neq -}}
+                {{- else if ne "PUT" $neq -}}
+                  {{- $method = $neq -}}
+                {{- else if ne "DELETE" $neq -}}
+                  {{- $method = $neq -}}
+                {{- else if ne "PATCH" $neq -}}
+                  {{- $method = $neq -}}
+                {{- end -}}
+              {{- end }}
+            {{- else -}}
+              {{- $_ := set $headers $key $val -}}
+            {{- end -}}
+          {{- end -}}
+        {{- end }}
       {{- end }}
-    {{- end }}
-    {{- if hasPrefix "http:" $scheme -}}
-      {{- $cmd = printf "code=$(curl --write-out '%%{http_code}' --silent --output %s" $respfile -}}
-      {{- range $k, $v := $headers -}}
-        {{- $cmd = printf "%s %s" $cmd (printf "-H \"%s: %s\"" $k $v) -}}
+      {{- if hasPrefix "http:" $scheme -}}
+        {{- $cmd = printf "code=$(curl --write-out '%%{http_code}' --silent --output %s" $respfile -}}
+        {{- range $k, $v := $headers -}}
+          {{- $cmd = printf "%s %s" $cmd (printf "-H \"%s: %s\"" $k $v) -}}
+        {{- end -}}
+        {{- if $tokenCheck }}
+          {{- $cmd = printf "%s %s" $cmd "-H \"Authorization: Bearer $jwttoken\"" -}}
+        {{- end }}
+        {{- $cmd = printf "%s %s" $cmd (printf "-X %s \"%s%s\");" $method $scheme $path) -}}
+      {{- else -}}
+        {{- $cmd = printf "code=$(curl --insecure --write-out '%%{http_code}' --silent --output %s" $respfile -}}
+        {{- range $k, $v := $headers -}}
+          {{- $cmd = printf "%s %s" $cmd (printf "-H \"%s: %s\"" $k $v) -}}
+        {{- end -}}
+        {{- if $tokenCheck }}
+          {{- $cmd = printf "%s %s" $cmd "-H \"Authorization: Bearer $jwttoken\"" -}}
+        {{- end }}
+        {{- $cmd = printf "%s %s" $cmd (printf "-X %s \"%s%s\");" $method $scheme $path) -}}      
       {{- end -}}
-      {{- $cmd = printf "%s %s" $cmd (printf "-X %s \"%s%s\");" $method $scheme $path) -}}
-    {{- else -}}
-      {{- $cmd = printf "code=$(curl --insecure --write-out '%%{http_code}' --silent --output %s" $respfile -}}
-      {{- range $k, $v := $headers -}}
-        {{- $cmd = printf "%s %s" $cmd (printf "-H \"%s: %s\"" $k $v) -}}
-      {{- end -}}
-      {{- $cmd = printf "%s %s" $cmd (printf "-X %s \"%s%s\");" $method $scheme $path) -}}      
-    {{- end -}}
-    {{- printf "%s\n" $cmd -}}
-    {{- if hasKey $routing "redirect" -}}
-      {{- $redirect := $routing.redirect -}}
-      {{- printf "  if [ \"$code\" != \"%s\" ]\n" ($redirect.responseCode | default "301") -}}
-      {{- printf "  then\n" -}}
-      {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-      {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-      {{- printf "    echo \"    expect: status code[%s], but got status code[$code]\" >> %s\n" $redirect.responseCode $reportfile -}}
-      {{- printf "  else\n" -}}
-      {{- printf "    echo \"Succeed at cmd[%s]\" >> %s\n" $cmd $reportfile -}}
-      {{- printf "  fi\n" -}}
-    {{- else if hasKey $routing "directResponse" -}}
-      {{- $directResponse := $routing.directResponse -}}
-      {{- printf "  if [ \"$code\" != \"%s\" ]\n" $directResponse.status -}}
-      {{- printf "  then\n" -}}
-      {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-      {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-      {{- printf "    echo \"    expect: status code[%s], but got status code[$code]\" >> %s\n" $directResponse.status $reportfile -}}
-      {{- printf "  else\n" -}}
-      {{- printf "    echo \"Succeed at cmd[%s]\" >> %s\n" $cmd $reportfile -}}
-      {{- printf "  fi\n" -}}
-    {{- else if hasKey $routing "route" -}}
-      {{- $route := $routing.route -}}
-      {{- printf "  if [ \"$code\" != \"200\" ]\n" -}}
-      {{- printf "  then\n" -}}
-      {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-      {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-      {{- printf "    echo \"    expect: status code[200], but got status code[$code]\" >> %s\n" $reportfile -}}
-      {{- printf "  else\n" -}}
-      {{- if hasKey $route "prefixRewrite" -}}
-        {{- printf "    path=$(cat %s | jq -r '.http.originalUrl')\n" $respfile -}}
-        {{- printf "    if [[ $path != *\"%s\"* ]]\n" $route.prefixRewrite -}}
+      {{- printf "%s\n" $cmd -}}
+      {{- if hasKey $routing "redirect" -}}
+        {{- $redirect := $routing.redirect -}}
+        {{- printf "  if [ \"$code\" != \"%s\" ]\n" ($redirect.responseCode | default "301") -}}
+        {{- printf "  then\n" -}}
+        {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
+        {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
+        {{- printf "    echo \"    expect: status code[%s], but got status code[$code]\" >> %s\n" $redirect.responseCode $reportfile -}}
+        {{- printf "  else\n" -}}
+        {{- printf "    echo \"Succeed at cmd[%s]\" >> %s\n" $cmd $reportfile -}}
+        {{- printf "  fi\n" -}}
+      {{- else if hasKey $routing "directResponse" -}}
+        {{- $directResponse := $routing.directResponse -}}
+        {{- printf "  if [ \"$code\" != \"%s\" ]\n" $directResponse.status -}}
+        {{- printf "  then\n" -}}
+        {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
+        {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
+        {{- printf "    echo \"    expect: status code[%s], but got status code[$code]\" >> %s\n" $directResponse.status $reportfile -}}
+        {{- printf "  else\n" -}}
+        {{- printf "    echo \"Succeed at cmd[%s]\" >> %s\n" $cmd $reportfile -}}
+        {{- printf "  fi\n" -}}
+      {{- else if hasKey $routing "route" -}}
+        {{- $route := $routing.route -}}
+        {{- printf "  if [ \"$code\" != \"200\" ]\n" -}}
+        {{- printf "  then\n" -}}
+        {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
+        {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
+        {{- printf "    echo \"    expect: status code[200], but got status code[$code]\" >> %s\n" $reportfile -}}
+        {{- printf "  else\n" -}}
+        {{- if hasKey $route "prefixRewrite" -}}
+          {{- printf "    path=$(cat %s | jq -r '.http.originalUrl')\n" $respfile -}}
+          {{- printf "    if [[ $path != *\"%s\"* ]]\n" $route.prefixRewrite -}}
+          {{- printf "    then\n" -}}
+          {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
+          {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
+          {{- printf "      echo \"    expect: prefix path[%s], but got path[$path]\" >> %s\n" $route.prefixRewrite $reportfile -}}
+          {{- printf "    fi\n" -}}
+        {{- end -}}
+        {{- printf "    host=$(cat %s | jq -r '.host.hostname')\n" $respfile -}}
+        {{- printf "    if [ \"$host\" != \"%s\" ]\n" $cluster -}}
         {{- printf "    then\n" -}}
         {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
         {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-        {{- printf "      echo \"    expect: prefix path[%s], but got path[$path]\" >> %s\n" $route.prefixRewrite $reportfile -}}
+        {{- printf "      echo \"    expect: route to host[%s], but got host[$host]\" >> %s\n" $cluster $reportfile -}}
         {{- printf "    fi\n" -}}
+        {{- printf "  fi\n" -}}    
+      {{- else -}}
+        {{- printf "  if [ \"$code\" != \"200\" ]\n" -}}
+        {{- printf "  then\n" -}}
+        {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n"  $method $scheme $path $reportfile -}}
+        {{- printf "    echo \"    expect: status code[200], but got status code[$code]\" >> %s\n" $reportfile -}}
+        {{- printf "  else\n" -}}
+        {{- printf "    host=$(cat %s | jq -r '.host.hostname')\n" $respfile -}}
+        {{- printf "    if [ \"$host\" != \"%s\" ]\n" $cluster -}}
+        {{- printf "    then\n" -}}
+        {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
+        {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
+        {{- printf "      echo \"    expect: route to host[%s], but got host[$host]\" >> %s\n" $cluster $reportfile -}}
+        {{- printf "    fi\n" -}}
+        {{- printf "  fi\n" -}}
       {{- end -}}
-      {{- printf "    host=$(cat %s | jq -r '.host.hostname')\n" $respfile -}}
-      {{- printf "    if [ \"$host\" != \"%s\" ]\n" $cluster -}}
-      {{- printf "    then\n" -}}
-      {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-      {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-      {{- printf "      echo \"    expect: route to host[%s], but got host[$host]\" >> %s\n" $cluster $reportfile -}}
-      {{- printf "    fi\n" -}}
-      {{- printf "  fi\n" -}}    
-    {{- else -}}
-      {{- printf "  if [ \"$code\" != \"200\" ]\n" -}}
-      {{- printf "  then\n" -}}
-      {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n"  $method $scheme $path $reportfile -}}
-      {{- printf "    echo \"    expect: status code[200], but got status code[$code]\" >> %s\n" $reportfile -}}
-      {{- printf "  else\n" -}}
-      {{- printf "    host=$(cat %s | jq -r '.host.hostname')\n" $respfile -}}
-      {{- printf "    if [ \"$host\" != \"%s\" ]\n" $cluster -}}
-      {{- printf "    then\n" -}}
-      {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-      {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-      {{- printf "      echo \"    expect: route to host[%s], but got host[$host]\" >> %s\n" $cluster $reportfile -}}
-      {{- printf "    fi\n" -}}
-      {{- printf "  fi\n" -}}
-    {{- end -}}
+    {{- end }}
   {{- end -}}
 {{- end -}}

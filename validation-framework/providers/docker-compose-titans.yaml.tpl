@@ -28,7 +28,12 @@ services:
       - ./tests:/tests
     depends_on:
       - myapp
+  {{- if $ratelimitEnabled }}
       - ratelimit
+  {{- end }}
+  {{- if $tokenGenerator }}
+      - token-generator
+  {{- end }}
     networks:
       - envoymesh
     expose:
@@ -106,10 +111,12 @@ services:
   {{- end }}
   engine:
     image: {{ $engine.image }}
-    command: /tests/validation-test.sh
+    entrypoint: 
+      - tail 
+      - -f
+      - /dev/null
+    {{/* command: /tests/validation-test.sh */}}
     depends_on:
-      - redis
-      - ratelimit
       - proxy
     networks:
       - envoymesh

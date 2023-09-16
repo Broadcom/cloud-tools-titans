@@ -31,6 +31,7 @@ titanSideCars:
       - name: ":path"
         valuePrefix: "/oauth2/tokens/"
   envoy:
+    clusters:
       token-generator:
         scheme: HTTP
         address: token-generator

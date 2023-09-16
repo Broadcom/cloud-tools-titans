@@ -355,7 +355,6 @@ titanSideCars:
         headers:
         - key: ":method"
           eq: GET
-      tokenCheck: true
       metrics:
         name: get_v2_token  
       enrich:
