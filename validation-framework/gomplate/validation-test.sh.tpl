@@ -85,6 +85,16 @@ get_token
 
 jwttoken=$(cat /tests/data/token | jq -r '.access_token')
 
+expectedFailedCalls=0
+expectedfailedTestChecks=0
+
+testCalls=0
+succeedCalls=0
+failedCalls=0
+testChecks=0
+failedTestChecks=0
+succeedTestChecks=0
+
     {{ if hasKey $ingress "routes" }}
 # Process ingress routes
       {{- range $ingress.routes }}
@@ -121,7 +131,20 @@ jwttoken=$(cat /tests/data/token | jq -r '.access_token')
       {{- end }}
     {{- end }}
   {{- end }}
-  {{- printf "echo \"Completed process %d tests\" >> \"/tests/logs/report.txt\"\n" $counter }}
+  {{- printf "echo \"Summary:\" >> \"/tests/logs/report.txt\"\n" }}
+  {{- printf "echo \"  Completed $testCalls test calls\" >> \"/tests/logs/report.txt\"\n" }}
+  {{- printf "echo \"    Succeed $succeedCalls test calls\" >> \"/tests/logs/report.txt\"\n" }}
+  {{- printf "echo \"    Failed $failedCalls test calls\" >> \"/tests/logs/report.txt\"\n" }}
+  {{- printf "echo \"  Completed $testChecks test checks\" >> \"/tests/logs/report.txt\"\n" }}
+  {{- printf "echo \"    Succeed $succeedCalls test checks\" >> \"/tests/logs/report.txt\"\n" }}
+  {{- printf "echo \"    Failed $failedTestChecks test checks\" >> \"/tests/logs/report.txt\"\n" }}
+  if [ "$failedCalls" == "$expectedFailedCalls" ] && [ "$failedTestChecks" == "$expectedfailedTestChecks" ]
+  then
+    exit 0
+  else
+    exit 1
+  fi
+
 {{- end }}
 
 {{- define "process_routing_validation" -}}
@@ -254,6 +277,7 @@ jwttoken=$(cat /tests/data/token | jq -r '.access_token')
           {{- $cmd = printf "%s %s" $cmd "-H \"Authorization: Bearer $jwttoken\"" -}}
         {{- end }}
         {{- $cmd = printf "%s %s" $cmd (printf "-X %s \"%s%s\");" $method $scheme $path) -}}
+        {{- printf "((testCalls=testCalls+1))\n" }}
       {{- else -}}
         {{- $cmd = printf "code=$(curl --insecure --write-out '%%{http_code}' --silent --output %s" $respfile -}}
         {{- range $k, $v := $headers -}}
@@ -262,66 +286,86 @@ jwttoken=$(cat /tests/data/token | jq -r '.access_token')
         {{- if $tokenCheck }}
           {{- $cmd = printf "%s %s" $cmd "-H \"Authorization: Bearer $jwttoken\"" -}}
         {{- end }}
-        {{- $cmd = printf "%s %s" $cmd (printf "-X %s \"%s%s\");" $method $scheme $path) -}}      
+        {{- $cmd = printf "%s %s" $cmd (printf "-X %s \"%s%s\");" $method $scheme $path) -}}   
+        {{- printf "((testCalls=testCalls+1))\n" }}   
       {{- end -}}
       {{- printf "%s\n" $cmd -}}
       {{- if hasKey $routing "redirect" -}}
         {{- $redirect := $routing.redirect -}}
         {{- printf "  if [ \"$code\" != \"%s\" ]\n" ($redirect.responseCode | default "301") -}}
         {{- printf "  then\n" -}}
+        {{- printf "    ((failedCalls=failedCalls+1))\n" }}
         {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
         {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
         {{- printf "    echo \"    expect: status code[%s], but got status code[$code]\" >> %s\n" $redirect.responseCode $reportfile -}}
         {{- printf "  else\n" -}}
         {{- printf "    echo \"Succeed at cmd[%s]\" >> %s\n" $cmd $reportfile -}}
+        {{- printf "    ((succeedCalls=succeedCalls+1))\n" }}
         {{- printf "  fi\n" -}}
       {{- else if hasKey $routing "directResponse" -}}
         {{- $directResponse := $routing.directResponse -}}
         {{- printf "  if [ \"$code\" != \"%s\" ]\n" $directResponse.status -}}
         {{- printf "  then\n" -}}
+        {{- printf "    ((failedCalls=failedCalls+1))\n" }}
         {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
         {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
         {{- printf "    echo \"    expect: status code[%s], but got status code[$code]\" >> %s\n" $directResponse.status $reportfile -}}
         {{- printf "  else\n" -}}
         {{- printf "    echo \"Succeed at cmd[%s]\" >> %s\n" $cmd $reportfile -}}
+        {{- printf "    ((succeedCalls=succeedCalls+1))\n" }}
         {{- printf "  fi\n" -}}
       {{- else if hasKey $routing "route" -}}
         {{- $route := $routing.route -}}
         {{- printf "  if [ \"$code\" != \"200\" ]\n" -}}
         {{- printf "  then\n" -}}
+        {{- printf "    ((failedCalls=failedCalls+1))\n" }}
         {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
         {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
         {{- printf "    echo \"    expect: status code[200], but got status code[$code]\" >> %s\n" $reportfile -}}
         {{- printf "  else\n" -}}
+        {{- printf "    ((succeedCalls=succeedCalls+1))\n" }}
         {{- if hasKey $route "prefixRewrite" -}}
           {{- printf "    path=$(cat %s | jq -r '.http.originalUrl')\n" $respfile -}}
+          {{- printf "    ((testChecks=testChecks+1))\n" }}
           {{- printf "    if [[ $path != *\"%s\"* ]]\n" $route.prefixRewrite -}}
           {{- printf "    then\n" -}}
+          {{- printf "      ((failedTestChecks=failedTestChecks+1))\n" }}
           {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
           {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
           {{- printf "      echo \"    expect: prefix path[%s], but got path[$path]\" >> %s\n" $route.prefixRewrite $reportfile -}}
+          {{- printf "    else\n" }}
+          {{- printf "      ((succeedTestChecks=succeedTestChecks+1))\n" }}
           {{- printf "    fi\n" -}}
         {{- end -}}
         {{- printf "    host=$(cat %s | jq -r '.host.hostname')\n" $respfile -}}
         {{- printf "    if [ \"$host\" != \"%s\" ]\n" $cluster -}}
         {{- printf "    then\n" -}}
+        {{- printf "      ((failedTestChecks=failedTestChecks+1))\n" }}
         {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
         {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
         {{- printf "      echo \"    expect: route to host[%s], but got host[$host]\" >> %s\n" $cluster $reportfile -}}
+        {{- printf "    else\n" }}
+        {{- printf "      ((succeedTestChecks=succeedTestChecks+1))\n" }}
         {{- printf "    fi\n" -}}
         {{- printf "  fi\n" -}}    
       {{- else -}}
         {{- printf "  if [ \"$code\" != \"200\" ]\n" -}}
         {{- printf "  then\n" -}}
+        {{- printf "    ((failedCalls=failedCalls+1))\n" }}
         {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n"  $method $scheme $path $reportfile -}}
         {{- printf "    echo \"    expect: status code[200], but got status code[$code]\" >> %s\n" $reportfile -}}
         {{- printf "  else\n" -}}
+        {{- printf "    ((succeedCalls=succeedCalls+1))\n" }}
         {{- printf "    host=$(cat %s | jq -r '.host.hostname')\n" $respfile -}}
+        {{- printf "    ((testChecks=testChecks+1))\n" }}
         {{- printf "    if [ \"$host\" != \"%s\" ]\n" $cluster -}}
         {{- printf "    then\n" -}}
+        {{- printf "      ((failedTestChecks=failedTestChecks+1))\n" }}
         {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
         {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
         {{- printf "      echo \"    expect: route to host[%s], but got host[$host]\" >> %s\n" $cluster $reportfile -}}
+        {{- printf "    else\n" }}
+        {{- printf "      ((succeedTestChecks=succeedTestChecks+1))\n" }}
         {{- printf "    fi\n" -}}
         {{- printf "  fi\n" -}}
       {{- end -}}
