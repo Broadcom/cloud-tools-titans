@@ -2,6 +2,7 @@
 {{- if $titanSideCars }}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
+  {{- $service := .service }}
   {{- $validation := $titanSideCars.validation }}
   {{- $clusters := $validation.clusters | default dict }}
   {{- $envoy := $titanSideCars.envoy }}
@@ -14,12 +15,12 @@
 generate_token_call_data()
 {
 
-  privs=$(cat /tests/privs)
-  roles=$(cat /tests/roles)
-  scope=$(cat /tests/scope)
-  uri=$(cat /tests/uri)
-  customer_id=$(cat /tests/customer_id)
-  domain_id=$(cat /tests/domain_id)
+  privs=$(cat /tests/data/privs)
+  roles=$(cat /tests/data/roles)
+  scope=$(cat /tests/data/scope)
+  uri=$(cat /tests/data/uri)
+  customer_id=$(cat /tests/data/customer_id)
+  domain_id=$(cat /tests/data/domain_id)
 
   cat <<EOF
 { 
@@ -35,7 +36,7 @@ EOF
 }
 
 function get_token() {
-   tokenresp=$(curl --write-out '%{http_code}' --silent --output /tests/token \
+   tokenresp=$(curl --write-out '%{http_code}' --silent --output /tests/data/token \
   -H "Accept: application/json" \
   -H "Content-Type:application/json" \
   -X POST --data "$(generate_token_call_data)" "http://token-generator:8080/tokens?ttl=10000");
@@ -48,12 +49,12 @@ function get_token() {
 }
 
 function set_system_token_content() {
-  echo "/user-directory/v1/users/8Vskw2k-tUL5yKXp8X5u-Q" > "/tests/uri"
-  echo "system" > "/tests/scope"
-  echo "symantecdomain2" > "/tests/domain_id"
-  echo "symantecinfra2" > "/tests/customer_id"
-  echo "<domain::core::CC_Onboard_Service_User>" > "/tests/roles"
-  echo "assign_any_role_member core_internal_access create_customer_token create_idp_user create_orders create_system_token create_users delete_events delete_users deprovision_customer domain_remapping edit_users enroll_devices epmp_internal_access extend_licenses file_upload login manage_adsync_jobs manage_customer manage_devices manage_domain manage_domain_status manage_domain_subscription manage_groups manage_licenses manage_org_units manage_organization manage_products manage_services manage_subscription manage_support_notification manage_tenant_remap manage_user_profiles manage_users oauth_client_mgmt provision_customer provision_users read_all_organizations read_any_role read_organization read_workflow require_second_factor_auth retry_workflow saas_create_customer saas_manage_workflow scan_all_users send_user_message support_view_news_article unblock_bounced_email update_account_default use_licenses usvc_search_login view_access_profile view_customers view_domain view_domain_subscription view_events view_external_idp view_groups view_idp view_idp_user view_org_units view_products view_roles view_services view_subscriptions view_system_registry view_user_profiles view_users view_utilization write_roles write_user_profiles write_users write_workflow" > "/tests/privs"
+  echo "/user-directory/v1/users/8Vskw2k-tUL5yKXp8X5u-Q" > "/tests/data/uri"
+  echo "system" > "/tests/data/scope"
+  echo "symantecdomain2" > "/tests/data/domain_id"
+  echo "symantecinfra2" > "/tests/data/customer_id"
+  echo "<domain::core::CC_Onboard_Service_User>" > "/tests/data/roles"
+  echo "assign_any_role_member core_internal_access create_customer_token create_idp_user create_orders create_system_token create_users delete_events delete_users deprovision_customer domain_remapping edit_users enroll_devices epmp_internal_access extend_licenses file_upload login manage_adsync_jobs manage_customer manage_devices manage_domain manage_domain_status manage_domain_subscription manage_groups manage_licenses manage_org_units manage_organization manage_products manage_services manage_subscription manage_support_notification manage_tenant_remap manage_user_profiles manage_users oauth_client_mgmt provision_customer provision_users read_all_organizations read_any_role read_organization read_workflow require_second_factor_auth retry_workflow saas_create_customer saas_manage_workflow scan_all_users send_user_message support_view_news_article unblock_bounced_email update_account_default use_licenses usvc_search_login view_access_profile view_customers view_domain view_domain_subscription view_events view_external_idp view_groups view_idp view_idp_user view_org_units view_products view_roles view_services view_subscriptions view_system_registry view_user_profiles view_users view_utilization write_roles write_user_profiles write_users write_workflow" > "/tests/data/privs"
 }
 
 
@@ -82,7 +83,7 @@ done
 set_system_token_content
 get_token
 
-jwttoken=$(cat /tests/token | jq -r '.access_token')
+jwttoken=$(cat /tests/data/token | jq -r '.access_token')
 
     {{ if hasKey $ingress "routes" }}
 # Process ingress routes
@@ -94,8 +95,11 @@ jwttoken=$(cat /tests/token | jq -r '.access_token')
             {{- $cluster = $route.cluster }}
           {{- end }}
         {{- end }}
-{{ template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
-        {{- $counter = add1 $counter -}}
+        {{- if or (eq $cluster "proxy") (and (ne $cluster "proxy") (hasKey $clusters $cluster)) }}
+          {{- printf "# Ingress -> host:%s - path: %s\n" $cluster . }}
+            {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+          {{- $counter = add1 $counter -}}
+        {{- end }}
       {{- end }}     
     {{- end }}
 
@@ -109,12 +113,15 @@ jwttoken=$(cat /tests/token | jq -r '.access_token')
             {{- $cluster = $route.cluster }}
           {{- end }}
         {{- end }}
-{{ template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "egress" "scheme" "http://proxy:9565" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") -}}
-        {{- $counter = add1 $counter -}}
+        {{- if or (eq $cluster "proxy") (and (ne $cluster "proxy") (hasKey $clusters $cluster)) }}
+          {{- printf "# Egress -> host:%s - path: %s\n" $cluster . }}
+          {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "egress" "scheme" "http://proxy:9565" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+          {{- $counter = add1 $counter -}}
+        {{- end }}
       {{- end }}
     {{- end }}
   {{- end }}
-{{ printf "echo \"Completed process %d tests\" >> \"/tests/logs/report.txt\"\n" $counter }}
+  {{- printf "echo \"Completed process %d tests\" >> \"/tests/logs/report.txt\"\n" $counter }}
 {{- end }}
 
 {{- define "process_routing_validation" -}}

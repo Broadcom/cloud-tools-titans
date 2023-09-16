@@ -1,14 +1,4 @@
-apiTokenIssuer: &apiTokenIssuer "https://api.dev.int.saas.broadcomcloud.com"
-
 titanSideCars:
-  issuers: 
-  - issuer: "http://token-generator"
-    jwks: http://token-generator/jwks
-    cluster: token-generator
-    locations:
-      fromHeaders:
-      - name: ":path"
-        valuePrefix: "/oauth2/tokens/"
   envoy:
     logFolderPath: /tests/logs
     useDynamicConfiguration: true
@@ -16,10 +6,6 @@ titanSideCars:
       local-myapp:
         type: STRICT_DNS
         address: myapp
-      token-generator:
-        scheme: HTTP
-        address: token-generator
-        port: 8080
         
   ratelimit:
     enabled: true
@@ -28,12 +14,3 @@ titanSideCars:
     
   validation:
     enabled: true
-    ## uncomment following lines to change to use different images
-    environment:
-      containers:
-        proxy:
-          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/envoy:1.18.3-redhat-fips-titan-proxy-wasm-bundle.20
-        ratelimit: 
-          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/ratelimit:v1.4.0.3-redhat-fips-master.1
-        token-generator:
-          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/token-generator:0.0.1

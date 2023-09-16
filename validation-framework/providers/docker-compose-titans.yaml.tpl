@@ -7,7 +7,7 @@
   {{- $containers := $environment.containers | default dict -}}
   {{- $proxy := $containers.proxy | default (dict "image" "envoyproxy/envoy:latest") }}
   {{- $myapp := $containers.myapp | default (dict "image" "ealen/echo-server:latest") }}
-  {{- $ratelimit := $containers.ratelimit | default (dict "image" "envoyproxy/ratelimit") }}
+  {{- $ratelimit := $containers.ratelimit | default (dict "image" "envoyproxy/ratelimit:latest") }}
   {{- $redis := $containers.redis |default  (dict "image" "redislabs/redistimeseries:latest") }}
   {{- $engine := $containers.engine | default (dict "image" "cfmanteiga/alpine-bash-curl-jq:latest") }}
   {{- $tokenGenerator := index $containers "token-generator" }}

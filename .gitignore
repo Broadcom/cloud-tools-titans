@@ -3,6 +3,7 @@ tmp/
 titan-mesh-helm-lib-chart-*.tgz
 validation-framework/envoy/
 validation-framework/charts/
-validation-framework/tests/logs/
+validation-framework/tests/
 validation-framework/docker-compose.yaml
 validation-framework/values-test-clusters.yaml
+validation-framework/values-env-override.yaml
