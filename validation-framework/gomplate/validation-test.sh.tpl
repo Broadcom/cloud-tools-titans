@@ -13,6 +13,8 @@
 
 # functions
 credential="dGVzdDp0ZXN0"
+declare -A validation_array
+
 function http_call() {
   local method=$1
   local url=$2
@@ -59,6 +61,7 @@ function http_call() {
       fi
     fi
   fi
+  {{/* [ -z "$tokencall" ] && ((testCalls=testCalls+1)) */}}
   resp=$(cat /tests/data/resp);
 }
 
@@ -84,6 +87,155 @@ function get_token() {
     jwt=$(cat /tests/data/resp | jq -r '.access_token')
   fi
   # echo "jwt=$jwt"
+}
+
+function check_and_report() {
+  local key
+  ((testCalls=testCalls+1))
+  ((testChecks=testChecks+1))
+  test_result="succeed"
+  for key in "${!validation_array[@]}"
+  do
+    if [ "$key" == "code" ]
+    then
+      # echo "key=$key"
+      if [[ $code -eq ${validation_array[$key]} ]]
+      then
+        ((succeedCalls=succeedCalls+1))
+        ((succeedTestChecks=succeedTestChecks+1))
+      else
+        ((failedCalls=failedCalls+1))
+        ((failedTestChecks=failedTestChecks+1))
+        test_result="failed"
+      fi
+    else
+      ((testChecks=testChecks+1))
+      if [[  $key == ".host."* || $key == ".http."* || $key == ".request.headers."* || $key == ".request.body."* ]]
+      then
+        # echo "$key pass format check"
+        local val=$(echo $resp | jq -r $key)
+        # echo "got $key=$val"
+        local estr=${validation_array[$key]}
+        local arr=(${estr//:::/ })
+        if [ -z "$val" ]
+        then
+          echo "Check failed - missing request key: $key"
+          if [[ ${arr[0]} != "npr" ]]
+          then
+            ((failedTestChecks=failedTestChecks+1))
+            echo "Check failed - missing request key: $key"
+            test_result="failed"
+          else
+            ((succeedTestChecks=succeedTestChecks+1))
+            # echo "succeedTestChecks=$succeedTestChecks"
+          fi
+        else
+        # {{/* if [[ ${validation_array[$key]} == ".http."* || $key == ".request.headers."* || $key == ".request.body."* ]] */}}
+          # echo "${validation_array[$key]}"
+          if [[ ${arr[0]} == "eq" ]]
+          then
+            # echo "${arr[0]} eq ${arr[1]}"
+            if [[ ${arr[1]} == $val ]] 
+            then
+              ((succeedTestChecks=succeedTestChecks+1))
+              # echo "succeedTestChecks=$succeedTestChecks"   
+              # echo "$key[${arr[1]}] == $val"         
+            else
+              ((failedTestChecks=failedTestChecks+1))
+              echo "Check failed - $key[${arr[1]}] != $val"
+              echo "failedTestChecks=$failedTestChecks"
+              test_result="failed"
+            fi
+          elif [[ ${arr[0]} == "ne" ]]
+          then
+            # echo "${arr[0]} ne ${arr[1]}"
+            if [[ ${arr[1]} != $val ]] 
+            then
+              ((succeedTestChecks=succeedTestChecks+1))
+              # echo "succeedTestChecks=$succeedTestChecks"   
+              # echo "$key[${arr[1]}] != $val"         
+            else
+              ((failedTestChecks=failedTestChecks+1))
+              # echo "failedTestChecks=$failedTestChecks"
+              test_result="failed"
+            fi
+          elif [[ ${arr[0]} == "co" ]]
+          then
+            # echo "${arr[0]} co ${arr[1]}"
+            if [[ $val == *"${arr[1]}"* ]] 
+            then
+              ((succeedTestChecks=succeedTestChecks+1))
+              # echo "succeedTestChecks=$succeedTestChecks"   
+              # echo "$val conatns $key[${arr[1]}]"         
+            else
+              ((failedTestChecks=failedTestChecks+1))
+              echo "Check failed - $val does not contain $key[${arr[1]}]"
+              echo "failedTestChecks=$failedTestChecks"
+              test_result="failed"
+            fi
+          elif [[ ${arr[0]} == "prefix" ]]
+          then
+            # echo "${arr[0]} prefix ${arr[1]}"
+            if [[ $val == "${arr[1]}"* ]] 
+            then
+              ((succeedTestChecks=succeedTestChecks+1))
+              # echo "succeedTestChecks=$succeedTestChecks"   
+              # echo "$val hasPrefix $key[${arr[1]}]"         
+            else
+              ((failedTestChecks=failedTestChecks+1))
+              echo "Check failed - $val does not havePrefix $key[${arr[1]}]"
+              echo "failedTestChecks=$failedTestChecks"
+              test_result="failed"
+            fi
+          elif [[ ${arr[0]} == "suffix" ]]
+          then
+            # echo "${arr[0]} suffix ${arr[1]}"
+            if [[ $val == *"${arr[1]}" ]] 
+            then
+              ((succeedTestChecks=succeedTestChecks+1))
+              # echo "succeedTestChecks=$succeedTestChecks"   
+              # echo "$val hasPrefix $key[${arr[1]}]"         
+            else
+              ((failedTestChecks=failedTestChecks+1))
+              echo "Check failed - $val does not haveSuffix $key[${arr[1]}]"
+              echo "failedTestChecks=$failedTestChecks"
+              test_result="failed"
+            fi
+          else
+            echo "Unsupported oprand ${arr[0]} for ${arr[1]}"
+             ((badTestChecks=badTestChecks+1))
+             ((failedTestChecks=failedTestChecks+1))
+              test_result="failed"
+          fi
+        fi
+      else
+        echo "Error: Unsupport check format $key"
+        ((badTestChecks=badTestChecks+1))
+        test_result="failed"
+      fi
+    fi
+    # echo "$key => ${validation_array[$key]}" 
+  done
+  # if [[ $code -ge 200 && $code -lt 300 ]]
+  # then
+  #   echo "Got 2XX"
+  #   for key in "${!validation_array[@]}"
+  #   do
+  #     echo "$key => ${validation_array[$key]}" 
+  #   done
+  # elif [[ $code -ge 300 && $code -lt 400 ]]
+  # then
+  #   echo "Got 3XX"
+  #   for key in "${!validation_array[@]}"
+  #   do
+  #     echo "$key => ${validation_array[$key]}" 
+  #   done
+  # elif [[ $code -ge 400 && $code -lt 500 ]]
+  # then
+  #   echo "Got 4XX"
+  # else  [[ $code -ge 500 ]]
+  #   echo "Got 5XX"
+  # fi
 }
 
 # setup single trap
@@ -118,6 +270,7 @@ failedCalls=0
 testChecks=0
 failedTestChecks=0
 succeedTestChecks=0
+badTestChecks=0
 
     {{ if hasKey $ingress "routes" }}
 # Process ingress routes
@@ -310,85 +463,33 @@ succeedTestChecks=0
       {{- else }}
         {{- printf "http_call %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) -}}
       {{- end }}
-      {{- printf "((testCalls=testCalls+1))\n" }}
       {{- if hasKey $routing "redirect" -}}
         {{- $redirect := $routing.redirect -}}
-        {{- printf "  if [ \"$code\" != \"%s\" ]\n" ($redirect.responseCode | default "301") -}}
-        {{- printf "  then\n" -}}
-        {{- printf "    ((failedCalls=failedCalls+1))\n" }}
-        {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-        {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-        {{- printf "    echo \"    expect: status code[%s], but got status code[$code]\" >> %s\n" $redirect.responseCode $reportfile -}}
-        {{- printf "  else\n" -}}
-        {{- printf "    echo \"Succeed at cmd[%s]\" >> %s\n" $cmd $reportfile -}}
-        {{- printf "    ((succeedCalls=succeedCalls+1))\n" }}
-        {{- printf "  fi\n" -}}
+        {{- printf "unset validation_array && declare -A validation_array\n" }}
+        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "%s" ($redirect.responseCode | default "301") | quote) }}
+        {{- printf "unset validation_array && declare -A validation_array && check_and_report\n" }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[redirect] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else if hasKey $routing "directResponse" -}}
         {{- $directResponse := $routing.directResponse -}}
-        {{- printf "  if [ \"$code\" != \"%s\" ]\n" $directResponse.status -}}
-        {{- printf "  then\n" -}}
-        {{- printf "    ((failedCalls=failedCalls+1))\n" }}
-        {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-        {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-        {{- printf "    echo \"    expect: status code[%s], but got status code[$code]\" >> %s\n" $directResponse.status $reportfile -}}
-        {{- printf "  else\n" -}}
-        {{- printf "    echo \"Succeed at cmd[%s]\" >> %s\n" $cmd $reportfile -}}
-        {{- printf "    ((succeedCalls=succeedCalls+1))\n" }}
-        {{- printf "  fi\n" -}}
+        {{- printf "unset validation_array && declare -A validation_array\n" }}
+        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "%s" $directResponse.status | quote) }}
+        {{- printf "check_and_report\n" }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[directResponse] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else if hasKey $routing "route" -}}
         {{- $route := $routing.route -}}
-        {{- printf "  if [ \"$code\" != \"200\" ]\n" -}}
-        {{- printf "  then\n" -}}
-        {{- printf "    ((failedCalls=failedCalls+1))\n" }}
-        {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-        {{- printf "    echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-        {{- printf "    echo \"    expect: status code[200], but got status code[$code]\" >> %s\n" $reportfile -}}
-        {{- printf "  else\n" -}}
-        {{- printf "    ((succeedCalls=succeedCalls+1))\n" }}
+        {{- printf "unset validation_array && declare -A validation_array\n" }}
+        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "%s" "200" | quote) }}
         {{- if hasKey $route "prefixRewrite" -}}
-          {{- printf "    path=$(echo $resp | jq -r '.http.originalUrl')\n" -}}
-          {{- printf "    ((testChecks=testChecks+1))\n" }}
-          {{- printf "    if [[ $path != *\"%s\"* ]]\n" $route.prefixRewrite -}}
-          {{- printf "    then\n" -}}
-          {{- printf "      ((failedTestChecks=failedTestChecks+1))\n" }}
-          {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-          {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-          {{- printf "      echo \"    expect: prefix path[%s], but got path[$path]\" >> %s\n" $route.prefixRewrite $reportfile -}}
-          {{- printf "    else\n" }}
-          {{- printf "      ((succeedTestChecks=succeedTestChecks+1))\n" }}
-          {{- printf "    fi\n" -}}
+          {{- printf "validation_array[%s]=%s\n" (printf "%s" ".http.originalUrl" | quote) (printf "prefix:::%s" $route.prefixRewrite | quote) }}
         {{- end -}}
-        {{- printf "    host=$(echo $resp | jq -r '.host.hostname')\n" }}
-        {{- printf "    if [ \"$host\" != \"%s\" ]\n" $cluster -}}
-        {{- printf "    then\n" -}}
-        {{- printf "      ((failedTestChecks=failedTestChecks+1))\n" }}
-        {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-        {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-        {{- printf "      echo \"    expect: route to host[%s], but got host[$host]\" >> %s\n" $cluster $reportfile -}}
-        {{- printf "    else\n" }}
-        {{- printf "      ((succeedTestChecks=succeedTestChecks+1))\n" }}
-        {{- printf "    fi\n" -}}
-        {{- printf "  fi\n" -}}    
+        {{- printf "validation_array[%s]=%s\n" (printf "%s" ".host.hostname" | quote) (printf "eq:::%s" $cluster | quote) }}
+        {{- printf "check_and_report\n" }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[routing - path rewrite]result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else -}}
-        {{- printf "  if [ \"$code\" != \"200\" ]\n" -}}
-        {{- printf "  then\n" -}}
-        {{- printf "    ((failedCalls=failedCalls+1))\n" }}
-        {{- printf "    echo \"Failed at cmd[%s %s%s]\" >> %s\n"  $method $scheme $path $reportfile -}}
-        {{- printf "    echo \"    expect: status code[200], but got status code[$code]\" >> %s\n" $reportfile -}}
-        {{- printf "  else\n" -}}
-        {{- printf "    ((succeedCalls=succeedCalls+1))\n" }}
-        {{- printf "    host=$(echo $resp | jq -r '.host.hostname')\n" -}}
-        {{- printf "    ((testChecks=testChecks+1))\n" }}
-        {{- printf "    if [ \"$host\" != \"%s\" ]\n" $cluster -}}
-        {{- printf "    then\n" -}}
-        {{- printf "      ((failedTestChecks=failedTestChecks+1))\n" }}
-        {{- printf "      echo \"Failed at cmd[%s %s%s]\" >> %s\n" $method $scheme $path $reportfile -}}
-        {{- printf "      echo \"  headers:%s\" >> %s\n" $headers $reportfile -}}
-        {{- printf "      echo \"    expect: route to host[%s], but got host[$host]\" >> %s\n" $cluster $reportfile -}}
-        {{- printf "    else\n" }}
-        {{- printf "      ((succeedTestChecks=succeedTestChecks+1))\n" }}
-        {{- printf "    fi\n" -}}
-        {{- printf "  fi\n" -}}
+        {{- printf "unset validation_array && declare -A validation_array\n" }}
+        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "%s" "200" | quote) }}
+        {{- printf "check_and_report\n" }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- end -}}
     {{- end }}
   {{- end -}}
