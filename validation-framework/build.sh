@@ -20,6 +20,16 @@ function preCheck {
     echo "See README.md for detail"
     exit 1
   fi
+
+  if [ -f "values-env-override.yaml" ] && [ -f "values.yaml" ]; then
+    echo "Found service's values.yam"
+    echo "Use enviornment overrides from values-env-override.yaml"
+  else
+    echo "Unable to find required vaules.yaml and/or values-env-override.yaml in the current directory"
+    echo "Please see the README.md"
+    exit 1
+  fi
+
   if [ -f "$chartname-$chartver.tgz" ]; then
     rm -rf tmp
     mkdir -p tmp  
@@ -37,24 +47,24 @@ function preCheck {
       echo "Will try to download as running from internal broadcom environment"    
     fi
   fi
-
-  if [ -f "values-env-override.yaml" ]; then
-    echo "Use enviornment overrides from values-env-override.yaml"
-  else
-    echo "values-env-override.yaml is not found in current directory"
-    echo "Please see the README.md"
-    exit 1
-  fi
 }
 
 function getTitansChart {
+  validation_titan_version=$(grep '  version' Chart.yaml | sed 's/^.*: //')
   cd ..
   titan_chart_name=$( grep '^name' Chart.yaml | sed 's/^.*: //' )
   titan_chart_version=$( grep '^version' Chart.yaml | sed 's/^.*: //' )
+  echo "Use cloud_tools_titans version: $titan_chart_version"
+  if [ "$titan_chart_version" != "$validation_titan_version" ]; then
+    echo "validation-framewor/Chart.yaml depends on version $validation_titan_version"
+    echo "Please update validation-framewor/Chart.yaml to depend on the same version - $titan_chart_version"
+    exit 1
+  fi
   if [ -f "$titan_chart_name-$titan_chart_version.tgz" ]; then
     rm "$titan_chart_name-$titan_chart_version.tgz"
   fi
   ./scripts/package.sh
+  rm -rf validation-framework/charts
   mkdir -p validation-framework/charts
   mv "$titan_chart_name-$titan_chart_version.tgz" validation-framework/charts
   cd validation-framework
