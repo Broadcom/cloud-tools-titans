@@ -1,7 +1,7 @@
 # Validation framework
 
 ## Prerequsite
-* docker-compose
+* docker and docker-compose
   * https://docs.docker.com/compose/install/
 * helm
   * https://helm.sh/docs/intro/quickstart/
@@ -13,9 +13,9 @@
 
 ## Prepare your test environment
 * Copy values.yaml from your service helm chart here
-* Modify values-test.yaml to change default images for your test environment
-* Download the desired umbrella helm chart here
-* Create the *values-env-override.yaml* to override default open source containers' images
+* Create a values-env-override.yaml file to change default images for your test environment
+  * See **exmaple of values-env-override.yaml** for detail
+* Download the desired umbrella helm chart to this folder
 
 ### exmaple of values-env-override.yaml
 * add local token generator
