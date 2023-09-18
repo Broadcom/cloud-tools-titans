@@ -109,7 +109,6 @@ function check_and_report() {
         test_result="failed"
       fi
     else
-      ((testChecks=testChecks+1))
       if [[  $key == ".host."* || $key == ".http."* || $key == ".request.headers."* || $key == ".request.body."* ]]
       then
         # echo "$key pass format check"
