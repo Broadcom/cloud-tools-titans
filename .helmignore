@@ -7,4 +7,5 @@ tmp/
 scripts/
 titan-mesh-helm-lib-chart-*.tgz
 dockerfiles/
+validation-framework/
 LICENSE

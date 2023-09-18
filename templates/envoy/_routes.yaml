@@ -1,5 +1,10 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.routes" }}
   {{- $titanSideCars := .titanSideCars }}
+  {{- $validation := $titanSideCars.validation }}
+  {{- $validationEnabled := false }}
+  {{- if $validation }}
+    {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") }}
+  {{- end }}
   {{- $appName := .appName -}}
   {{- $direction := .direction -}}
   {{- $ingress := $titanSideCars.ingress }}
@@ -64,9 +69,16 @@
       {{- end }}
       {{- $cluster := ternary (index $clusters $clusterName) .empty (ne $clusterName "") }}
       {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default $remoteMyApp.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
-      {{- if or $cluster (or .directResponse .redirect) }}
+      {{- if or $cluster .directResponse .redirect (and $validationEnabled $validation.clusters) }}
         {{- if not .match }}
-          {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}     
+          {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }} 
+          {{- if $validationEnabled }}
+            {{- if not $cluster -}}
+              {{- if $validation.clusters }}
+                {{- $cluster = index $validation.clusters $clusterName -}}
+              {{- end }}
+            {{- end -}}
+          {{- end }}    
           {{- range $cluster.routes }}
             {{- $clusterRoute := .route }}
                 - match:

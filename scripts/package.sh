@@ -12,7 +12,7 @@ destination="$dir"
 [ -d "${temp_chart}" ] || mkdir $temp_chart
 [ -d "charts" ] || helm dependency update
 cp -r templates "$temp_chart"
-cp -r charts "$temp_chart"
+[ -d "charts" ] && cp -r charts "$temp_chart"
 cp Chart.yaml "$temp_chart"
 cp values.yaml "$temp_chart"
 cp .helmignore "$temp_chart"
