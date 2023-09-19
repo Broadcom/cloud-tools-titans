@@ -139,19 +139,19 @@
       {{- if hasKey $routing "redirect" -}}
         {{- $redirect := $routing.redirect -}}
         {{- printf "unset validation_array && declare -A validation_array\n" }}
-        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "%s" ($redirect.responseCode | default "301") | quote) }}
+        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "eq:::%s" ($redirect.responseCode | default "301") | quote) }}
         {{- printf "check_and_report\n" }}
         {{- printf "echo %s >> %s\n" (printf "Test case[redirect] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else if hasKey $routing "directResponse" -}}
         {{- $directResponse := $routing.directResponse -}}
         {{- printf "unset validation_array && declare -A validation_array\n" }}
-        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "%s" $directResponse.status | quote) }}
+        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "eq:::%s" $directResponse.status | quote) }}
         {{- printf "check_and_report\n" }}
         {{- printf "echo %s >> %s\n" (printf "Test case[directResponse] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else if hasKey $routing "route" -}}
         {{- $route := $routing.route -}}
         {{- printf "unset validation_array && declare -A validation_array\n" }}
-        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "%s" "200" | quote) }}
+        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "eq:::%s" "200" | quote) }}
         {{- if hasKey $route "prefixRewrite" -}}
           {{- printf "validation_array[%s]=%s\n" (printf "%s" ".http.originalUrl" | quote) (printf "prefix:::%s" $route.prefixRewrite | quote) }}
         {{- end -}}
@@ -160,7 +160,7 @@
         {{- printf "echo %s >> %s\n" (printf "Test case[routing - path rewrite]result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else -}}
         {{- printf "unset validation_array && declare -A validation_array\n" }}
-        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "%s" "200" | quote) }}
+        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "eq:::%s" "200" | quote) }}
         {{- printf "check_and_report\n" }}
         {{- printf "echo %s >> %s\n" (printf "Test case[routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- end -}}

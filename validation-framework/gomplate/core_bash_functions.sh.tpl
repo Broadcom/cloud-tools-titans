@@ -2,6 +2,7 @@
 # functions
 credential="dGVzdDp0ZXN0"
 declare -A validation_array
+tokenGeneratorUrl="http://token-generator:8080/tokens"
 
 function http_call() {
   local method=$1
@@ -66,10 +67,11 @@ function get_token() {
   [[ ! -z "$4" ]] && cid=$4
   [[ ! -z "$5" ]] && did=$5
   [[ ! -z "$6" ]] && uri=$6
+  
   local JSON_FMT='{"privs":"%s","scope":"%s","roles":"%s","customer_id":"%s","domain_id":"%s","uri":"%s"}'
   local body=$(printf "$JSON_FMT" "$privs" "$scope" "$roles" "$cid" "$did" "$uri")
   jwt=""
-  http_call "POST" "http://token-generator:8080/tokens" "" "" "$body"
+  http_call "POST" "$tokenGeneratorUrl" "" "" "$body"
   if [ "$code" == "200" ];
   then
     jwt=$(cat /tests/data/resp | jq -r '.access_token')
@@ -84,10 +86,13 @@ function check_and_report() {
   test_result="succeed"
   for key in "${!validation_array[@]}"
   do
+    local estr=${validation_array[$key]}
+    local arr=(${estr//:::/ })
+    # echo "${validation_array[$key]}"
     if [ "$key" == "code" ]
     then
       # echo "key=$key"
-      if [[ $code -eq ${validation_array[$key]} ]]
+      if [[ $code -eq ${arr[1]} ]]
       then
         ((succeedCalls=succeedCalls+1))
         ((succeedTestChecks=succeedTestChecks+1))
@@ -102,8 +107,6 @@ function check_and_report() {
         # echo "$key pass format check"
         local val=$(echo $resp | jq -r $key)
         # echo "got $key=$val"
-        local estr=${validation_array[$key]}
-        local arr=(${estr//:::/ })
         if [ -z "$val" ]
         then
           echo "Check failed - missing request key: $key"
@@ -118,7 +121,6 @@ function check_and_report() {
           fi
         else
         # {{/* if [[ ${validation_array[$key]} == ".http."* || $key == ".request.headers."* || $key == ".request.body."* ]] */}}
-          # echo "${validation_array[$key]}"
           if [[ ${arr[0]} == "eq" ]]
           then
             # echo "${arr[0]} eq ${arr[1]}"
