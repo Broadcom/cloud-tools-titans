@@ -10,7 +10,7 @@
   {{- if or (hasKey $ingress "routes") (hasKey $egress "routes") }}
 #!/bin/bash
 
-{{ template "validation_bash_core_functions" . }}
+{{ template "validation_bash_core_functions" }}
 
 # setup single trap
 trap 'trp' SIGUSR1
@@ -82,13 +82,14 @@ badTestChecks=0
       {{- end }}
     {{- end }}
   {{- end }}
-  {{- printf "echo \"Summary:\" >> \"/tests/logs/report.txt\"\n" }}
-  {{- printf "echo \"  Completed $testCalls test calls\" >> \"/tests/logs/report.txt\"\n" }}
-  {{- printf "echo \"    Succeed $succeedCalls test calls\" >> \"/tests/logs/report.txt\"\n" }}
-  {{- printf "echo \"    Failed $failedCalls test calls\" >> \"/tests/logs/report.txt\"\n" }}
-  {{- printf "echo \"  Completed $testChecks test checks\" >> \"/tests/logs/report.txt\"\n" }}
-  {{- printf "echo \"    Succeed $succeedCalls test checks\" >> \"/tests/logs/report.txt\"\n" }}
-  {{- printf "echo \"    Failed $failedTestChecks test checks\" >> \"/tests/logs/report.txt\"\n" }}
+  {{- printf "echo %s >> %s\n" ("Summary:" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("  Completed $testCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("    Failed $failedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("  Completed $testChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("    Failed $failedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("    $badTestChecks bad tests" | quote) ("/tests/logs/report.txt" | quote) }}
   if [ "$failedCalls" == "$expectedFailedCalls" ] && [ "$failedTestChecks" == "$expectedfailedTestChecks" ]
   then
     exit 0

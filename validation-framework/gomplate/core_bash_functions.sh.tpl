@@ -102,105 +102,98 @@ function check_and_report() {
         test_result="failed"
       fi
     else
-      if [[  $key == ".host."* || $key == ".http."* || $key == ".request.headers."* || $key == ".request.body."* ]]
+      # echo "$key pass format check"
+      local val=$(echo $resp | jq -r $key)
+      # echo "got $key=$val"
+      if [ -z "$val" ]
       then
-        # echo "$key pass format check"
-        local val=$(echo $resp | jq -r $key)
-        # echo "got $key=$val"
-        if [ -z "$val" ]
+        echo "Check failed - missing request key: $key"
+        if [[ ${arr[0]} != "npr" ]]
         then
+          ((failedTestChecks=failedTestChecks+1))
           echo "Check failed - missing request key: $key"
-          if [[ ${arr[0]} != "npr" ]]
-          then
-            ((failedTestChecks=failedTestChecks+1))
-            echo "Check failed - missing request key: $key"
-            test_result="failed"
-          else
-            ((succeedTestChecks=succeedTestChecks+1))
-            # echo "succeedTestChecks=$succeedTestChecks"
-          fi
+          test_result="failed"
         else
-        # {{/* if [[ ${validation_array[$key]} == ".http."* || $key == ".request.headers."* || $key == ".request.body."* ]] */}}
-          if [[ ${arr[0]} == "eq" ]]
-          then
-            # echo "${arr[0]} eq ${arr[1]}"
-            if [[ ${arr[1]} == $val ]] 
-            then
-              ((succeedTestChecks=succeedTestChecks+1))
-              # echo "succeedTestChecks=$succeedTestChecks"   
-              # echo "$key[${arr[1]}] == $val"         
-            else
-              ((failedTestChecks=failedTestChecks+1))
-              echo "Check failed - $key[${arr[1]}] != $val"
-              echo "failedTestChecks=$failedTestChecks"
-              test_result="failed"
-            fi
-          elif [[ ${arr[0]} == "ne" ]]
-          then
-            # echo "${arr[0]} ne ${arr[1]}"
-            if [[ ${arr[1]} != $val ]] 
-            then
-              ((succeedTestChecks=succeedTestChecks+1))
-              # echo "succeedTestChecks=$succeedTestChecks"   
-              # echo "$key[${arr[1]}] != $val"         
-            else
-              ((failedTestChecks=failedTestChecks+1))
-              # echo "failedTestChecks=$failedTestChecks"
-              test_result="failed"
-            fi
-          elif [[ ${arr[0]} == "co" ]]
-          then
-            # echo "${arr[0]} co ${arr[1]}"
-            if [[ $val == *"${arr[1]}"* ]] 
-            then
-              ((succeedTestChecks=succeedTestChecks+1))
-              # echo "succeedTestChecks=$succeedTestChecks"   
-              # echo "$val conatns $key[${arr[1]}]"         
-            else
-              ((failedTestChecks=failedTestChecks+1))
-              echo "Check failed - $val does not contain $key[${arr[1]}]"
-              echo "failedTestChecks=$failedTestChecks"
-              test_result="failed"
-            fi
-          elif [[ ${arr[0]} == "prefix" ]]
-          then
-            # echo "${arr[0]} prefix ${arr[1]}"
-            if [[ $val == "${arr[1]}"* ]] 
-            then
-              ((succeedTestChecks=succeedTestChecks+1))
-              # echo "succeedTestChecks=$succeedTestChecks"   
-              # echo "$val hasPrefix $key[${arr[1]}]"         
-            else
-              ((failedTestChecks=failedTestChecks+1))
-              echo "Check failed - $val does not havePrefix $key[${arr[1]}]"
-              echo "failedTestChecks=$failedTestChecks"
-              test_result="failed"
-            fi
-          elif [[ ${arr[0]} == "suffix" ]]
-          then
-            # echo "${arr[0]} suffix ${arr[1]}"
-            if [[ $val == *"${arr[1]}" ]] 
-            then
-              ((succeedTestChecks=succeedTestChecks+1))
-              # echo "succeedTestChecks=$succeedTestChecks"   
-              # echo "$val hasPrefix $key[${arr[1]}]"         
-            else
-              ((failedTestChecks=failedTestChecks+1))
-              echo "Check failed - $val does not haveSuffix $key[${arr[1]}]"
-              echo "failedTestChecks=$failedTestChecks"
-              test_result="failed"
-            fi
-          else
-            echo "Unsupported oprand ${arr[0]} for ${arr[1]}"
-             ((badTestChecks=badTestChecks+1))
-             ((failedTestChecks=failedTestChecks+1))
-              test_result="failed"
-          fi
+          ((succeedTestChecks=succeedTestChecks+1))
+          # echo "succeedTestChecks=$succeedTestChecks"
         fi
       else
-        echo "Error: Unsupport check format $key"
-        ((badTestChecks=badTestChecks+1))
-        test_result="failed"
+      # {{/* if [[ ${validation_array[$key]} == ".http."* || $key == ".request.headers."* || $key == ".request.body."* ]] */}}
+        if [[ ${arr[0]} == "eq" ]]
+        then
+          # echo "${arr[0]} eq ${arr[1]}"
+          if [[ ${arr[1]} == $val ]] 
+          then
+            ((succeedTestChecks=succeedTestChecks+1))
+            # echo "succeedTestChecks=$succeedTestChecks"   
+            # echo "$key[${arr[1]}] == $val"         
+          else
+            ((failedTestChecks=failedTestChecks+1))
+            echo "Check failed - $key[${arr[1]}] != $val"
+            echo "failedTestChecks=$failedTestChecks"
+            test_result="failed"
+          fi
+        elif [[ ${arr[0]} == "ne" ]]
+        then
+          # echo "${arr[0]} ne ${arr[1]}"
+          if [[ ${arr[1]} != $val ]] 
+          then
+            ((succeedTestChecks=succeedTestChecks+1))
+            # echo "succeedTestChecks=$succeedTestChecks"   
+            # echo "$key[${arr[1]}] != $val"         
+          else
+            ((failedTestChecks=failedTestChecks+1))
+            # echo "failedTestChecks=$failedTestChecks"
+            test_result="failed"
+          fi
+        elif [[ ${arr[0]} == "co" ]]
+        then
+          # echo "${arr[0]} co ${arr[1]}"
+          if [[ $val == *"${arr[1]}"* ]] 
+          then
+            ((succeedTestChecks=succeedTestChecks+1))
+            # echo "succeedTestChecks=$succeedTestChecks"   
+            # echo "$val conatns $key[${arr[1]}]"         
+          else
+            ((failedTestChecks=failedTestChecks+1))
+            echo "Check failed - $val does not contain $key[${arr[1]}]"
+            echo "failedTestChecks=$failedTestChecks"
+            test_result="failed"
+          fi
+        elif [[ ${arr[0]} == "prefix" ]]
+        then
+          # echo "${arr[0]} prefix ${arr[1]}"
+          if [[ $val == "${arr[1]}"* ]] 
+          then
+            ((succeedTestChecks=succeedTestChecks+1))
+            # echo "succeedTestChecks=$succeedTestChecks"   
+            # echo "$val hasPrefix $key[${arr[1]}]"         
+          else
+            ((failedTestChecks=failedTestChecks+1))
+            echo "Check failed - $val does not havePrefix $key[${arr[1]}]"
+            echo "failedTestChecks=$failedTestChecks"
+            test_result="failed"
+          fi
+        elif [[ ${arr[0]} == "suffix" ]]
+        then
+          # echo "${arr[0]} suffix ${arr[1]}"
+          if [[ $val == *"${arr[1]}" ]] 
+          then
+            ((succeedTestChecks=succeedTestChecks+1))
+            # echo "succeedTestChecks=$succeedTestChecks"   
+            # echo "$val hasPrefix $key[${arr[1]}]"         
+          else
+            ((failedTestChecks=failedTestChecks+1))
+            echo "Check failed - $val does not haveSuffix $key[${arr[1]}]"
+            echo "failedTestChecks=$failedTestChecks"
+            test_result="failed"
+          fi
+        else
+          echo "Unsupported oprand ${arr[0]} for ${arr[1]}"
+            ((badTestChecks=badTestChecks+1))
+            ((failedTestChecks=failedTestChecks+1))
+            test_result="failed"
+        fi
       fi
     fi
     # echo "$key => ${validation_array[$key]}" 
