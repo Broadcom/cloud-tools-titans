@@ -1,14 +1,14 @@
 {{- $titanSideCars := .titanSideCars }}
 {{- if $titanSideCars }}
-  {{- $integration := $titanSideCars.integration }}
-  {{- if $integration }}
-    {{- $environment := $integration.environment }}
-    {{- $tests := $integration.tests }}
+  {{- $validation := $titanSideCars.validation }}
+  {{- if $validation }}
+    {{- $environment := $validation.environment }}
+    {{- $tests := $validation.tests }}
     {{- if $tests }}
 
 #!/bin/bash
 echo ""
-echo "### Execute manual configured integration tests ###"
+echo "### Execute manaul configured local tests ###"
 
 
 {{ template "test_cases_core_framework" (dict "environment" $environment "tests" $tests) }}

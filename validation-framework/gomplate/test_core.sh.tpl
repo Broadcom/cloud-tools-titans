@@ -5,8 +5,6 @@
     {{- $ingress := $environment.ingress | default (dict "address" "envoy-ingress:9443") }}
     {{- $logFolder := $environment.logFolder | default "./logs" }}
 
-#!/bin/bash
-
 {{ template "validation_bash_core_functions" }}
 
 mkdir -p {{ $logFolder }}
@@ -37,6 +35,7 @@ badTestChecks=0
       {{- if $request }}
         {{- $address := $request.address | default $ingress.address }}
         {{- $token := $request.token }}
+        {{- $authType := "" }}
         {{- if $token }}
           {{- $privs := $token.privs | default "" }}
           {{- $scope := $token.scope | default "" }}            
@@ -46,6 +45,7 @@ badTestChecks=0
           {{- $did := $token.domain_id | default "" }}
           {{- $clid := $token.client_id | default "" }}
           {{- printf "get_token" }}
+          {{- $authType = "Bearer" }}
         {{- end }}
         {{- $headers := $request.headers }}
         {{- $hdrStr := "" }}
@@ -60,7 +60,7 @@ badTestChecks=0
         {{- $path := $request.path | default "/" }}
         {{- $url := printf "%s%s" $address $path }}
         {{- $bodyStr := ternary ($request.body | toJson) "" (hasKey $request "body") }}
-        {{- printf "http_call %s %s %s %s %s\n" ($method | quote) ($url | quote) ($hdrStr | squote) ("Bearer" | quote) ($bodyStr | squote) }}
+        {{- printf "http_call %s %s %s %s %s\n" ($method | quote) ($url | quote) ($hdrStr | squote) ($authType | quote) ($bodyStr | squote) }}
         {{- if $result }}
           {{- printf "unset validation_array && declare -A validation_array\n" }}
           {{- if $result.code }}

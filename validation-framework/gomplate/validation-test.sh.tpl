@@ -46,6 +46,10 @@ failedTestChecks=0
 succeedTestChecks=0
 badTestChecks=0
 
+echo ""
+echo "### Execute auto-generated tests ###"
+
+
     {{ if hasKey $ingress "routes" }}
 # Process ingress routes
       {{- range $ingress.routes }}
