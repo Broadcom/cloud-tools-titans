@@ -161,10 +161,26 @@ titanSideCars:
           code:
             value: "403"
 ```
-### How to write a custom manual local test?
+### How to write a custom manual integration test?
 * See sample integration test cases in values-env-override.yaml
 * 
 ```yaml
+titanSideCars:
+  integration:
+    environment:
+      ingress:
+        address: "https://api.saas.broadcomcloud.com"
+    tests:
+      - name: "well-known"
+        request:
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".issuer"
+            op: eq
+            value: "https://api.saas.broadcomcloud.com"
 ```
 ## Authors
 
