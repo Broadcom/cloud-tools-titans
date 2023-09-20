@@ -180,6 +180,7 @@ function startupEnv {
 function runTests {
   sleep 5
   docker exec --workdir /tests  "$instance-engine-1" bash validation-test.sh
+  cat tests/logs/report.txt
   echo ""
   docker exec --workdir /tests  "$instance-engine-1" bash localtests.sh
   echo ""
