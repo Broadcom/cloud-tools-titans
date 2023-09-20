@@ -7,8 +7,9 @@
     {{- if $tests }}
 
 #!/bin/bash
-echo ""
-echo "### Execute manaul configured local tests ###"
+echo "" >> /tests/logs/report.txt
+echo "[`date`]### Execute manaual configured local tests ###" > /tests/logs/report.txt
+echo "" >> /tests/logs/report.txt
 
 
 {{ template "test_cases_core_framework" (dict "environment" $environment "tests" $tests) }}

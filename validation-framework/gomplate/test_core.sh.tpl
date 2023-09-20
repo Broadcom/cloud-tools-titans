@@ -65,7 +65,22 @@ badTestChecks=0
           {{- printf "unset validation_array && declare -A validation_array\n" }}
           {{- if $result.code }}
             {{- $code := $result.code }}
-            {{- printf "validation_array[%s]=%s\n" ("code" | quote) (printf "%s:::%s" ($code.op | default "eq") $code.value | quote) }}
+            {{- $op := $code.op | default "eq" }}
+            {{- $value := $code.value | default "" }}
+            {{- if and (eq $op "in") (hasKey $code "values") }}
+              {{- $value = "" }}
+              {{- range $code.values }}
+                {{- if eq $value "" }}
+                  {{- $value = printf "%s" . }}
+                {{- else }}
+                  {{- $value = printf "%s,%s" $value . }}
+                {{- end }}
+              {{- end }}
+              {{- if not (contains "," $value) }}
+                {{- $op = "eq" }}
+              {{- end }}
+            {{- end }}
+            {{- printf "validation_array[%s]=%s\n" ("code" | quote) (printf "%s:::%s" $op $value | quote) }}
           {{- end }}
           {{- $body := $result.body }}
           {{- range $body }}

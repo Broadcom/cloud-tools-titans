@@ -25,7 +25,7 @@ function buildIntegrationTests {
 }
 
 function runiTests {
-  tests/itests.sh
+  docker run -v $(pwd)/tests:/tests -w /tests cfmanteiga/alpine-bash-curl-jq  bash ./itests.sh
   cat tests/logs/report.txt
 }
 

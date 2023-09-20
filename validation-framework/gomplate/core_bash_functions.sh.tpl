@@ -93,14 +93,47 @@ function check_and_report() {
     if [ "$key" == "code" ]
     then
       # echo "key=$key"
-      if [[ $code -eq ${arr[1]} ]]
+      if [[ ${arr[0]} == "eq" ]]
       then
-        ((succeedCalls=succeedCalls+1))
-        ((succeedTestChecks=succeedTestChecks+1))
+        if [[ $code -eq ${arr[1]} ]]
+        then
+          ((succeedCalls=succeedCalls+1))
+          ((succeedTestChecks=succeedTestChecks+1))
+        else
+          ((failedCalls=failedCalls+1))
+          ((failedTestChecks=failedTestChecks+1))
+          test_result="failed"
+        fi
+      elif [[ ${arr[0]} == "ne" ]]
+      then
+        if [[ $code -ne ${arr[1]} ]]
+        then
+          ((succeedCalls=succeedCalls+1))
+          ((succeedTestChecks=succeedTestChecks+1))
+        else
+          ((failedCalls=failedCalls+1))
+          ((failedTestChecks=failedTestChecks+1))
+          test_result="failed"
+        fi
+      elif [[ ${arr[0]} == "in" ]]
+      then
+        local val=${arr[1]}
+        local items=(${val//,/ })
+        local found="false"
+        local t
+        for t in ${items[@]}; do
+          [[ $code -ne $t ]] && found="true"
+        done
+        if [ "$found" == "true" ]
+        then
+          ((succeedCalls=succeedCalls+1))
+          ((succeedTestChecks=succeedTestChecks+1))
+        else
+          ((failedCalls=failedCalls+1))
+          ((failedTestChecks=failedTestChecks+1))
+        fi
       else
-        ((failedCalls=failedCalls+1))
-        ((failedTestChecks=failedTestChecks+1))
-        test_result="failed"
+        echo "Unsupported operator ${arr[0]} for value ${arr[1]}" 
       fi
     else
       # echo "$key pass format check"

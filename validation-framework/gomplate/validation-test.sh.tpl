@@ -46,9 +46,9 @@ failedTestChecks=0
 succeedTestChecks=0
 badTestChecks=0
 
-echo ""
-echo "### Execute auto-generated tests ###"
-
+echo "" > /tests/logs/report.txt
+echo "[`date`]### Execute auto-generated tests ###" > /tests/logs/report.txt
+echo "" >> /tests/logs/report.txt
 
     {{ if hasKey $ingress "routes" }}
 # Process ingress routes
