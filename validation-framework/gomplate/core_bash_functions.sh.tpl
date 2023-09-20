@@ -67,9 +67,10 @@ function get_token() {
   [[ ! -z "$4" ]] && cid=$4
   [[ ! -z "$5" ]] && did=$5
   [[ ! -z "$6" ]] && uri=$6
+  [[ ! -z "$7" ]] && clid=$7
   
-  local JSON_FMT='{"privs":"%s","scope":"%s","roles":"%s","customer_id":"%s","domain_id":"%s","uri":"%s"}'
-  local body=$(printf "$JSON_FMT" "$privs" "$scope" "$roles" "$cid" "$did" "$uri")
+  local JSON_FMT='{"privs":"%s","scope":"%s","roles":"%s","customer_id":"%s","domain_id":"%s","uri":"%s","client_id":"%s"}'
+  local body=$(printf "$JSON_FMT" "$privs" "$scope" "$roles" "$cid" "$did" "$uri" "$clid")
   jwt=""
   http_call "POST" "$tokenGeneratorUrl" "" "" "$body"
   if [ "$code" == "200" ];

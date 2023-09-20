@@ -40,11 +40,11 @@ badTestChecks=0
           {{- $privs := $token.privs | default "" }}
           {{- $scope := $token.scope | default "" }}            
           {{- $roles := $token.roles | default "" }}            
-          {{- $uri := $token.uri | default "" }}
           {{- $cid := $token.customer_id | default "" }}
           {{- $did := $token.domain_id | default "" }}
+          {{- $uri := $token.uri | default "" }}
           {{- $clid := $token.client_id | default "" }}
-          {{- printf "get_token" }}
+          {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
           {{- $authType = "Bearer" }}
         {{- end }}
         {{- $headers := $request.headers }}
@@ -53,7 +53,7 @@ badTestChecks=0
           {{- if eq  $hdrStr "" -}}
             {{- $hdrStr = printf "-H %s:%s" .name .value -}}
           {{- else -}}
-            {{- $hdrStr = printf "%s %s:%s" $hdrStr .name .value -}}
+            {{- $hdrStr = printf "%s -H %s:%s" $hdrStr .name .value -}}
           {{- end -}}
         {{- end -}}
         {{- $method := $request.method | default "GET" }}
@@ -69,9 +69,21 @@ badTestChecks=0
           {{- end }}
           {{- $body := $result.body }}
           {{- range $body }}
-            {{- if and .path (or .value .op) }}
-              {{- printf "validation_array[%s]=%s\n" (.path | quote) (printf "%s:::%s" (.op | default "eq") .value | quote) }}
+            {{- $qPath := .path }}
+            {{- if contains "-" $qPath }}
+              {{- $items := split "." $qPath }}
+              {{- $qPath = "." }}
+              {{- range $items }}
+                {{- if ne . "" }}
+                  {{- if contains "-" . }}
+                    {{- $qPath = printf "%s.\\\"%s\\\"" (ternary $qPath "" (ne "." $qPath)) . }}
+                  {{- else }}
+                    {{- $qPath = printf "%s.%s" (ternary $qPath "" (ne "." $qPath)) . }}
+                  {{- end }}
+                {{- end }}
+              {{- end }}
             {{- end }}
+            {{- printf "validation_array[%s]=%s\n" $qPath (printf "%s:::%s" (.op | default "eq") .value | quote) }}    
           {{- end }}
           {{- printf "check_and_report\n" }}
           {{- printf "echo %s >> %s\n" (printf "Test case[%s] result[$test_result]: call %s" $name $url | quote) (printf "%s/report.txt" $logFolder | quote) }}
