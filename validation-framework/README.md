@@ -163,7 +163,6 @@ titanSideCars:
 ```
 ### How to write a custom manual integration test?
 * See sample integration test cases in values-env-override.yaml
-* 
 ```yaml
 titanSideCars:
   integration:
