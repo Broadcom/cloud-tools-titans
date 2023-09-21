@@ -78,11 +78,9 @@ function process_http_response() {
           fi
         fi
         if test -n "${LINE}"; then
-            declare -A respheaders
             key="$(echo "${LINE}" | cut -d: -f1)"
             val="$(echo "${LINE}" | cut -d: -f2- | sed 's/"/\\"/g')"
             echo -n "\"${key}\": \"${val:1}\""  >> /tests/data/resp_headers
-            respheaders[$key]="$val"
         else
             is_header=false
         fi
@@ -180,7 +178,17 @@ function check_and_report() {
       fi
     else
       # echo "$key pass format check"
-      local val=$(echo $resp | jq -r $key)
+      local val
+      local harr=(${key//./ })
+      if [[ ${harr[0]} == "headers" ]]
+      then
+        local hprefix="headers."
+        local hkey=${key#"$hprefix"}
+        hkey=$(echo ".\"$hkey\"")
+        val=$(echo $respheaders | jq -r $hkey)
+      else
+        val=$(echo $resp | jq -r $key) 
+      fi
       # echo "got $key=$val"
       if [ -z "$val" ]
       then

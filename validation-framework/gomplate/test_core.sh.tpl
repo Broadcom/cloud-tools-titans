@@ -82,6 +82,11 @@ badTestChecks=0
             {{- end }}
             {{- printf "validation_array[%s]=%s\n" ("code" | quote) (printf "%s:::%s" $op $value | quote) }}
           {{- end }}
+          {{- $headers := $result.headers }}
+          {{- range $headers }}
+            {{- $op := .op | default "eq" }}
+            {{- printf "validation_array[%s]=%s\n" (printf "headers.%s" .name | quote) (printf "%s:::%s" (.op | default "eq") .value | quote) }}    
+          {{- end }}
           {{- $body := $result.body }}
           {{- range $body }}
             {{- $qPath := .path }}
