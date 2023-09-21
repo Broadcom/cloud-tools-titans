@@ -23,10 +23,10 @@ function http_call() {
     if [ -z "$data" ]
     then
       # echo "No auth and no data"
-      code=$(curl $insecure --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method "$url");
+      code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method "$url");
     else
       # echo "No auth and has data"
-      code=$(curl $insecure --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+      code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
     fi
   else
     if [[ $authtype == "Bearer" ]]
@@ -34,33 +34,72 @@ function http_call() {
       if [ -z "$data" ]
       then
         # echo "Bearer auth and no data"
-        code=$(curl $insecure --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method "$url");
+        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method "$url");
       else
         # echo "Bearer auth and has data"
-        code=$(curl $insecure --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method -d "$data" "$url");
+        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method -d "$data" "$url");
       fi
     else
       if [ -z "$data" ]
       then
         # echo "Basic auth and no data"      
-        code=$(curl $insecure --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Basic $credential" -X $method "$url");
+        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Basic $credential" -X $method "$url");
       else
         # echo "Basic auth and has data"   
-        code=$(curl $insecure --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
       fi
     fi
   fi
   {{/* [ -z "$tokencall" ] && ((testCalls=testCalls+1)) */}}
-  resp=$(cat /tests/data/resp);
+  process_http_response
+  {{/* resp=$(cat /tests/data/resp); */}}
+}
+
+function process_http_response() {
+  OUTPUT="$(cat /tests/data/resp | tr -d '\r')"
+  is_header=true
+  is_first_line=true
+  is_beyond_second_line=false
+  body=""
+  echo "${OUTPUT}" | while read -r LINE; do
+    if ${is_first_line}; then
+        # protocol="$(echo "${LINE}" | cut -d' ' -f1)"
+        # code="$(echo "${LINE}" | cut -d' ' -f2)"
+        echo -n "{" > /tests/data/resp_headers
+        is_first_line=false
+
+    elif ${is_header}; then
+        if ${is_beyond_second_line}; then
+          if test -n "${LINE}"; then
+            echo -n "," >> /tests/data/resp_headers
+          fi
+        fi
+        if test -n "${LINE}"; then
+            declare -A respheaders
+            key="$(echo "${LINE}" | cut -d: -f1)"
+            val="$(echo "${LINE}" | cut -d: -f2- | sed 's/"/\\"/g')"
+            echo -n "\"${key}\": \"${val:1}\""  >> /tests/data/resp_headers
+            respheaders[$key]="$val"
+        else
+            is_header=false
+        fi
+        is_beyond_second_line=true
+    else
+      echo -n '}'  >> /tests/data/resp_headers
+      echo -n "${LINE}" > /tests/data/resp_body
+    fi
+  done
+  resp=$(cat /tests/data/resp_body);
 }
 
 function get_token() {
-  local privs="assign_any_role_member core_internal_access create_customer_token create_idp_user create_orders create_system_token create_users delete_events delete_users deprovision_customer domain_remapping edit_users enroll_devices epmp_internal_access extend_licenses file_upload icds:maint:purge login manage_adsync_jobs manage_customer manage_devices manage_domain manage_domain_status manage_domain_subscription manage_groups manage_licenses manage_org_units manage_organization manage_products manage_services manage_subscription manage_support_notification manage_tenant_remap manage_user_profiles manage_users oauth_client_mgmt provision_customer provision_users read_all_organizations read_any_role read_organization read_workflow require_second_factor_auth retry_workflow saas_create_customer saas_manage_workflow scan_all_users send_user_message support_view_news_article unblock_bounced_email update_account_default use_licenses usvc_search_login view_access_profile view_customers view_domain view_domain_subscription view_events view_external_idp view_groups view_idp view_idp_user view_org_units view_products view_roles view_services view_subscriptions view_system_registry view_user_profiles view_users view_utilization write_roles write_user_profiles write_users write_workflow"
+  local privs="authentication"
   local scope="system"
-  local roles="<secc::administrator>"
+  local roles="<test::administrator>"
   local cid="test_customer"
   local did="test_domain"
-  local uri="/user-directory/v1/users/gfsdhjfgal"
+  local uri="/user-directory/v1/users/abcdef"
+  local clid="O2ID.test_customer.test_domain.abcdef"
   [[ ! -z "$1" ]] && privs=$1
   [[ ! -z "$2" ]] && scope=$2
   [[ ! -z "$3" ]] && roles=$3
@@ -75,7 +114,7 @@ function get_token() {
   http_call "POST" "$tokenGeneratorUrl" "" "" "$body"
   if [ "$code" == "200" ];
   then
-    jwt=$(cat /tests/data/resp | jq -r '.access_token')
+    jwt=$(echo $resp| jq -r '.access_token')
   fi
   # echo "jwt=$jwt"
 }
