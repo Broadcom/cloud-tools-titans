@@ -14,6 +14,7 @@ function http_call() {
   
   code=0
   resp=""
+  respheaders=""
 
   [ -f "/tests/data/resp" ] && rm /tests/data/resp
   [[ $url == "https://"* ]] && insecure="--insecure"
@@ -61,6 +62,8 @@ function process_http_response() {
   is_first_line=true
   is_beyond_second_line=false
   body=""
+  [ -f "/tests/data/resp_headers" ] && rm /tests/data/resp_headers
+  [ -f "/tests/data/resp_body" ] && rm /tests/data/resp_body
   echo "${OUTPUT}" | while read -r LINE; do
     if ${is_first_line}; then
         # protocol="$(echo "${LINE}" | cut -d' ' -f1)"
@@ -90,6 +93,7 @@ function process_http_response() {
     fi
   done
   resp=$(cat /tests/data/resp_body);
+  respheaders=$(cat /tests/data/resp_headers);
 }
 
 function get_token() {
