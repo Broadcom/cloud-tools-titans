@@ -103,6 +103,16 @@ badTestChecks=0
                 {{- end }}
               {{- end }}
             {{- end }}
+            {{- if contains "[]" $qPath }}
+              {{- if and (hasSuffix "[]" $qPath) (hasKey . "op") }}
+                {{- if eq .op "has" }}
+                  {{- $qPath = printf "%s | select(.%s) | ." $qPath (.value | quote) | squote | b64enc }}
+                {{- end }}
+              {{- else if hasKey . "select" }}
+                {{- $itms := split "[]" $qPath }}
+                {{- $qPath = printf "%s | select(.%s) | %s" (trimSuffix $itms._1 $qPath) .select $itms._1 | squote | b64enc }}
+              {{- end }}
+            {{- end }}
             {{- printf "validation_array[%s]=%s\n" $qPath (printf "%s:::%s" (.op | default "eq") .value | quote) }}    
           {{- end }}
           {{- printf "check_and_report\n" }}

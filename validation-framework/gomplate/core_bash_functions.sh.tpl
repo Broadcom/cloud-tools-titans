@@ -179,15 +179,26 @@ function check_and_report() {
     else
       # echo "$key pass format check"
       local val
-      local harr=(${key//./ })
-      if [[ ${harr[0]} == "headers" ]]
+      if [[ "$key" == *"."* ]] 
       then
-        local hprefix="headers."
-        local hkey=${key#"$hprefix"}
-        hkey=$(echo ".\"$hkey\"")
-        val=$(echo $respheaders | jq -r $hkey)
+        local harr=(${key//./ })
+        if [[ ${harr[0]} == "headers" ]]
+        then
+          local hprefix="headers."
+          local hkey=${key#"$hprefix"}
+          hkey=$(echo ".\"$hkey\"")
+          val=$(echo $respheaders | jq -r $hkey)
+        else
+          val=$(echo $resp | jq -r $key) 
+        fi
       else
-        val=$(echo $resp | jq -r $key) 
+        local dstr=$(echo $key | base64 -d)
+        if [ -z "$dstr"]
+        then
+          echo "Unable to do base64 decode"
+        else
+          val=$(echo $resp | jq -r $dstr)
+        fi
       fi
       # echo "got $key=$val"
       if [ -z "$val" ]
