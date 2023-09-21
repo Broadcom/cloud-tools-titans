@@ -44,6 +44,7 @@ failedCalls=0
 testChecks=0
 failedTestChecks=0
 succeedTestChecks=0
+skippedTestChecks=0
 badTestChecks=0
 
 echo "" > /tests/logs/report.txt
