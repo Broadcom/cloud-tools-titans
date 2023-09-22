@@ -95,6 +95,8 @@ echo "" >> /tests/logs/report.txt
   {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test checks" | quote) ("/tests/logs/report.txt" | quote) }}
   {{- printf "echo %s >> %s\n" ("    Failed $failedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
   {{- printf "echo %s >> %s\n" ("    $badTestChecks bad tests" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("    Skipped $skippedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+
   if [ "$failedCalls" == "$expectedFailedCalls" ] && [ "$failedTestChecks" == "$expectedfailedTestChecks" ]
   then
     exit 0
