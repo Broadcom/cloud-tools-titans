@@ -73,7 +73,13 @@
 #   op: eq # eq, ne, prefix, suffix, co, pr, npr
 #   value: "SEPC"
 #   ### jq -r '.request.domains[] | select(.environment=="production") | .partition_id' */}}
-
+{{/* 
+          - path: ".keys[].kty"
+            select:
+              key: .kid
+              value: o04CWEnlSJmxa30pukX2oA
+            op: eq
+            value: RSA */}}
 
 {{- define "build_execute_jq_cmd" -}}
   {{- $path := .path }}
@@ -88,21 +94,28 @@
       {{- printf "Unsupported usage: Both key and value are require when using select command %v for path=%s\n >>/tests/logs/error.log\n" $select $path }}
     {{- else }}
       {{- $itms := split "[]" $path }}
-      {{- $parts := split "." $skey }}
-      {{- $jpath := "" }}
+       {{- $jpath := "" }}
+       {{- $parts := split "." $itms._0 }}
       {{- range $parts }}
         {{- if ne . "" }}
           {{- $jpath = printf "%s.%s" $jpath (printf "%s" . | quote) }}
         {{- end }}
       {{- end }}
+     {{- $parts := split "." $skey }}
+     {{- $kpath := "" }}
+      {{- range $parts}}
+        {{- if ne . "" }}
+          {{- $kpath = printf "%s.%s" $kpath (printf "%s" . | quote) }}
+        {{- end }}
+      {{- end }}
       {{- $parts = split "." $itms._1 }}
-      {{- $jobj := "." }}
+      {{- $jobj := "" }}
       {{- range $parts }}
         {{- if ne . "" }}
           {{- $jobj = printf "%s.%s" $jobj (printf "%s" . | quote) }}
         {{- end }}
       {{- end }}
-      {{- printf "lookupresult=$(echo %s | jq -r '%s | select(%s==%s) | %s')\n" $resp $jpath ($svalue | quote) $jobj }}    
+      {{- printf "lookupresult=$(echo %s | jq -r '%s[] | select(%s==%s) | %s')\n" $resp $jpath $kpath ($svalue | quote) $jobj }}    
     {{- end }}
   {{- else }}
     {{- if hasSuffix "[]" $path }}
