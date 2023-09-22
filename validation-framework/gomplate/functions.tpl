@@ -61,26 +61,6 @@
   {{- $jpath -}}
 {{- end }}
 
-{{/* # - path: ".request.domains[].status"
-#   select: .=="domain1" 
-#   op: eq # eq, ne, prefix, suffix, co, pr, npr
-#   value: "active"
-#   ### jq -r '.request.domains[] | select(.=="domain1") | .status'
-# - path: ".request.domains[].partition_id"
-#   select: 
-      key: environment
-      value: production 
-#   op: eq # eq, ne, prefix, suffix, co, pr, npr
-#   value: "SEPC"
-#   ### jq -r '.request.domains[] | select(.environment=="production") | .partition_id' */}}
-{{/* 
-          - path: ".keys[].kty"
-            select:
-              key: .kid
-              value: o04CWEnlSJmxa30pukX2oA
-            op: eq
-            value: RSA */}}
-
 {{- define "build_execute_jq_cmd" -}}
   {{- $path := .path }}
   {{- $resp := ternary "$respheaders" "$resp" (hasKey . "from") }}
@@ -314,9 +294,6 @@
           {{- if $requestToken }}
             {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
             {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
-            {{/* {{- printf "unset validation_array && declare -A validation_array\n" }}
-            {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "eq:::200" | quote) }}
-            {{- printf "check_and_report\n" }} */}}
             {{- printf "check_test_call\n" -}}
             {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
           {{- end }}
@@ -326,37 +303,23 @@
       {{- end }}
       {{- if hasKey $routing "redirect" -}}
         {{- $redirect := $routing.redirect -}}
-        {{/* {{- printf "unset validation_array && declare -A validation_array\n" }}
-        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "eq:::%s" ($redirect.responseCode | default "301") | quote) }}
-        {{- printf "check_and_report\n" }} */}}
         {{- printf "check_test_call %s\n" (($redirect.responseCode | default "301") | quote) }}
         {{- printf "echo %s >> %s\n" (printf "Test case[auto][redirect] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else if hasKey $routing "directResponse" -}}
         {{- $directResponse := $routing.directResponse -}}
-        {{/* {{- printf "unset validation_array && declare -A validation_array\n" }}
-        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "eq:::%s" $directResponse.status | quote) }}
-        {{- printf "check_and_report\n" }} */}}
         {{- printf "check_test_call %s\n" ($directResponse.status | quote) }}
         {{- printf "echo %s >> %s\n" (printf "Test case[auto][directResponse] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else if hasKey $routing "route" -}}
         {{- $route := $routing.route -}}
-        {{/* {{- printf "unset validation_array && declare -A validation_array\n" }}
-        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "eq:::%s" "200" | quote) }} */}}
         {{- printf "check_test_call\n" }}
         {{- if hasKey $route "prefixRewrite" -}}
-          {{/* {{- printf "validation_array[%s]=%s\n" (printf "%s" ".http.originalUrl" | quote) (printf "prefix:::%s" $route.prefixRewrite | quote) }} */}}
           {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
           {{- printf "test_check %s %s\n" ($route.prefixRewrite | quote) ("prefix" | quote) }}
         {{- end -}}
-        {{/* {{- printf "validation_array[%s]=%s\n" (printf "%s" ".host.hostname" | quote) (printf "eq:::%s" $cluster | quote) }}
-        {{- printf "check_and_report\n" }} */}}
           {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
           {{- printf "test_check %s\n" ($cluster | quote) }}
         {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing - path rewrite]result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else -}}
-        {{/* {{- printf "unset validation_array && declare -A validation_array\n" }}
-        {{- printf "validation_array[%s]=%s\n" (printf "%s" "code" | quote) (printf "eq:::%s" "200" | quote) }}
-        {{- printf "check_and_report\n" }} */}}
         {{- printf "check_test_call\n" }}
         {{- printf "echo %s >> %s\n" (printf "Test case[routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- end -}}
