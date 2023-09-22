@@ -77,16 +77,18 @@ titanSideCars:
 | body | request body json object | | |
 
 ##### result object   
-| Attribute | Description | Example | Comments | 
-| ------- |:----------- |:------- |:-------- |
-| code | expected http status code | | | 
-| code.op | comparison operator | eq | eq, ne, in | 
-| code.value | expected http status code | | used for **eq** and **ne** | 
-| code.values[] | expected http status code | | used for **in** | 
-| body[] | a list of checks on response body |  | | 
-| body[].path | jq query format | .host.hostname | See https://jqlang.github.io/jq/ | 
-| body[].value | expected value for requested attribute | | | 
-| body[].op | supported comparison operators | eq, ne, prefix, suffix, co | | 
+| Attribute | Description | Required | Example | Comments | 
+| ------- |:----------- |:------- |:-------- |:-------- |
+| code | expected http status code | Yes | | |
+| code.op | comparison operator | No, default to **eq** | eq | eq, ne, in | 
+| code.value | expected http status code, comma separated string for **in** op code | Yes | e.g. 200 | |
+| body[] | a list of checks on response body | No | | |
+| body[].path | jq query like format | .host.hostname |Yes | |
+| body[].select | select is used to search element in arrary | No | eq, ne, prefix, suffix, co | |
+| body[].select.key | property of object in the array | Yes | eq, .name.first | |
+| body[].select.value | value of selected object| Yes | eq, John | | |
+| body[].op | supported comparison operators | No, default to **eq** | eq, ne, prefix, suffix, co | | |
+| body[].value | expected value for requested attribute | Yes | | |
 ```yaml
 titanSideCars:
   issuers: 
@@ -170,16 +172,19 @@ titanSideCars:
       ingress:
         address: "https://api.saas.broadcomcloud.com"
     tests:
-      - name: "well-known"
+      - name: "GET jwks"
         request:
-          path: "/.well-known/openid-configuration"
+          path: "/oauth2/keys"
         result:
           code:
             value: "200"
-          body:
-          - path: ".issuer"
+          body: # expect there is a key with specified kid "o04CWEnlSpukX2oA" and its kty == RSA
+          - path: ".keys[].kty"
+            select:
+              key: .kid
+              value: o04CWEnlSpukX2oA
             op: eq
-            value: "https://api.saas.broadcomcloud.com"
+            value: RSA
 ```
 ## Authors
 
