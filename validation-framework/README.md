@@ -83,7 +83,7 @@ titanSideCars:
 | code.op | comparison operator | No, default to **eq** | eq | eq, ne, in | 
 | code.value | expected http status code, comma separated string for **in** op code | Yes | e.g. 200 | |
 | body[] | a list of checks on response body | No | | |
-| body[].path | jq query like format | .host.hostname |Yes | |
+| body[].path | jq query like format | Yes | .host.hostname | | |
 | body[].select | select is used to search element in arrary | No | eq, ne, prefix, suffix, co | |
 | body[].select.key | property of object in the array | Yes | eq, .name.first | |
 | body[].select.value | value of selected object| Yes | eq, John | | |
