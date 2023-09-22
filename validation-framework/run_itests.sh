@@ -20,6 +20,8 @@ function buildIntegrationTests {
   cat gomplate/itests.sh.tpl > tests/data/itests.sh.tpl
   cat gomplate/test_core.sh.tpl >> tests/data/itests.sh.tpl
   cat gomplate/core_bash_functions.sh.tpl >> tests/data/itests.sh.tpl
+  cat gomplate/functions.tpl >> tests/data/itests.sh.tpl
+  cat ../templates/envoy/_filter_wasm_enabled.yaml >> tests/data/itests.sh.tpl
   gotpl tests/data/itests.sh.tpl -f values.yaml -f values-test.yaml -f values-env-override.yaml > tests/itests.sh
   chmod a+x tests/itests.sh
 }
