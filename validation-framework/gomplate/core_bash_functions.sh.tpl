@@ -4,7 +4,7 @@ credential="dGVzdDp0ZXN0"
 declare -A validation_array
 tokenGeneratorUrl="http://token-generator:8080/tokens"
 lookupresult=""
-testname=""
+{{/* testname="" */}}
 
 function http_call() {
   local method=$1
@@ -126,21 +126,21 @@ function get_token() {
 }
 
 function check_test_call() {
-  if [[ -z "$1" ]]
+  {{/* if [[ -z "$1" ]]
   then
     echo "Missing test name - test will be skipped" >> /tests/logs/error.log
     ((skippedTestChecks=skippedTestChecks+1))
-  else
+  else */}}
     local expectcode="200"
     local expectop="eq"
-    testname=$1
+    {{/* testname=$1 */}}
     test_result="succeed"
-    [[ ! -z "$2" ]] && expectcode=$2
-    [[ ! -z "$3" ]] && expectop=$3
+    [[ ! -z "$1" ]] && expectcode=$1
+    [[ ! -z "$2" ]] && expectop=$2
     ((testChecks=testChecks+1))
     if [[ $expectop == "eq" ]]
     then
-      if [[ $code -eq ${arr[1]} ]]
+      if [[ $code -eq $expectcode ]]
       then
         ((succeedCalls=succeedCalls+1))
         ((succeedTestChecks=succeedTestChecks+1))
@@ -151,7 +151,7 @@ function check_test_call() {
       fi
     elif [[ $expectop == "ne" ]]
     then
-      if [[ $code -ne ${arr[1]} ]]
+      if [[ $code -ne $expectcode ]]
       then
         ((succeedCalls=succeedCalls+1))
         ((succeedTestChecks=succeedTestChecks+1))
@@ -179,7 +179,7 @@ function check_test_call() {
     else
       echo "Unsupported operator $expectop for value $expectcode" 
     fi
-  fi
+  {{/* fi */}}
 }
 
 function test_check() {
@@ -232,7 +232,7 @@ function test_check() {
         fi
       elif [[ $expectop == "prefix" ]]
       then
-        if [[ $lookupresult == "expectvalue"* ]] 
+        if [[ $lookupresult == "$expectvalue"* ]] 
         then
           ((succeedTestChecks=succeedTestChecks+1))
         else
@@ -241,7 +241,7 @@ function test_check() {
         fi
       elif [[ $expectop == "suffix" ]]
       then
-        if [[ $lookupresult == *"expectvalue" ]] 
+        if [[ $lookupresult == *"$expectvalue" ]] 
         then
           ((succeedTestChecks=succeedTestChecks+1))
         else

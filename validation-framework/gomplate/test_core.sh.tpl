@@ -63,7 +63,7 @@ badTestChecks=0
         {{- $bodyStr := ternary ($request.body | toJson) "" (hasKey $request "body") }}
         {{- printf "http_call %s %s %s %s %s\n" ($method | quote) ($url | quote) ($hdrStr | squote) ($authType | quote) ($bodyStr | squote) }}
         {{- if $result }}
-          {{- printf "unset validation_array && declare -A validation_array\n" }}
+          {{/* {{- printf "unset validation_array && declare -A validation_array\n" }} */}}
           {{- if $result.code }}
             {{- $code := $result.code }}
             {{- $op := $code.op | default "eq" }}
@@ -81,16 +81,22 @@ badTestChecks=0
                 {{- $op = "eq" }}
               {{- end }}
             {{- end }}
-            {{- printf "validation_array[%s]=%s\n" ("code" | quote) (printf "%s:::%s" $op $value | quote) }}
+            {{/* {{- printf "validation_array[%s]=%s\n" ("code" | quote) (printf "%s:::%s" $op $value | quote) }} */}}
+            {{- printf "check_test_call %s %s\n" ($value | quote) ($op | quote) }}
           {{- end }}
           {{- $headers := $result.headers }}
           {{- range $headers }}
             {{- $op := .op | default "eq" }}
-            {{- printf "validation_array[%s]=%s\n" (printf "headers.%s" .name | quote) (printf "%s:::%s" (.op | default "eq") .value | quote) }}    
+            {{/* {{- printf "validation_array[%s]=%s\n" (printf "headers.%s" .name | quote) (printf "%s:::%s" (.op | default "eq") .value | quote) }}     */}}
+            {{- template "build_execute_jq_cmd" (dict "path" (printf ".%s" .name) "from" "headers") }}
+            {{- printf "test_check %s %s\n" (.value | default "" | quote) ($op | quote) }}
           {{- end }}
           {{- $body := $result.body }}
           {{- range $body }}
-            {{- $qPath := .path }}
+            {{- $op := .op | default "eq" }}
+            {{- template "build_execute_jq_cmd" (dict "path" .path "select" .select "op" $op "value" .value) }}
+            {{- printf "test_check %s %s\n" (.value | default "" | quote) ($op | quote) }}
+            {{/* {{- $qPath := .path }}
             {{- if contains "-" $qPath }}
               {{- $items := split "." $qPath }}
               {{- $qPath = "." }}
@@ -114,9 +120,9 @@ badTestChecks=0
                 {{- $qPath = printf "%s | select(.%s) | %s" (trimSuffix $itms._1 $qPath) .select $itms._1 | squote | b64enc }}
               {{- end }}
             {{- end }}
-            {{- printf "validation_array[%s]=%s\n" $qPath (printf "%s:::%s" (.op | default "eq") .value | quote) }}    
+            {{- printf "validation_array[%s]=%s\n" $qPath (printf "%s:::%s" (.op | default "eq") .value | quote) }}     */}}
           {{- end }}
-          {{- printf "check_and_report\n" }}
+          {{/* {{- printf "check_and_report\n" }} */}}
           {{- printf "echo %s >> %s\n" (printf "Test case[%s] result[$test_result]: call %s" $name $url | quote) (printf "%s/report.txt" $logFolder | quote) }}
         {{- end }}
       {{- end }}
@@ -128,6 +134,7 @@ badTestChecks=0
     {{- printf "echo %s >> %s\n" ("  Completed $testChecks test checks" | quote) (printf "%s/report.txt" $logFolder | quote) }}
     {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test checks" | quote) (printf "%s/report.txt" $logFolder | quote) }}
     {{- printf "echo %s >> %s\n" ("    Failed $failedTestChecks test checks" | quote) (printf "%s/report.txt" $logFolder | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Skipped $skippedTestChecks test checks" | quote) (printf "%s/report.txt" $logFolder | quote) }}
     {{- printf "echo %s >> %s\n" ("    $badTestChecks bad tests" | quote) (printf "%s/report.txt" $logFolder | quote) }}
 if [ "$failedCalls" == "$expectedFailedCalls" ] && [ "$failedTestChecks" == "$expectedfailedTestChecks" ]
 then
