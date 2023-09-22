@@ -62,68 +62,72 @@
 {{- end }}
 
 {{- define "build_execute_jq_cmd" -}}
-  {{- $path := .path }}
   {{- $resp := ternary "$respheaders" "$resp" (hasKey . "from") }}
-  {{- $select := .select }}
-  {{- $op := .op | default "eq" }}
-  {{- $value := .value | default "" }}
-  {{- if $select }}
-    {{- $skey := $select.key | default "" }}
-    {{- $svalue := $select.value | default "" }}
-    {{- if or (eq $skey "") (eq $svalue "")}}
-      {{- printf "Unsupported usage: Both key and value are require when using select command %v for path=%s\n >>/tests/logs/error.log\n" $select $path }}
-    {{- else }}
-      {{- $itms := split "[]" $path }}
-       {{- $jpath := "" }}
-       {{- $parts := split "." $itms._0 }}
-      {{- range $parts }}
-        {{- if ne . "" }}
-          {{- $jpath = printf "%s.%s" $jpath (printf "%s" . | quote) }}
-        {{- end }}
-      {{- end }}
-     {{- $parts := split "." $skey }}
-     {{- $kpath := "" }}
-      {{- range $parts}}
-        {{- if ne . "" }}
-          {{- $kpath = printf "%s.%s" $kpath (printf "%s" . | quote) }}
-        {{- end }}
-      {{- end }}
-      {{- $parts = split "." $itms._1 }}
-      {{- $jobj := "" }}
-      {{- range $parts }}
-        {{- if ne . "" }}
-          {{- $jobj = printf "%s.%s" $jobj (printf "%s" . | quote) }}
-        {{- end }}
-      {{- end }}
-      {{- printf "lookupresult=$(echo %s | jq -r '%s[] | select(%s==%s) | %s')\n" $resp $jpath $kpath ($svalue | quote) $jobj }}    
-    {{- end }}
+  {{- if .jq }}
+    {{- printf "lookupresult=$(echo %s | jq -r '%s')\n" $resp .jq }}    
   {{- else }}
-    {{- if hasSuffix "[]" $path }}
-      {{- if and (eq $op "has") (ne $value "") }}
+    {{- $path := .path }}
+    {{- $select := .select }}
+    {{- $op := .op | default "eq" }}
+    {{- $value := .value | default "" }}
+    {{- if $select }}
+      {{- $skey := $select.key | default "" }}
+      {{- $svalue := $select.value | default "" }}
+      {{- if or (eq $skey "") (eq $svalue "")}}
+        {{- printf "Unsupported usage: Both key and value are require when using select command %v for path=%s\n >>/tests/logs/error.log\n" $select $path }}
+      {{- else }}
+        {{- $itms := split "[]" $path }}
+        {{- $jpath := "" }}
+        {{- $parts := split "." $itms._0 }}
+        {{- range $parts }}
+          {{- if ne . "" }}
+            {{- $jpath = printf "%s.%s" $jpath (printf "%s" . | quote) }}
+          {{- end }}
+        {{- end }}
+      {{- $parts := split "." $skey }}
+      {{- $kpath := "" }}
+        {{- range $parts}}
+          {{- if ne . "" }}
+            {{- $kpath = printf "%s.%s" $kpath (printf "%s" . | quote) }}
+          {{- end }}
+        {{- end }}
+        {{- $parts = split "." $itms._1 }}
+        {{- $jobj := "" }}
+        {{- range $parts }}
+          {{- if ne . "" }}
+            {{- $jobj = printf "%s.%s" $jobj (printf "%s" . | quote) }}
+          {{- end }}
+        {{- end }}
+        {{- printf "lookupresult=$(echo %s | jq -r '%s[] | select(%s==%s) | %s')\n" $resp $jpath $kpath ($svalue | quote) $jobj }}    
+      {{- end }}
+    {{- else }}
+      {{- if hasSuffix "[]" $path }}
+        {{- if and (eq $op "has") (ne $value "") }}
+          {{- $parts := split "." $path }}
+          {{- $jpath := "" }}
+          {{- range $parts }}
+            {{- if ne . "" }}
+              {{- if hasSuffix "[]" . }}
+                {{- $jpath = printf "%s.%s" $jpath (printf "%s[]" (trimSuffix "[]" | quote)) }}
+              {{- else }}
+                {{- $jpath = printf "%s.%s" $jpath (printf "%s" . | quote) }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- printf "lookupresult=$(echo %s | jq -r '%s | select(.==%s) | .')\n"  $resp $jpath ($value | quote)}}
+        {{- else }}
+          {{- printf "Unsupported usage: only \"has\" oprator(%s) is supported on the path(%s)[] with value(%s)\n >>/tests/logs/error.log\n" $op $path $value }}
+        {{- end }}
+      {{- else }}
         {{- $parts := split "." $path }}
         {{- $jpath := "" }}
         {{- range $parts }}
           {{- if ne . "" }}
-            {{- if hasSuffix "[]" . }}
-              {{- $jpath = printf "%s.%s" $jpath (printf "%s[]" (trimSuffix "[]" | quote)) }}
-            {{- else }}
-              {{- $jpath = printf "%s.%s" $jpath (printf "%s" . | quote) }}
-            {{- end }}
+            {{- $jpath = printf "%s.%s" $jpath (printf "\\\"%s\\\"" .) }}
           {{- end }}
-        {{- end }}
-        {{- printf "lookupresult=$(echo %s | jq -r '%s | select(.==%s) | .')\n"  $resp $jpath ($value | quote)}}
-      {{- else }}
-        {{- printf "Unsupported usage: only \"has\" oprator(%s) is supported on the path(%s)[] with value(%s)\n >>/tests/logs/error.log\n" $op $path $value }}
+        {{- end }}   
+        {{- printf "lookupresult=$(echo %s | jq -r %s)\n"  $resp  $jpath }}
       {{- end }}
-    {{- else }}
-      {{- $parts := split "." $path }}
-      {{- $jpath := "" }}
-      {{- range $parts }}
-        {{- if ne . "" }}
-          {{- $jpath = printf "%s.%s" $jpath (printf "\\\"%s\\\"" .) }}
-        {{- end }}
-      {{- end }}   
-      {{- printf "lookupresult=$(echo %s | jq -r %s)\n"  $resp  $jpath }}
     {{- end }}
   {{- end }}
 {{- end }}
