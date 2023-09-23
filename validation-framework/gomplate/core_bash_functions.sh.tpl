@@ -194,13 +194,8 @@ function test_check() {
     [[ ! -z "$2" ]] && expectop=$2
     if [ -z "$lookupresult" ]
     then
-      if [[ $expectop != "npr" ]]
-      then
-        ((failedTestChecks=failedTestChecks+1))
-        test_result="failed"
-      else
-        ((succeedTestChecks=succeedTestChecks+1))
-      fi
+      ((failedTestChecks=failedTestChecks+1))
+      test_result="failed"
     else
       if [[ $expectop == "eq" ]]
       then
@@ -247,6 +242,24 @@ function test_check() {
           ((failedTestChecks=failedTestChecks+1))
           test_result="failed"
         fi
+      elif [[ $expectop == "pr" ]]
+      then
+        if [[ $lookupresult != "null" ]] 
+        then
+          ((succeedTestChecks=succeedTestChecks+1))
+        else
+          ((failedTestChecks=failedTestChecks+1))
+          test_result="failed"
+        fi
+      elif [[ $expectop == "npr" ]]
+      then
+        if [[ $lookupresult == "null" ]] 
+        then
+          ((succeedTestChecks=succeedTestChecks+1))
+        else
+          ((failedTestChecks=failedTestChecks+1))
+          test_result="failed"
+        fi      
       else
         echo "Unsupported oprand $expectop for $expectvalue"
           ((badTestChecks=badTestChecks+1))
