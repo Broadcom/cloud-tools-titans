@@ -85,14 +85,14 @@ badTestChecks=0
           {{- $headers := $result.headers }}
           {{- range $headers }}
             {{- $op := .op | default "eq" }}
-            {{- template "build_execute_jq_cmd" (dict "path" (printf ".%s" .name) "from" "headers") }}
+            {{- template "build_execute_jq_cmd" (dict "path" (printf ".%s" .name) "from" "headers" "jq" .jq) }}
             {{- printf "test_check %s %s\n" (.value | default "" | quote) ($op | quote) }}
           {{- end }}
           {{- $body := $result.body }}
           {{- range $body }}
             {{- $op := .op | default "eq" }}
-            {{- template "build_execute_jq_cmd" (dict "path" .path "select" .select "op" $op "value" .value) }}
-            {{- printf "test_check %s %s\n" (.value | default "" | quote) ($op | quote) }}
+            {{- template "build_execute_jq_cmd" (dict "path" .path "select" .select "op" $op "value" .value "jq" .jq) }}
+            {{- printf "test_check %s %s\n" (.value | default "" | quote) ((ternary "eq" $op (and (eq $op "has") (hasSuffix "[]" .path))) | quote) }}
           {{- end }}
           {{- printf "echo %s >> %s\n" (printf "Test case[%s] result[$test_result]: call %s" $name $url | quote) (printf "%s/report.txt" $logFolder | quote) }}
         {{- end }}

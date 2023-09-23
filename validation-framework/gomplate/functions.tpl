@@ -40,7 +40,7 @@
   {{- range $parts }}
     {{- if ne . "" }}
       {{- if hasSuffix "[]" . }}
-        {{- $jpath = printf "%s.%s" $jpath (printf "%s[]" (trimSuffix "[]" | quote)) }}
+        {{- $jpath = printf "%s.%s" $jpath (printf "%s[]" (trimSuffix "[]" . | quote)) }}
       {{- else }}
         {{- $jpath = printf "%s.%s" $jpath (printf "%s" . | quote) }}
       {{- end }}
@@ -108,7 +108,7 @@
           {{- range $parts }}
             {{- if ne . "" }}
               {{- if hasSuffix "[]" . }}
-                {{- $jpath = printf "%s.%s" $jpath (printf "%s[]" (trimSuffix "[]" | quote)) }}
+                {{- $jpath = printf "%s.%s" $jpath (printf "%s[]" (trimSuffix "[]" . | quote)) }}
               {{- else }}
                 {{- $jpath = printf "%s.%s" $jpath (printf "%s" . | quote) }}
               {{- end }}
