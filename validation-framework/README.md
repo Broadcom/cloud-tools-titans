@@ -73,22 +73,22 @@ titanSideCars:
 | path | http request path value| /tokens  | | 
 | headers[] | http request headers| | | 
 | headers[].name | header name| Accept | | 
-| headers[].value | header value| | application/json | 
-| body | request body json object | | |
+| headers[].value | header value| application/json | |
+| body | request body json object | See example below ||
 
 ##### result object   
-| Attribute | Description | Required | Example | Comments | 
+| Attribute | Description | Required | Supported values | Comment | 
 | ------- |:----------- |:------- |:-------- |:-------- |
-| code | expected http status code | Yes | | |
-| code.op | comparison operator | No, default to **eq** | eq | eq, ne, in | 
-| code.value | expected http status code, comma separated string for **in** op code | Yes | e.g. 200 | |
+| code | expected http status | Yes | | |
+| code.op | comparison operator | No, default to **eq** | eq, ne, in | comma separaye string for **in** | 
+| code.value | expected http status code, comma separated string for **in** op code | Yes | stand http status code | e.g. 200 |
 | body[] | a list of checks on response body | No | | |
-| body[].path | jq query like format | Yes | .host.hostname | | |
-| body[].select | select is used to search element in arrary | No | eq, ne, prefix, suffix, co | |
-| body[].select.key | property of object in the array | Yes | eq, .name.first | |
-| body[].select.value | value of selected object| Yes | eq, John | | |
-| body[].op | supported comparison operators | No, default to **eq** | eq, ne, prefix, suffix, co | | |
-| body[].value | expected value for requested attribute | Yes | | |
+| body[].path | jq query like format | Yes | .attribute, .attribute[], .attribute[].object_attribute | e.g. .host.hostname |
+| body[].select | select is used to search element in arrary | No | | |
+| body[].select.key | property of object in the array | Yes | jq query dot format  | .name.first |
+| body[].select.value | value of selected object| Yes | string | e.q. John | |
+| body[].op | supported comparison operators | No, default to **eq** | eq, ne, prefix, suffix, co, pr, npr, has | **has** only applies to the path ending with **[]**|
+| body[].value | expected value for requested attribute | Yes | string | |
 ```yaml
 titanSideCars:
   issuers: 
@@ -166,25 +166,103 @@ titanSideCars:
 ### How to write a custom manual integration test?
 * See sample integration test cases in values-env-override.yaml
 ```yaml
-titanSideCars:
   integration:
     environment:
       ingress:
         address: "https://api.saas.broadcomcloud.com"
     tests:
-      - name: "GET jwks"
+      - name: "well-known"
         request:
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".issuer"
+            op: eq
+            value: "https://api.saas.broadcomcloud.com"
+      - name: "well-known dev-stage"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".issuer"
+            op: eq
+            value: "https://api.saas.broadcomcloud.com"
+      - name: "oauth2 keys - find an element in []"
+        request:
+          address: https://api.saas.broadcomcloud.com
           path: "/oauth2/keys"
         result:
           code:
             value: "200"
-          body: # expect there is a key with specified kid "o04CWEnlSpukX2oA" and its kty == RSA
+          body:
           - path: ".keys[].kty"
             select:
               key: .kid
-              value: o04CWEnlSpukX2oA
+              value: uNj9Ned4QkyR8oOpFCp4_A
             op: eq
             value: RSA
+      - name: "well-knows - has"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".scopes_supported[]"
+            op: has
+            value: email
+      - name: "well-knows - pr"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".scopes_supported"
+            op: pr
+      - name: "well-knows - npr"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".scopes_support"
+            op: npr
+      - name: "oauth2 keys - pr an attribute of element in []"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/oauth2/keys"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".keys[].kty"
+            select:
+              key: .kid
+              value: uNj9Ned4QkyR8oOpFCp4_A
+            op: pr
+      - name: "oauth2 keys - pr an attribute of element in []"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/oauth2/keys"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".keys[].ktb"
+            select:
+              key: .kid
+              value: uNj9Ned4QkyR8oOpFCp4_A
+            op: npr
 ```
 ## Authors
 
