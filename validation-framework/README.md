@@ -46,6 +46,12 @@ titanSideCars:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/ratelimit:v1.4.0.3-redhat-fips-master.1
         token-generator:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/token-generator:0.0.1
+        myapp:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/echo-server:0.8.6
+        redis:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/redistimeseries:1.10.5
+        engine:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/alpine-bash-curl-jq:latest
 ```
 ## Build test environment and execute tests
 * run ./build.sh with required umbrella chart name and chart version, see example command
