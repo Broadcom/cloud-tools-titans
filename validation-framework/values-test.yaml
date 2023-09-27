@@ -1,5 +1,6 @@
 titanSideCars:
   envoy:
+    supportPathConfigSource: true
     logFolderPath: /tests/logs
     useDynamicConfiguration: true
     clusters:
