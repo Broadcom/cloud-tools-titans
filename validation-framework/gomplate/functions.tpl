@@ -230,6 +230,7 @@
             {{- $hdrStr = printf "%s %s:%s" $hdrStr $k $v -}}
           {{- end -}}
       {{- end -}}
+      {{- $usePreviousTokenCall := false }}
       {{- if $rbac }}
         {{- $policies := $rbac.policies }}
         {{- range $policies }}
@@ -300,6 +301,7 @@
             {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
             {{- printf "check_test_call\n" -}}
             {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+            {{- $usePreviousTokenCall = true }}
           {{- end }}
         {{- end }}
       {{- else }}
@@ -315,7 +317,9 @@
         {{- printf "echo %s >> %s\n" (printf "Test case[auto][directResponse] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else if hasKey $routing "route" -}}
         {{- $route := $routing.route -}}
-        {{- printf "check_test_call\n" }}
+        {{- if not $usePreviousTokenCall }}
+          {{- printf "check_test_call\n" }}
+        {{- end }}
         {{- if hasKey $route "prefixRewrite" -}}
           {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
           {{- printf "test_check %s %s\n" ($route.prefixRewrite | quote) ("prefix" | quote) }}
@@ -325,7 +329,7 @@
         {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing - path rewrite]result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else -}}
         {{- printf "check_test_call\n" }}
-        {{- printf "echo %s >> %s\n" (printf "Test case[routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- end -}}
     {{- end }}
   {{- end -}}

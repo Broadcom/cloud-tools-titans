@@ -102,8 +102,8 @@ badTestChecks=0
     {{- printf "echo %s >> %s\n" ("  Completed $testCalls test calls" | quote) (printf "%s/report.txt" $logFolder | quote) }}
     {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test calls" | quote) (printf "%s/report.txt" $logFolder | quote) }}
     {{- printf "echo %s >> %s\n" ("    Failed $failedCalls test calls" | quote) (printf "%s/report.txt" $logFolder | quote) }}
-    {{- printf "echo %s >> %s\n" ("  Completed $testChecks test checks" | quote) (printf "%s/report.txt" $logFolder | quote) }}
-    {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test checks" | quote) (printf "%s/report.txt" $logFolder | quote) }}
+    {{- printf "echo %s >> %s\n" ("  Completed $testChecks tests" | quote) (printf "%s/report.txt" $logFolder | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Succeed $succeedTestChecks test checks" | quote) (printf "%s/report.txt" $logFolder | quote) }}
     {{- printf "echo %s >> %s\n" ("    Failed $failedTestChecks test checks" | quote) (printf "%s/report.txt" $logFolder | quote) }}
     {{- printf "echo %s >> %s\n" ("    Skipped $skippedTestChecks test checks" | quote) (printf "%s/report.txt" $logFolder | quote) }}
     {{- printf "echo %s >> %s\n" ("    $badTestChecks bad tests" | quote) (printf "%s/report.txt" $logFolder | quote) }}

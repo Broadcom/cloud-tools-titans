@@ -91,8 +91,8 @@ echo "" >> /tests/logs/report.txt
   {{- printf "echo %s >> %s\n" ("  Completed $testCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
   {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
   {{- printf "echo %s >> %s\n" ("    Failed $failedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("  Completed $testChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("  Completed $testChecks tests" | quote) ("/tests/logs/report.txt" | quote) }}
+  {{- printf "echo %s >> %s\n" ("    Succeed $succeedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
   {{- printf "echo %s >> %s\n" ("    Failed $failedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
   {{- printf "echo %s >> %s\n" ("    $badTestChecks bad tests" | quote) ("/tests/logs/report.txt" | quote) }}
   {{- printf "echo %s >> %s\n" ("    Skipped $skippedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
