@@ -41,7 +41,7 @@ titanSideCars:
     environment:
       containers:
         proxy:
-          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/envoy:1.18.3-redhat-fips-titan-proxy-wasm-bundle.20
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/envoy:1.26.1-redhat-fips-titan-proxy-wasm-bundle.22
         ratelimit: 
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/ratelimit:v1.4.0.3-redhat-fips-master.1
         token-generator:
