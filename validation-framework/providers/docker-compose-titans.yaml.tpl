@@ -96,14 +96,8 @@ services:
   {{- if $tokenGenerator }}
   token-generator:
     image: {{ $tokenGenerator.image }}
-    entrypoint: 
-      - /usr/local/broadcom/token-generator/token-generator
-      - -logFile
-      - stdout
-      - -issuer
-      - http://token-generator
-      - -useDynamicKey
-      - "true"
+    entrypoint:
+    {{- $tokenGenerator.cmds | default (list "/usr/local/broadcom/token-generator/token-generator" "-logFile" "stdout" "-issuer" "http://token-generator" "-useDynamicKey" "true") | toYaml | nindent 6 }}
     expose:
      - "8080"
     networks:
