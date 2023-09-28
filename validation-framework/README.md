@@ -45,7 +45,7 @@ titanSideCars:
         ratelimit: 
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/ratelimit:v1.4.0.3-redhat-fips-master.1
         token-generator:
-          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/token-generator:0.0.1
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/token-generator:0.205.5
         myapp:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/echo-server:0.8.6
         redis:

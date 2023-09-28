@@ -2,7 +2,24 @@
 #set -e
 # set -ex
 
-option=$1
+image="cfmanteiga/alpine-bash-curl-jq"
+
+for arg in "$@"; do
+  if [[ $arg == "--image" || $arg == "-i" ]]
+  then
+    shift
+    image=$1
+    shift
+  elif [[ $arg == "--skip" || $arg == "-s" ]]
+  then
+    skip="--skip"
+    shift
+  elif [[ $arg == "--help" || $arg == "-h" ]]
+  then
+    echo "run_itests.sh [-s|--skip] [-i|--image \"container image used to run integration tests\"]"
+    exit 0
+  fi
+done
 
 function preCheck {
   if [ -f "values-env-override.yaml" ] && [ -f "values.yaml" ]; then
@@ -27,7 +44,7 @@ function buildIntegrationTests {
 }
 
 function runiTests {
-  docker run -v $(pwd)/tests:/tests -w /tests cfmanteiga/alpine-bash-curl-jq  bash ./itests.sh
+  docker run -v $(pwd)/tests:/tests -w /tests $image  bash ./itests.sh
   cat tests/logs/report.txt
 }
 
@@ -35,7 +52,7 @@ function runiTests {
 preCheck
 buildIntegrationTests
 
-if [ "$option" != "--skip" ]
+if [ "$skip" != "--skip" ]
 then
   runiTests
 else

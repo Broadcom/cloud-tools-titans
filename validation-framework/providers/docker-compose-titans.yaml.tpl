@@ -97,11 +97,13 @@ services:
   token-generator:
     image: {{ $tokenGenerator.image }}
     entrypoint: 
-      - /usr/local/broadcom/tokentools/token-generator 
-      - -logfile
+      - /usr/local/broadcom/token-generator/token-generator
+      - -logFile
       - stdout
       - -issuer
       - http://token-generator
+      - -useDynamicKey
+      - "true"
     expose:
      - "8080"
     networks:
