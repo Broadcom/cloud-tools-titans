@@ -1,6 +1,7 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" }}
   {{- $clusters := .clusters -}}
   {{- $opa := .opa }}
+  {{- $healthCheckCriticalLocalSidecars := .healthCheckCriticalLocalSidecars -}}
   {{- $opaEnabled := $opa.enabled }}
   {{- $opaMonitorByEnvoy := $opa.monitorByEnvoy -}}
   {{- $ratelimit := .ratelimit }}
@@ -17,11 +18,15 @@
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.health_check.v3.HealthCheck
   {{- if $gatewayEnable }}
-    {{- if $gatewaycheckUpstreamClusters }}
+    {{- if or $gatewaycheckUpstreamClusters $healthCheckCriticalLocalSidecars -}}
       {{- $foundCriticalCluster := false -}}
       {{- range $k, $v := $clusters }}
         {{- if $v.critical -}}
-          {{- $foundCriticalCluster = true -}}
+          {{- if $gatewaycheckUpstreamClusters -}}
+            {{- $foundCriticalCluster = true -}}
+          {{- else if and $healthCheckCriticalLocalSidecars (hasPrefix "local-" $k) -}}
+            {{- $foundCriticalCluster = true -}}
+          {{- end -}}
         {{- end -}}
       {{- end -}}
       {{- if $foundCriticalCluster }}
@@ -30,8 +35,13 @@
         {{- range $k, $v := $clusters }}
           {{- if and (ne $k "local-myapp") (ne $k "remote-myapp") }}
             {{- if $v.critical }}
+              {{- if $gatewaycheckUpstreamClusters }}
       {{ printf "%s:" $k }}
         {{ printf "value: %s" $minHealth }}
+              {{- else if and $healthCheckCriticalLocalSidecars (hasPrefix "local-" $k) }}
+      {{ printf "%s:" $k }}
+        {{ printf "value: 100" }}
+              {{- end }}
             {{- end }}
           {{- end }}
         {{- end }}
@@ -48,6 +58,18 @@
     {{- if and $ratelimitEnabled $ratelimitMonitorByEnvoy $ratelimitIncludeIntoHealthState }}
       ratelimit-health:
         value: 100
+    {{- end }}
+    {{- if $healthCheckCriticalLocalSidecars }}
+        {{- range $k, $v := $clusters }}
+          {{- if and (ne $k "local-myapp") (ne $k "remote-myapp") }}
+            {{- if $v.critical }}
+              {{- if and $healthCheckCriticalLocalSidecars (hasPrefix "local-" $k) }}
+      {{ printf "%s:" $k }}
+        {{ printf "value: 100" }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
     {{- end }}
   {{- end }}
     headers:
