@@ -10,6 +10,7 @@
   {{- $ingress := $titanSideCars.ingress  }}
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
+  {{- $healthCheckCriticalLocalSidecars := $envoy.healthCheckCriticalLocalSidecars | default false }}
   {{- $clusters := $envoy.clusters  }}
   {{- if not $clusters }}
     {{- fail ".Values.titanSideCars.envoy.clusters is required" }}
@@ -57,22 +58,22 @@
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "HealthCheck" }}
-        {{- include .name $ | nindent 12 }}
+        {{- include .name (dict "config" (.config | default dict)) | nindent 12 }}
       {{- end }}
     {{- end }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" (dict "clusters" $clusters "opa" $opa "ratelimit" $ratelimit) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.healthcheck" (dict "clusters" $clusters "opa" $opa "ratelimit" $ratelimit "healthCheckCriticalLocalSidecars" $healthCheckCriticalLocalSidecars) | nindent 12 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.custome.response" (dict "clusters" $clusters "requests" $titanSideCars.ingress "localMyApp" $localMyApp "envoy" $envoy) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "TokenValidation" }}
-        {{- include .name $ | nindent 12 }}
+        {{- include .name (dict "config" (.config | default dict)) | nindent 12 }}
       {{- end }}
     {{- end }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.ingress "issuers" $titanSideCars.issuers "localMyApp" $localMyApp) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "EnrichmentAndAccessCheck" }}
-        {{- include .name $ | nindent 12 }}
+        {{- include .name (dict "config" (.config | default dict)) | nindent 12 }}
       {{- end }}
     {{- end }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.ingress "localMyApp" $localMyApp "envoy" $envoy) | nindent 12 }}
@@ -80,14 +81,14 @@
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "Ratelimit" }}
-        {{- include .name $ | nindent 12 }}
+        {{- include .name (dict "config" (.config | default dict)) | nindent 12 }}
       {{- end }}
     {{- end }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.ratelimit" (dict "titanSideCars" $titanSideCars "ingress" $ingress "appName" $appName) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "" }}
-        {{- include .name $ | nindent 12 }}
+        {{- include .name (dict "config" (.config | default dict)) | nindent 12 }}
       {{- end }}
     {{- end }}
             - name: envoy.filters.http.router
