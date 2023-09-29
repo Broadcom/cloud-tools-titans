@@ -157,7 +157,7 @@
     {{- else if hasKey $match "path" -}}
       {{- $path = printf "%s" $match.path -}}
     {{- else if hasKey $match "regex" -}}
-      {{/* $path = randomRegex $match.regex */}}
+      {{/* $path = randFromRegex $match.regex */}}
       {{- $supported = false }}
     {{- end -}}
     {{- if $supported }}
@@ -180,7 +180,7 @@
           {{- else if hasKey . "co" -}}
             {{- $val = printf "%s%s%s" (randAscii 5) .co (randAscii 5) -}}              
           {{- else if hasKey . "lk" -}}
-            {{/*- $val = randomRegex .lk -*/}}
+            {{/*- $val = randFromRegex .lk -*/}}
           {{- else if hasKey . "pr" -}}
             {{- if .pr -}}
               {{- $val = "def" -}}          
