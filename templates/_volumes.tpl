@@ -5,6 +5,8 @@
 {{- $logs.volumeName | default "titan-logs" -}}
 {{- end }}
 {{- define "titan-mesh-helm-lib-chart.volumes" -}}
+{{- $global := $.Values.global -}}
+{{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
 {{- $_ := set $ "titanSideCars" $titanSideCars }}
 {{- if $titanSideCars }}
   {{- $envoy := $titanSideCars.envoy -}}

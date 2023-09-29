@@ -1,10 +1,10 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" -}}
-  {{- $titanSideCars := .titanSideCars -}}
-  {{- $icdmService := .service -}}
-  {{- $icdmInbound := .inbound -}}
-  {{- $icdmOutbound := .outbound -}}  
-  {{- $envoy := $titanSideCars.envoy -}}
-  {{- $clusters := $envoy.clusters -}}
+  {{- $titanSideCars := .titanSideCars | default dict -}}
+  {{- $icdmService := .service | default dict -}}
+  {{- $icdmInbound := .inbound | default dict -}}
+  {{- $icdmOutbound := .outbound | default dict -}}  
+  {{- $envoy := $titanSideCars.envoy | default dict -}}
+  {{- $clusters := $envoy.clusters | default dict -}}
   {{- $icdmClustersProcessedCount := $titanSideCars.icdmClustersProcessedCount | default 0 -}}
   {{- $icdmClustersConversionCount := $titanSideCars.icdmClustersConversionCount | default 0 -}}
   {{- if lt $icdmClustersConversionCount 1 -}}
