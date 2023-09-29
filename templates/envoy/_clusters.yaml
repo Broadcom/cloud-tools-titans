@@ -28,7 +28,7 @@
         {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
         {{- end }}
-      type: STATIC
+      type: {{ $localApp.type | default "STATIC" }}
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
         {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $localApp.scheme  "cluster" $localApp ) | nindent 6 }}
@@ -85,7 +85,7 @@
           - endpoint:
               address:
                 socket_address:
-                  address: 127.0.0.1
+                  address: {{ $localApp.address | default "127.0.0.1" }}
                   port_value: {{  $localApp.port | default "8080" }}
         {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $localApp.scheme  "envoy" $envoy) | nindent 6 }}
       {{- end }}
@@ -347,7 +347,7 @@
     {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
     {{- end }}
-      type: STATIC
+      type: {{ $ratelimit.type | default "STATIC" }}
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST      
       connect_timeout: 1s
@@ -376,7 +376,7 @@
       {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
       {{- end }}
-      type: STATIC
+      type: {{ $ratelimit.healthCheckType| default "STATIC" }}
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
       connect_timeout: {{ $ratelimit.healthConnectTimeout | default "0.25s" }}
@@ -398,7 +398,7 @@
           - endpoint:
               address:
                 socket_address:
-                  address: 127.0.0.1
+                  address: {{ $ratelimit.healthCheckAddress | default "127.0.0.1" }}
                   port_value: {{ $ratelimit.healthCheckPort | default "8070" }}
     {{- end }} 
   {{- end }}
@@ -431,5 +431,93 @@
                 socket_address:
                   address: 127.0.0.1
                   port_value: {{ $opa.healthCheckPort | default "8282" }}
+  {{- end }}
+  {{- $validation := $titanSideCars.validation }}
+  {{- $validationEnabled := false }}
+  {{- if $validation }}
+    {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") }}
+  {{- end }}
+  {{- $validationMockClusters := dict }}
+  {{- if $validationEnabled }}
+    {{- range $ingress.routes }}
+      {{- if .route }}
+        {{- if .route.cluster }}
+          {{- if not (hasKey $myClusters .route.cluster) }}
+            {{- if not (hasKey $validationMockClusters .route.cluster) }}
+              {{- $_ := set $validationMockClusters .route.cluster "created"  }}
+    - name: {{ .route.cluster }}
+      {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+      {{- end }}
+      type: STRICT_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: LEAST_REQUEST
+      connect_timeout: "0.25s"
+      common_lb_config:
+        healthy_panic_threshold:
+          value: 25
+      health_checks:
+      - http_health_check:
+          path: "/healthz"
+        interval: "3s"
+        timeout: "2s"
+        healthy_threshold: "1"
+        unhealthy_threshold: "1"
+        no_traffic_interval: "3s"
+      load_assignment:
+        cluster_name: {{ .route.cluster }}
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              hostname: {{ .route.cluster }}
+              address:
+                socket_address:
+                  address: myapp
+                  port_value: 8080              
+            {{- end }}
+          {{- end }}
+        {{- end }}           
+      {{- end }}
+    {{- end }}
+    {{- range $egress.routes }}
+      {{- if .route }}
+        {{- if .route.cluster }}
+          {{- if not (hasKey $myClusters .route.cluster) }}
+            {{- if not (hasKey $validationMockClusters .route.cluster) }}
+              {{- $_ := set $validationMockClusters .route.cluster "created"  }}
+    - name: {{ .route.cluster }}
+      {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+      {{- end }}
+      type: STRICT_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: LEAST_REQUEST
+      connect_timeout: "0.25s"
+      common_lb_config:
+        healthy_panic_threshold:
+          value: 25
+      health_checks:
+      - http_health_check:
+          path: "/healthz"
+        interval: "3s"
+        timeout: "2s"
+        healthy_threshold: "1"
+        unhealthy_threshold: "1"
+        no_traffic_interval: "3s"
+      load_assignment:
+        cluster_name: {{ .route.cluster }}
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              hostname: {{ .route.cluster }}
+              address:
+                socket_address:
+                  address: myapp
+                  port_value: 8080              
+            {{- end }}
+          {{- end }}
+        {{- end }}           
+      {{- end }}
+    {{- end }}
   {{- end }}
 {{- end }}

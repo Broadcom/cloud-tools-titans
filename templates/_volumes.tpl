@@ -5,8 +5,6 @@
 {{- $logs.volumeName | default "titan-logs" -}}
 {{- end }}
 {{- define "titan-mesh-helm-lib-chart.volumes" -}}
-{{- $global := $.Values.global -}}
-{{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
 {{- $_ := set $ "titanSideCars" $titanSideCars }}
 {{- if $titanSideCars }}
   {{- $envoy := $titanSideCars.envoy -}}
@@ -22,6 +20,11 @@
 - name: titan-secrets-tls
   secret:
     secretName: {{ $envoy.tlsCert | default (print  $appInfo.name "-envoy-tls-cert") }}
+  {{- if $envoy.intTlsCert }}
+- name: titan-secrets-tls-int
+  secret:
+    secretName: {{ $envoy.intTlsCert }}
+  {{- end }}
 - name: titan-configs
   configMap:
     name: {{ $.Release.Name }}-{{ printf "%s-titan-configs" $appInfo.name }}

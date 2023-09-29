@@ -3,7 +3,8 @@
   {{- $appName := .appName }}
   {{- $releaseNamespace := .releaseNamespace }}
   {{- $chartName := .chartName }}
-  {{- $envoy := $titanSideCars.envoy  }}
+  {{- $envoy := $titanSideCars.envoy }}
+  {{- $supportPathConfigSource := $envoy.supportPathConfigSource | default false }}
   {{- $envoyAdminPort := $envoy.adminPort | default "10000"  }}
   {{- $envoyStatsPort := $envoy.statsPort | default "8126"  }}
   {{- $envoyStatsFlushInterval := $envoy.statsFlushInterval | default "30s"  }}
@@ -26,11 +27,23 @@ envoy.yaml: |
     id: {{ printf "%s-id" $appName }}
 
   dynamic_resources:
+        {{- if $supportPathConfigSource }}
+    cds_config:
+      path_config_source: 
+        path: {{ printf "%s/cds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+        watched_directory: 
+          path: {{ (trimSuffix "/" $envoyConfigFolder) }}
+    lds_config:
+      path_config_source:
+        path: {{ printf "%s/lds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+        watched_directory: 
+          path: {{ (trimSuffix "/" $envoyConfigFolder) }}
+         {{- else }}
     cds_config:
       path: {{ printf "%s/cds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
     lds_config:
       path: {{ printf "%s/lds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
-
+         {{- end }}
   admin:
     access_log_path: /dev/stdout
     address:

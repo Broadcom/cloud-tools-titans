@@ -92,7 +92,7 @@
     name: titan-configs
     subPath: opa.yaml
   - mountPath: /logs/
-    name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
+    name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" (dict "titanSideCars" $titanSideCars) }}
   {{- end }}
 {{- end }}
 {{- end }}

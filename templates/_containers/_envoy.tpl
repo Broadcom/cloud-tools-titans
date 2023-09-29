@@ -177,7 +177,7 @@
     - mountPath: {{ $envoyConfigFolder }}
       name: titan-configs
     - mountPath: /logs/
-      name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
+      name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" (dict "titanSideCars" $titanSideCars) }}
     - mountPath: /secrets
       name: titan-secrets-tls
   {{- if $envoy.intTlsCert }}  

@@ -1,0 +1,17 @@
+titanSideCars:
+  envoy:
+    supportPathConfigSource: true
+    logFolderPath: /tests/logs
+    useDynamicConfiguration: true
+    clusters:
+      local-myapp:
+        type: STRICT_DNS
+        address: myapp
+        
+  ratelimit:
+    enabled: true
+    address: ratelimit
+    type: STRICT_DNS
+    
+  validation:
+    enabled: true

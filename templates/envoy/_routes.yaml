@@ -1,5 +1,10 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.filter.routes" }}
   {{- $titanSideCars := .titanSideCars }}
+  {{- $validation := $titanSideCars.validation }}
+  {{- $validationEnabled := false }}
+  {{- if $validation }}
+    {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") }}
+  {{- end }}
   {{- $canaryRouteHeaderName := "x-epmp-route-by-release" }}
   {{- if $titanSideCars.canary -}}
     {{- if $titanSideCars.canary.routeHeaderName -}}
@@ -99,7 +104,14 @@
         {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default $remoteMyApp.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
         {{- if or $cluster (or $directResponse $redirect) }}
           {{- if not $match }}
-            {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}     
+            {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
+            {{- if $validationEnabled }}
+              {{- if not $cluster -}}
+                {{- if $validation.clusters }}
+                  {{- $cluster = index $validation.clusters $clusterName -}}
+                {{- end }}
+              {{- end -}}
+            {{- end }}
             {{- range $cluster.routes }}
               {{- $clusterRoute := .route }}
                 - match:
