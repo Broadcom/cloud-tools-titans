@@ -1,5 +1,6 @@
 {{- define "validation_bash_core_functions" -}}
 # functions
+{{/* set -e */}}
 credential="dGVzdDp0ZXN0"
 tokenGeneratorUrl="http://token-generator:8080/tokens"
 lookupresult=""
@@ -27,10 +28,14 @@ function http_call() {
     if [ -z "$data" ]
     then
       # echo "No auth and no data"
+      set -x
       code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method "$url");
+      set +x
     else
       # echo "No auth and has data"
+      set -x
       code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+      set +x
     fi
   else
     if [[ $authtype == "Bearer" ]]
@@ -38,7 +43,9 @@ function http_call() {
       if [ -z "$data" ]
       then
         # echo "Bearer auth and no data"
+        set -x
         code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method "$url");
+        set +x
       else
         # echo "Bearer auth and has data"
         code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method -d "$data" "$url");
@@ -46,11 +53,15 @@ function http_call() {
     else
       if [ -z "$data" ]
       then
-        # echo "Basic auth and no data"      
+        # echo "Basic auth and no data"
+        set -x  
         code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Basic $credential" -X $method "$url");
+        set +x  
       else
         # echo "Basic auth and has data"   
+        set -x  
         code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+        set +x  
       fi
     fi
   fi
@@ -93,8 +104,10 @@ function process_http_response() {
       echo -n "${LINE}" > /tests/data/resp_body
     fi
   done
+  set -x
   resp=$(cat /tests/data/resp_body);
   respheaders=$(cat /tests/data/resp_headers);
+  set +x
 }
 
 function get_token() {
@@ -117,10 +130,12 @@ function get_token() {
   local body=$(printf "$JSON_FMT" "$privs" "$scope" "$roles" "$cid" "$did" "$uri" "$clid")
   jwt=""
   http_call "POST" "$tokenGeneratorUrl" "" "" "$body" "true"
+  set -x
   if [ "$code" == "200" ];
   then
     jwt=$(echo $resp| jq -r '.access_token')
   fi
+  set +x
   # echo "jwt=$jwt"
 }
 

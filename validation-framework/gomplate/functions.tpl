@@ -64,7 +64,9 @@
 {{- define "build_execute_jq_cmd" -}}
   {{- $resp := ternary "$respheaders" "$resp" (hasKey . "from") }}
   {{- if .jq }}
-    {{- printf "lookupresult=$(echo %s | jq -r '%s')\n" $resp .jq }}    
+    {{- printf "set -x\n" }}
+    {{- printf "lookupresult=$(echo %s | jq -r '%s')\n" $resp .jq }}   
+    {{- printf "set +x\n" }} 
   {{- else }}
     {{- $path := .path }}
     {{- $select := .select }}
@@ -98,7 +100,9 @@
             {{- $jobj = printf "%s.%s" $jobj (printf "%s" . | quote) }}
           {{- end }}
         {{- end }}
-        {{- printf "lookupresult=$(echo %s | jq -r '%s[] | select(%s==%s) | %s')\n" $resp $jpath $kpath ($svalue | quote) $jobj }}    
+        {{- printf "set -x\n" }}
+        {{- printf "lookupresult=$(echo %s | jq -r '%s[] | select(%s==%s) | %s')\n" $resp $jpath $kpath ($svalue | quote) $jobj }}  
+        {{- printf "set +x\n" }}  
       {{- end }}
     {{- else }}
       {{- if hasSuffix "[]" $path }}
@@ -114,7 +118,9 @@
               {{- end }}
             {{- end }}
           {{- end }}
+          {{- printf "set -x\n" }}
           {{- printf "lookupresult=$(echo %s | jq -r '%s | select(.==%s) | .')\n"  $resp $jpath ($value | quote)}}
+          {{- printf "set +x\n" }}
         {{- else }}
           {{- printf "Unsupported usage: only \"has\" oprator(%s) is supported on the path(%s)[] with value(%s)\n >>/tests/logs/error.log\n" $op $path $value }}
         {{- end }}
@@ -126,7 +132,9 @@
             {{- $jpath = printf "%s.%s" $jpath (printf "\\\"%s\\\"" .) }}
           {{- end }}
         {{- end }}   
+        {{- printf "set -x\n" }}
         {{- printf "lookupresult=$(echo %s | jq -r %s)\n"  $resp  $jpath }}
+        {{- printf "set +x\n" }}
       {{- end }}
     {{- end }}
   {{- end }}
@@ -157,7 +165,7 @@
     {{- else if hasKey $match "path" -}}
       {{- $path = printf "%s" $match.path -}}
     {{- else if hasKey $match "regex" -}}
-      {{/* $path = randFromRegex $match.regex */}}
+      {{/* $path = randomRegex $match.regex */}}
       {{- $supported = false }}
     {{- end -}}
     {{- if $supported }}
@@ -180,7 +188,7 @@
           {{- else if hasKey . "co" -}}
             {{- $val = printf "%s%s%s" (randAscii 5) .co (randAscii 5) -}}              
           {{- else if hasKey . "lk" -}}
-            {{/*- $val = randFromRegex .lk -*/}}
+            {{/*- $val = randomRegex .lk -*/}}
           {{- else if hasKey . "pr" -}}
             {{- if .pr -}}
               {{- $val = "def" -}}          

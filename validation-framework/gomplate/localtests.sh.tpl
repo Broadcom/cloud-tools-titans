@@ -7,6 +7,9 @@
     {{- if $tests }}
 
 #!/bin/bash
+mkdir -p /tests/logs
+exec 2> /tests/logs/localtest-trace.log
+
 echo "" >> /tests/logs/report.txt
 echo "[`date`]### Execute manaual configured local tests ###" > /tests/logs/report.txt
 echo "" >> /tests/logs/report.txt

@@ -10,6 +10,9 @@
   {{- if or (hasKey $ingress "routes") (hasKey $egress "routes") }}
 #!/bin/bash
 
+mkdir -p /tests/logs
+exec 2> /tests/logs/auto-test-trace.log
+
 {{ template "validation_bash_core_functions" }}
 
 # setup single trap
