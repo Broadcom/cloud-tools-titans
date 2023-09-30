@@ -337,6 +337,10 @@
         {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing - path rewrite]result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- else -}}
         {{- printf "check_test_call\n" }}
+        {{- if ne $cluster "proxy" }}
+          {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
+          {{- printf "test_check %s\n" ($cluster | quote) }}
+        {{- end }}
         {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- end -}}
     {{- end }}

@@ -1,5 +1,10 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.clusters" }}
   {{- $titanSideCars := .titanSideCars }}
+  {{- $validation := $titanSideCars.validation -}}
+  {{- $validationEnabled := false -}}
+  {{- if $validation -}}
+    {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") -}}
+  {{- end }}
   {{- $releaseNamespace := .releaseNamespace }}
   {{- $chartName := .chartName }}
   {{- $useDynamicConfiguration := .useDynamicConfiguration }}
@@ -131,6 +136,15 @@
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
           {{- end }}
           {{- $clusterValue := mergeOverwrite (deepCopy $remoteApp) $value }}
+          {{- if $validationEnabled -}}
+            {{- $_ := set $clusterValue "address" "myapp" -}}
+            {{- $_ := set $clusterValue "targetPort" "8080" -}}
+            {{- $_ := set $clusterValue "port" "8080" -}}
+            {{- $_ := set $clusterValue "type" "STRICT_DNS" -}}
+            {{- $_ := set $clusterValue "scheme" "HTTP" -}}
+            {{- $_ := set $clusterValue "hostname" $cluster -}}
+            {{- $_ := unset $clusterValue "ip" -}}
+          {{- end -}}
           {{- $serviceName := $clusterValue.alias | default $cluster }}
           {{- $serviceName = printf "%s%s" $serviceName (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
           {{- if $clusterValue.external }}
@@ -138,6 +152,7 @@
           {{- end }}
           {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
           {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
+          {{- $clusterHostname := $clusterValue.hostname | default $clusterAddress }}
           {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
       connect_timeout: {{ $clusterValue.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
       {{- if $clusterValue.dnsRefreshRate }}
@@ -188,14 +203,12 @@
         endpoints:
         - lb_endpoints:
           - endpoint:
-            {{- if ne $clusterIpAddress $clusterAddress }}
-              hostname: {{ $clusterAddress }}
-            {{- end }}
+              hostname: {{ $clusterHostname }}
               address:
                 socket_address:
                   address: {{ ternary "127.0.0.1" $clusterIpAddress (hasPrefix "local-" $cluster) }}
             {{- if $gatewayEnable }}
-                  port_value: {{ coalesce $clusterValue.tergetPort $clusterValue.port "9443" }}
+                  port_value: {{ coalesce $clusterValue.targetPort $clusterValue.port "9443" }}
             {{- else }}
                   port_value: {{ $clusterValue.port | default "9443" }}
             {{- end }}
