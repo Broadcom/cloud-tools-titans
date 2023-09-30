@@ -1,5 +1,10 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.clusters" }}
   {{- $titanSideCars := .titanSideCars }}
+  {{- $validation := $titanSideCars.validation -}}
+  {{- $validationEnabled := false -}}
+  {{- if $validation -}}
+    {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") -}}
+  {{- end }}
   {{- $releaseNamespace := .releaseNamespace }}
   {{- $chartName := .chartName }}
   {{- $useDynamicConfiguration := .useDynamicConfiguration }}
@@ -131,6 +136,15 @@
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
           {{- end }}
           {{- $clusterValue := mergeOverwrite (deepCopy $remoteApp) $value }}
+          {{- if $validationEnabled -}}
+            {{- $_ := set $clusterValue "address" "myapp" -}}
+            {{- $_ := set $clusterValue "targetPort" "8080" -}}
+            {{- $_ := set $clusterValue "port" "8080" -}}
+            {{- $_ := set $clusterValue "type" "STRICT_DNS" -}}
+            {{- $_ := set $clusterValue "scheme" "HTTP" -}}
+            {{- $_ := set $clusterValue "hostname" $cluster -}}
+            {{- $_ := unset $clusterValue "ip" -}}
+          {{- end -}}
           {{- $serviceName := $clusterValue.alias | default $cluster }}
           {{- $serviceName = printf "%s%s" $serviceName (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
           {{- if $clusterValue.external }}
@@ -138,6 +152,7 @@
           {{- end }}
           {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
           {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
+          {{- $clusterHostname := $clusterValue.hostname | default $clusterAddress }}
           {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
       connect_timeout: {{ $clusterValue.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
       {{- if $clusterValue.dnsRefreshRate }}
@@ -188,14 +203,12 @@
         endpoints:
         - lb_endpoints:
           - endpoint:
-            {{- if ne $clusterIpAddress $clusterAddress }}
-              hostname: {{ $clusterAddress }}
-            {{- end }}
+              hostname: {{ $clusterHostname }}
               address:
                 socket_address:
                   address: {{ ternary "127.0.0.1" $clusterIpAddress (hasPrefix "local-" $cluster) }}
             {{- if $gatewayEnable }}
-                  port_value: {{ coalesce $clusterValue.tergetPort $clusterValue.port "9443" }}
+                  port_value: {{ coalesce $clusterValue.targetPort $clusterValue.port "9443" }}
             {{- else }}
                   port_value: {{ $clusterValue.port | default "9443" }}
             {{- end }}
@@ -389,93 +402,5 @@
                 socket_address:
                   address: 127.0.0.1
                   port_value: {{ $opa.healthCheckPort | default "8282" }}
-  {{- end }}
-  {{- $validation := $titanSideCars.validation }}
-  {{- $validationEnabled := false }}
-  {{- if $validation }}
-    {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") }}
-  {{- end }}
-  {{- $validationMockClusters := dict }}
-  {{- if $validationEnabled }}
-    {{- range $ingress.routes }}
-      {{- if .route }}
-        {{- if .route.cluster }}
-          {{- if not (hasKey $myClusters .route.cluster) }}
-            {{- if not (hasKey $validationMockClusters .route.cluster) }}
-              {{- $_ := set $validationMockClusters .route.cluster "created"  }}
-    - name: {{ .route.cluster }}
-      {{- if $useDynamicConfiguration }}
-      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
-      {{- end }}
-      type: STRICT_DNS
-      dns_lookup_family: V4_ONLY
-      lb_policy: LEAST_REQUEST
-      connect_timeout: "0.25s"
-      common_lb_config:
-        healthy_panic_threshold:
-          value: 25
-      health_checks:
-      - http_health_check:
-          path: "/healthz"
-        interval: "3s"
-        timeout: "2s"
-        healthy_threshold: "1"
-        unhealthy_threshold: "1"
-        no_traffic_interval: "3s"
-      load_assignment:
-        cluster_name: {{ .route.cluster }}
-        endpoints:
-        - lb_endpoints:
-          - endpoint:
-              hostname: {{ .route.cluster }}
-              address:
-                socket_address:
-                  address: myapp
-                  port_value: 8080              
-            {{- end }}
-          {{- end }}
-        {{- end }}           
-      {{- end }}
-    {{- end }}
-    {{- range $egress.routes }}
-      {{- if .route }}
-        {{- if .route.cluster }}
-          {{- if not (hasKey $myClusters .route.cluster) }}
-            {{- if not (hasKey $validationMockClusters .route.cluster) }}
-              {{- $_ := set $validationMockClusters .route.cluster "created"  }}
-    - name: {{ .route.cluster }}
-      {{- if $useDynamicConfiguration }}
-      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
-      {{- end }}
-      type: STRICT_DNS
-      dns_lookup_family: V4_ONLY
-      lb_policy: LEAST_REQUEST
-      connect_timeout: "0.25s"
-      common_lb_config:
-        healthy_panic_threshold:
-          value: 25
-      health_checks:
-      - http_health_check:
-          path: "/healthz"
-        interval: "3s"
-        timeout: "2s"
-        healthy_threshold: "1"
-        unhealthy_threshold: "1"
-        no_traffic_interval: "3s"
-      load_assignment:
-        cluster_name: {{ .route.cluster }}
-        endpoints:
-        - lb_endpoints:
-          - endpoint:
-              hostname: {{ .route.cluster }}
-              address:
-                socket_address:
-                  address: myapp
-                  port_value: 8080              
-            {{- end }}
-          {{- end }}
-        {{- end }}           
-      {{- end }}
-    {{- end }}
   {{- end }}
 {{- end }}
