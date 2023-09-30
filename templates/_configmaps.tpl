@@ -6,7 +6,18 @@
   {{- include "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" (dict "titanSideCars" $global.titanSideCars "service" $icdmService "inbound" $icdmInbound "outbound" $icdmOutbound) -}}
   {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
   {{- if $titanSideCars }}
+    {{- if not (hasKey $titanSideCars "envoy") -}}
+    {{- $_ := set $titanSideCars "envoy" (dict "clusters" dict) -}}
+    {{- end -}}
     {{- $envoy := $titanSideCars.envoy -}}
+    {{- $validation := $titanSideCars.validation -}}
+    {{- $validationEnabled := false -}}
+    {{- if $validation -}}
+      {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") -}}
+    {{- end }}
+    {{- if $validationEnabled -}}
+      {{- $_ := set $envoy "clusters" (mergeOverwrite (deepCopy $envoy.clusters) $validation.clusters) -}}
+    {{- end -}}
     {{- $logs := $titanSideCars.logs -}}
     {{- $opa := $titanSideCars.opa -}}
     {{- $ratelimit := $titanSideCars.ratelimit -}}

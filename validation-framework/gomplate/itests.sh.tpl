@@ -8,9 +8,11 @@
     {{- if $tests }}
 
 #!/bin/bash
+mkdir -p {{ $logFolder }}
 echo "" >> {{ $logFolder }}/report.txt
 echo "[`date`]### Execute manaual configured integration tests ###" > {{ $logFolder }}/report.txt
 echo "" >> {{ $logFolder }}/report.txt
+exec 2> {{ $logFolder }}/itest-trace.log
 
 
 {{ template "test_cases_core_framework" (dict "environment" $environment "tests" $tests) }}

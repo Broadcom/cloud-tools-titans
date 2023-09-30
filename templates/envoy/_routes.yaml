@@ -17,6 +17,7 @@
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
+
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $localMyApp := index $clusters "local-myapp" }}
   {{- $ingressRoutesFromLocalMyapp := false -}}
@@ -105,13 +106,6 @@
         {{- if or $cluster (or $directResponse $redirect) }}
           {{- if not $match }}
             {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
-            {{- if $validationEnabled }}
-              {{- if not $cluster -}}
-                {{- if $validation.clusters }}
-                  {{- $cluster = index $validation.clusters $clusterName -}}
-                {{- end }}
-              {{- end -}}
-            {{- end }}
             {{- range $cluster.routes }}
               {{- $clusterRoute := .route }}
                 - match:
