@@ -17,7 +17,10 @@
   {{- end }}
   {{- $ingress := $titanSideCars.ingress  }}
   {{- $egress := $titanSideCars.egress  }}
-  {{- if or (and $ingress (not $ingress.enabled)) (and $egress (not $egress.enabled)) }}
+  {{- $ingress := $titanSideCars.ingress  }}
+  {{- $egress := $titanSideCars.egress  }}
+  {{- $ingressEnabled := ternary $ingress.enabled true (hasKey $ingress "enabled") -}}
+  {{- $egressEnabled := ternary $egress.enabled true (hasKey $egress "enabled") -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
     {{- if $useDynamicConfiguration }}
       {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
