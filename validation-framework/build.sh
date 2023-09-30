@@ -35,17 +35,21 @@ function preCheck {
     mkdir -p tmp  
     echo "found $chartname-$chartver.tgz"
     mv "$chartname-$chartver.tgz" tmp
-  else 
-    if [ -f "tmp/$chartname-$chartver.tgz" ]; then
-      echo "Use found tmp/$chartname-$chartver.tgz"
-      mv "tmp/$chartname-$chartver.tgz" "$chartname-$chartver.tgz"
-      rm -rf tmp
-      mkdir -p tmp
-      mv "$chartname-$chartver.tgz" "tmp/$chartname-$chartver.tgz"
-    else
-      echo "$chartname-$chartver.tgz is not found in current directory"
-      echo "Will try to download as running from internal broadcom environment"    
-    fi
+  elif [ -f "tmp/$chartname-$chartver.tgz" ]; then
+    echo "!!! found tmp/$chartname-$chartver.tgz !!!"
+    mv "tmp/$chartname-$chartver.tgz" "$chartname-$chartver.tgz"
+    rm -rf tmp
+    mkdir -p tmp
+    mv "$chartname-$chartver.tgz" "tmp/$chartname-$chartver.tgz"
+  elif [ -d "tmp/$chartname" ] || [ -L "tmp/$chartname" ]; then
+    echo "!!! found tmp/$chartname folder or symbolic link !!!"
+    mv "tmp/$chartname" "$chartname"
+    rm -rf tmp
+    mkdir -p tmp
+    mv "$chartname" "tmp/$chartname"
+  else
+    echo "$chartname-$chartver.tgz is not found in current directory"
+    echo "Will try to download as running from internal broadcom environment"    
   fi
 }
 
@@ -72,53 +76,20 @@ function getTitansChart {
 
 function processAIOAdvance {
   if [ -f "tmp/$chartname-$chartver.tgz" ]; then
-    echo "found tmp/$chartname-$chartver.tgz"
+    echo "!!! Use found tmp/$chartname-$chartver.tgz !!!"
+  elif [ -d "tmp/$chartname" ] || [ -L "tmp/$chartname" ]; then
+    echo "!!! Use found tmp/$chartname folder !!!"
   else
     ./scripts/download.sh $chartname $chartver
   fi
   cd tmp
-  tar xf $chartname-$chartver.tgz
+  if [ -f "$chartname-$chartver.tgz" ]; then
+    tar xf $chartname-$chartver.tgz
+  fi
   gotpl ../gomplate/fix-umbrella-chart.tpl -f "$chartname/Chart.yaml" --set path="$chartname" > handlalice.sh
   chmod a+x handlalice.sh
   ./handlalice.sh
-  for file in "$chartname"/charts/*; do
-    if [[ -d "$file" ]]; then
-      gotpl ../gomplate/extract_routes.tpl -f "$file/values.yaml" --set cluster="$(basename $file)" >> clusters.yaml
-    fi
-  done
-  gotpl ../gomplate/build_cluster.tpl -f clusters.yaml > ../values-test-clusters.yaml
-  cd ..
-}
-
-function processChartsFromAIO {
-  if [ -f "tmp/$chartname-$chartver.tgz" ]; then
-    echo "found tmp/$chartname-$chartver.tgz"
-  else
-    ./scripts/download.sh $chartname $chartver
-  fi
-  cd tmp
-  tar xf $chartname-$chartver.tgz
-  gotpl ../gomplate/fix-umbrella-chart.tpl -f "$chartname/Chart.yaml" --set path="$chartname" > handlalice.sh
-  chmod a+x handlalice.sh
-  ./handlalice.sh
-  for file in "$chartname"/charts/*; do
-    if [[ -d "$file" ]]; then
-      gotpl ../gomplate/extract_routes.tpl -f "$file/values.yaml" --set cluster="$(basename $file)" >> clusters.yaml
-    fi
-  done
-  gotpl ../gomplate/build_cluster.tpl -f clusters.yaml > ../values-test-clusters.yaml
-  cd ..
-}
-
-function processAIO {
-  if [ -f "tmp/$chartname-$chartver.tgz" ]; then
-    echo "found tmp/$chartname-$chartver.tgz"
-  else
-    ./scripts/download.sh $chartname $chartver
-  fi
-  cd tmp
-  tar xf $chartname-$chartver.tgz
-  for file in "$chartname"/charts/*; do
+  for file in ./build/charts/*; do
     if [[ -d "$file" ]]; then
       gotpl ../gomplate/extract_routes.tpl -f "$file/values.yaml" --set cluster="$(basename $file)" >> clusters.yaml
     fi
