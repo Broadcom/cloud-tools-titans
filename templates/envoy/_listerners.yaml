@@ -26,7 +26,8 @@
   {{- $ingressIdleTimeout := $remoteMyApp.idleTimeout }}
   {{- $customTpls := $titanSideCars.customTpls }}
   {{- $customEnvoyTpls := $customTpls.envoy }}
-  {{- if and $ingress (not $ingress.enabled) }}
+  {{- $ingressEnabled := ternary $ingress.enabled true (hasKey $ingress "enabled") -}}
+  {{- if $ingressEnabled }}
     - name: {{ $appName }}-ingress
     {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.listener.v3.Listener

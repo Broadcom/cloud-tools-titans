@@ -17,17 +17,20 @@
   {{- end }}
   {{- $ingress := $titanSideCars.ingress  }}
   {{- $egress := $titanSideCars.egress  }}
-  {{- if or (and $ingress (not $ingress.enabled)) (and $egress (not $egress.enabled)) }}
-    {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
-    {{- if $useDynamicConfiguration }}
-      {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
+  {{- $ingress := $titanSideCars.ingress  }}
+  {{- $egress := $titanSideCars.egress  }}
+  {{- $ingressEnabled := ternary $ingress.enabled true (hasKey $ingress "enabled") -}}
+  {{- $egressEnabled := ternary $egress.enabled true (hasKey $egress "enabled") -}}
+  {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
+  {{- if $useDynamicConfiguration }}
+    {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
 envoy.yaml: |
   node:
     cluster: {{ $appName }}
     id: {{ printf "%s-id" $appName }}
 
   dynamic_resources:
-        {{- if $supportPathConfigSource }}
+    {{- if $supportPathConfigSource }}
     cds_config:
       path_config_source: 
         path: {{ printf "%s/cds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
@@ -38,12 +41,12 @@ envoy.yaml: |
         path: {{ printf "%s/lds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
         watched_directory: 
           path: {{ (trimSuffix "/" $envoyConfigFolder) }}
-         {{- else }}
+    {{- else }}
     cds_config:
       path: {{ printf "%s/cds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
     lds_config:
       path: {{ printf "%s/lds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
-         {{- end }}
+    {{- end }}
   admin:
     access_log_path: /dev/stdout
     address:
@@ -63,13 +66,13 @@ envoy.yaml: |
 
 lds.yaml: |
   resources:
-      {{- include "titan-mesh-helm-lib-chart.envoy.listeners" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.listeners" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
 
 cds.yaml: |
   resources:
-      {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration) }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
       
-    {{- else -}}
+  {{- else -}}
 envoy.yaml: |
   admin:
     access_log_path: /dev/stdout
@@ -87,15 +90,14 @@ envoy.yaml: |
             address: 127.0.0.1
             port_value: {{ $envoyStatsPort }}
             protocol: UDP
-      {{- if $envoy.statsConfigRaw }}
+    {{- if $envoy.statsConfigRaw }}
   stats_config:
       {{- $envoy.statsConfigRaw | toYaml | nindent 2 }}
-      {{- end }}
+    {{- end }}
   static_resources:
     clusters:
-      {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration) }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
     listeners:
-      {{- include "titan-mesh-helm-lib-chart.envoy.listeners" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
-    {{- end }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.listeners" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
   {{- end }}
 {{- end }}
