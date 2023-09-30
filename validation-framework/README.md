@@ -14,6 +14,7 @@
 ## Prepare your test environment
 * Copy values.yaml from your service helm chart here
 * Create a values-env-override.yaml file to change default images for your test environment
+* Copy custome helm template functions to templates folder if your service use custom envoy template for custom envoy filter
   * See **exmaple of values-env-override.yaml** for detail
 * Download the desired umbrella helm chart to this folder
 

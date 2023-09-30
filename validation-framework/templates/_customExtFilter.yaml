@@ -1,0 +1,33 @@
+{{- define "envoy.filters.http.dynamic_routing_manager" }}
+  {{- $config :=  .config | default dict }}
+  {{- $customExtAuthFilterEnabled :=  ternary $config.enabled true (hasKey $config "enabled") }}
+  {{- if $customExtAuthFilterEnabled }}
+- name: envoy.filters.http.ext_authz
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+    http_service:
+      server_uri:
+        uri: {{ $config.serviceUrl | default "http://127.0.0.1:8084" }}
+        cluster: {{ $config.cluster | default "external-auth" }}
+        timeout: {{ $config.timeOut | default "0.25s" }}
+      path_prefix: {{ $config.pathPrefix | default "/v1/requestvalidator/authorize" | quote }}
+    {{- $allowRequestHeaders := $config.allowRequestHeaders | default list -}}
+    {{- if eq (len $allowRequestHeaders) 0  }}
+      {{- $allowRequestHeaders = append $allowRequestHeaders (dict "prefix" "x-epmp-") -}}
+    {{- end }}
+      authorization_request:
+        allowed_headers:
+          patterns:
+            {{ $allowRequestHeaders | toYaml }}
+    {{- $allowResponseHeaders := $config.allowResponseHeaders | default list -}}
+    {{- if eq (len $allowResponseHeaders) 0 }}
+      {{- $allowResponseHeaders = append $allowResponseHeaders (dict "prefix" "x-epmp-") -}}
+    {{- end }}
+      authorization_response:
+        allowed_upstream_headers:
+          patterns:
+            {{ $allowResponseHeaders | toYaml }}
+    clear_route_cache: {{ $config.clearRouteCache | default "true" }}
+    failure_mode_allow: {{ $config.failureModeAllow | default "false" }}
+  {{- end }}
+{{- end }}
