@@ -19,6 +19,7 @@
   {{- end }}
 {{- end }}
 {{- $titanSideCars := .titanSideCars }}
+
 {{- if $titanSideCars }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- if $envoy }}
@@ -26,6 +27,19 @@
     {{- if hasKey $clusters "remote-myapp" }}
       {{- $remoteMyApp := index $clusters "remote-myapp" }}
       {{- if $remoteMyApp }}
+        {{- $canaryEnabled := ternary (ternary .canary.enabled true (hasKey .canary "enabled")) false (hasKey . "canary") }}
+        {{- $canary := .canary }}
+        {{- if and $canaryEnabled (regexMatch $canary.labelRegex $clusterName) }}
+          {{- $routes := $remoteMyApp.routes }}
+          {{- range $routes }}
+            {{- $match := .match }}
+            {{- if $match }}
+              {{- $headers := $match.headers | default list }}
+              {{- $headers = append $headers (dict "key" $canary.routeHeader "eq" (trunc -9 $clusterName)) }}
+              {{- $_ := set $match "headers" $headers }}        
+            {{- end }}
+          {{- end }}
+        {{- end }}
         {{- $cluster := dict $clusterName $remoteMyApp -}}
           {{- printf "\n" }}
           {{- print (toYaml $cluster) }}

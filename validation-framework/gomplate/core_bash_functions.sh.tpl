@@ -197,6 +197,7 @@ function check_test_call() {
 }
 
 function test_check() {
+  set -x
   if [[ $test_result !=  "succeed" ]]
   then
     echo "Skip this test check due to previous test check failed" >> /tests/logs/error.log
@@ -283,6 +284,7 @@ function test_check() {
       fi
     fi
   fi
+  set +x
 }
 
 {{- end -}}

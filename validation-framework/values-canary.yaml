@@ -1,0 +1,5 @@
+canary:
+  enabled: true
+  labelRegex: "^[A-Za-z0-9._-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" 
+  labelIndex: -10
+  routeHeader: x-epmp-route-by-release

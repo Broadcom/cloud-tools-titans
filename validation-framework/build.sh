@@ -21,11 +21,12 @@ function preCheck {
     exit 1
   fi
 
-  if [ -f "values-env-override.yaml" ] && [ -f "values.yaml" ]; then
+  if [ -f "values-env-override.yaml" ] && [ -f "values.yaml" ] && [ -f "values-canary.yaml" ]; then
     echo "Found service's values.yam"
     echo "Use enviornment overrides from values-env-override.yaml"
+    echo "Use canary overrides from values-canary.yaml"
   else
-    echo "Unable to find required vaules.yaml and/or values-env-override.yaml in the current directory"
+    echo "Unable to find required vaules.yaml, values-env-override.yaml and  values-canary.yaml in the current directory"
     echo "Please see the README.md"
     exit 1
   fi
@@ -91,7 +92,7 @@ function processAIOAdvance {
   ./handlalice.sh
   for file in ./build/charts/*; do
     if [[ -d "$file" ]]; then
-      gotpl ../gomplate/extract_routes.tpl -f "$file/values.yaml" --set cluster="$(basename $file)" >> clusters.yaml
+      gotpl ../gomplate/extract_routes.tpl -f "$file/values.yaml" -f ../values-canary.yaml --set cluster="$(basename $file)" >> clusters.yaml
     fi
   done
   gotpl ../gomplate/build_cluster.tpl -f clusters.yaml > ../values-test-clusters.yaml

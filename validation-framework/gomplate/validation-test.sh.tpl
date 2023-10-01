@@ -1,13 +1,16 @@
 {{- $titanSideCars := .titanSideCars }}
 {{- if $titanSideCars }}
+  {{- $envoy := $titanSideCars.envoy }}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
   {{- $service := .service }}
   {{- $validation := $titanSideCars.validation }}
-  {{- $clusters := $validation.clusters | default dict }}
-  {{- $envoy := $titanSideCars.envoy }}
+  {{- $_ := set $envoy "clusters" (mergeOverwrite (deepCopy $envoy.clusters) $validation.clusters) -}}
+  {{- $clusters := $envoy.clusters }}
+  {{- $localMyApp := index $clusters "local-myapp" }}
+  {{- $gatewayEnabled := ternary ($localMyApp.enabled | default true) false (hasKey $localMyApp "gateway") }}
   {{- $counter := 0 -}}
-  {{- if or (hasKey $ingress "routes") (hasKey $egress "routes") }}
+  {{- if or $gatewayEnabled (hasKey $ingress "routes") (hasKey $egress "routes") }}
 #!/bin/bash
 
 mkdir -p /tests/logs
@@ -90,6 +93,21 @@ echo "" >> /tests/logs/report.txt
       {{- end }}
     {{- end }}
   {{- end }}
+
+  {{- if $gatewayEnabled }}
+    # Process gateway routings
+    {{- range $cluster, $clusterValue := $clusters }}
+      {{- if and (ne $cluster "remote-myapp") (not (hasPrefix "local-" $cluster)) }}
+        {{- $routes := $clusterValue.routes }}
+        {{- range $routes }}
+          {{- printf "# Gateway routing -> host:%s - routing: %s\n" $cluster . }}
+          {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "gateway" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+          {{- $counter = add1 $counter -}}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+
   {{- printf "echo %s >> %s\n" ("Summary:" | quote) ("/tests/logs/report.txt" | quote) }}
   {{- printf "echo %s >> %s\n" ("  Completed $testCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
   {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}

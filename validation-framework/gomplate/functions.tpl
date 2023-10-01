@@ -12,7 +12,7 @@
       {{- if hasKey $routing "route" -}}
         {{- $rtest = true -}}
       {{- end -}}
-    {{- else if eq $direction "egress" -}}
+    {{- else -}}
       {{- $rtest = true -}}
     {{- end -}}
     {{- if $rtest -}}
@@ -235,7 +235,7 @@
           {{- if eq  $hdrStr "" -}}
             {{- $hdrStr = printf "-H %s:%s" $k $v -}}
           {{- else -}}
-            {{- $hdrStr = printf "%s %s:%s" $hdrStr $k $v -}}
+            {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
           {{- end -}}
       {{- end -}}
       {{- $usePreviousTokenCall := false }}
