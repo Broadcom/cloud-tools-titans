@@ -2,6 +2,7 @@
 {{- if $titanSideCars }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $ingress := $titanSideCars.ingress }}
+  {{- template "titan-mesh-helm-lib-chart.outbund.import" }}
   {{- $egress := $titanSideCars.egress }}
   {{- $service := .service }}
   {{- $validation := $titanSideCars.validation }}
