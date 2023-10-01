@@ -1,5 +1,5 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.canary.service" -}}
-  {{- $releaseLabelPattern := "^[a-z-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" -}}
+  {{- $releaseLabelPattern := "^[A-Za-z0-9._-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" -}}
   {{- if regexMatch $releaseLabelPattern . -}}
     {{- $serviceName := substr 0 (sub (len .  | int64) (len "-0000-00-0" | int64) | int) . -}}
     {{- $releaseLabel := substr (add1 (len $serviceName | int64) | int) (len .) . -}}
