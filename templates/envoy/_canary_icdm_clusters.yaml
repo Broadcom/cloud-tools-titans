@@ -1,10 +1,19 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.canary.icdm.clusters" -}}
-  {{- $titanSideCars := .titanSideCars | default dict -}}
   {{- $icdmService := .service | default dict -}}
   {{- $icdmInbound := .inbound | default dict -}}
   {{- $icdmOutbound := .outbound | default dict -}}  
-  {{- $envoy := $titanSideCars.envoy | default dict -}}
-  {{- $clusters := $envoy.clusters | default dict -}}
+  {{- if not (hasKey . "titanSideCars") -}}
+    {{- $_ := set . "titanSideCars" (dict "envoy" (dict "clusters" dict)) -}}
+  {{- end -}}
+  {{- $titanSideCars := .titanSideCars -}}
+  {{- if not (hasKey $titanSideCars "envoy") -}}
+    {{- $_ := set $titanSideCars "$envoy" (dict "clusters" dict) -}}
+  {{- end -}}
+  {{- $envoy := $titanSideCars.envoy -}}
+  {{- if not (hasKey $envoy "clusters") -}}
+    {{- $_ := set $envoy "clusters" dict -}}
+  {{- end -}}
+  {{- $clusters := $envoy.clusters -}}
   {{- $icdmClustersProcessedCount := $titanSideCars.icdmClustersProcessedCount | default 0 -}}
   {{- $icdmClustersConversionCount := $titanSideCars.icdmClustersConversionCount | default 0 -}}
   {{- if lt $icdmClustersConversionCount 1 -}}
@@ -46,7 +55,7 @@
     {{- if ne $healthCheckPath "" -}}
       {{- $localMyApp := get $clusters "local-myapp" -}}
       {{- if not (hasKey $clusters "local-myapp") -}}
-        {{- $_ := set $envoy "local-myapp" (dict "healthChecks" (dict "path" $healthCheckPath "port" $port)) -}}
+        {{- $_ := set $clusters "local-myapp" (dict "healthChecks" (dict "path" $healthCheckPath "port" $port)) -}}
       {{- else -}}
         {{- $_ := set $localMyApp "healthChecks" (dict "path" $healthCheckPath "port" $port) -}}
       {{- end -}}

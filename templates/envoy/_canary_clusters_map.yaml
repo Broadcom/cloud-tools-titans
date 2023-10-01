@@ -1,0 +1,27 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.canary.clusters.map" -}}
+  {{- $envoy := .envoy -}}
+  {{- $clusters := $envoy.clusters -}}
+  {{- if not (hasKey $envoy "canaryClusters") -}}
+    {{- $releaseBaseLabel := "0000-00-0" -}}
+    {{- $releaseLabelPattern := "^[A-Za-z0-9-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" -}}
+    {{- $canaryClusters := dict -}}
+    {{- range $cluster, $value := $clusters -}}
+      {{- if and (ne $cluster "remote-myapp") (not (hasPrefix "local-" $cluster)) -}}
+        {{- $serviceName := $cluster -}}
+        {{- $releaseLabel := $releaseBaseLabel -}}
+        {{- if regexMatch $releaseLabelPattern $cluster -}}
+          {{- $releaseLabel = trunc -9 $cluster -}}
+          {{- $serviceName = trimSuffix $releaseLabel $cluster | trimSuffix "-" -}}
+        {{- end -}}
+        {{- $versionRoutes := dict "routes" $value.routes -}}
+        {{- if hasKey $canaryClusters $serviceName -}}
+          {{- $cluster := index $canaryClusters $serviceName -}}
+          {{- $_ := set $cluster $releaseLabel $versionRoutes -}}
+        {{- else -}}
+          {{- $_ := set $canaryClusters $serviceName (dict $releaseLabel $versionRoutes) -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- $_ := set $envoy "canaryClusters" $canaryClusters -}}
+  {{- end -}}
+{{- end -}}

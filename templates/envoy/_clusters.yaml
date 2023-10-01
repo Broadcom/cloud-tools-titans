@@ -176,7 +176,7 @@
           {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
           {{- end }}
-          {{- $clusterValue := mergeOverwrite (deepCopy $remoteApp) $value }}
+          {{- $clusterValue := mergeOverwrite (deepCopy ($remoteApp | default dict)) $value }}
           {{- if and $validationEnabled (not (hasPrefix "local-configured-" $cluster)) -}}
             {{- $_ := set $clusterValue "address" "myapp" -}}
             {{- $_ := set $clusterValue "targetPort" "8080" -}}
