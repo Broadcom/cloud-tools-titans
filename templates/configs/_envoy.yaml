@@ -17,12 +17,14 @@
   {{- end }}
   {{- $ingress := $titanSideCars.ingress  }}
   {{- $egress := $titanSideCars.egress  }}
+  {{- $ingress := $titanSideCars.ingress  }}
+  {{- $egress := $titanSideCars.egress  }}
   {{- $ingressEnabled := ternary $ingress.enabled true (hasKey $ingress "enabled") -}}
   {{- $egressEnabled := ternary $egress.enabled true (hasKey $egress "enabled") -}}
   {{- if or $ingressEnabled $egressEnabled }}
-    {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
-    {{- if $useDynamicConfiguration }}
-      {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
+  {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
+  {{- if $useDynamicConfiguration }}
+    {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
 envoy.yaml: |
   node:
     cluster: {{ $appName }}
@@ -99,4 +101,5 @@ envoy.yaml: |
     listeners:
     {{- include "titan-mesh-helm-lib-chart.envoy.listeners" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" $useDynamicConfiguration "appName" $appName) }}
   {{- end }}
+{{- end }}
 {{- end }}

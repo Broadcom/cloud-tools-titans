@@ -2,6 +2,11 @@
   {{- $titanSideCars := .titanSideCars }}
   {{- $appName := .appName -}}
   {{- $direction := .direction -}}
+  {{- $validation := $titanSideCars.validation }}
+  {{- $validationEnabled := false }}
+  {{- if $validation }}
+    {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") }}
+  {{- end }}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
@@ -93,7 +98,7 @@
                       substitution: {{ $clusterRoute.regexRewrite.substitution }}
             {{- end }}
                     cluster: {{ $route.cluster }}
-            {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite }}
+            {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite (and $validationEnabled $gatewayEnable) }}
                     auto_host_rewrite: true
             {{- end }}
                     retry_policy:
@@ -136,7 +141,7 @@
                         regex: {{ $route.regexRewrite.pattern }}
                       substitution: {{ $route.regexRewrite.substitution }}
             {{- end }}
-            {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite }}
+            {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite (and $validationEnabled $gatewayEnable) }}
                     auto_host_rewrite: true
             {{- end }}
                     retry_policy:
