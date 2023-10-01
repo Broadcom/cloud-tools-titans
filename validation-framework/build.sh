@@ -152,6 +152,7 @@ function buildIntegrationTests {
 }
 
 function startupEnv {
+  cp -r config tests
   instance="validation-$RANDOM"
   docker-compose -p "$instance" up -d
 }

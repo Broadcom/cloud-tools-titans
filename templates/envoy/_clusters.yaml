@@ -177,7 +177,7 @@
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
           {{- end }}
           {{- $clusterValue := mergeOverwrite (deepCopy $remoteApp) $value }}
-          {{- if $validationEnabled -}}
+          {{- if and $validationEnabled (not (hasPrefix "local-configured-" $cluster)) -}}
             {{- $_ := set $clusterValue "address" "myapp" -}}
             {{- $_ := set $clusterValue "targetPort" "8080" -}}
             {{- $_ := set $clusterValue "port" "8080" -}}
@@ -248,7 +248,7 @@
               hostname: {{ $clusterHostname }}
               address:
                 socket_address:
-                  address: {{ ternary "127.0.0.1" $clusterIpAddress (hasPrefix "local-" $cluster) }}
+                  address: {{ $clusterIpAddress }}
             {{- if $gatewayEnable }}
                   port_value: {{ coalesce $clusterValue.targetPort $clusterValue.port "9443" }}
             {{- else }}

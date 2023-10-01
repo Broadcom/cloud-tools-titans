@@ -11,10 +11,16 @@
   {{- $redis := $containers.redis |default  (dict "image" "redislabs/redistimeseries:latest") }}
   {{- $engine := $containers.engine | default (dict "image" "cfmanteiga/alpine-bash-curl-jq:latest") }}
   {{- $tokenGenerator := index $containers "token-generator" }}
+  {{- $redisRequired := false }}
+  {{- $extauth := index $containers "extauth" }}
+  {{- if $extauth }}
+    {{- $redisRequired = true }}
+  {{- end }}
   {{- $ratelimitEnabled := false -}}
   {{- range $ingress.routes -}}
     {{- if .ratelimit -}}
       {{- $ratelimitEnabled = true -}}
+      {{- $redisRequired = true }}
     {{- end -}}
   {{- end -}}
 version: '2'
@@ -47,7 +53,7 @@ services:
     - warn
     - '--log-path'
     - /tests/logs/envoy.application.log
-  {{- if $ratelimitEnabled }}
+  {{- if $redisRequired }}
   redis:
     image: {{ $redis.image }}
     restart: always
@@ -58,7 +64,8 @@ services:
       - redis:/data
     networks:
       - envoymesh
-
+  {{- end }}
+  {{- if $ratelimitEnabled }}
   ratelimit:
     image: {{ $ratelimit.image }}
     command: /bin/ratelimit
@@ -104,6 +111,20 @@ services:
       - envoymesh
     environment:
       - PORT=8080
+  {{- end }}
+  {{- if $extauth }}
+  extauth:
+    image: {{ $extauth.image }}
+    command:
+    {{- $extauth.cmds | default (list "/usr/local/symantec/request-validator/requestvalidator" "-configDir" "/tests/config") | toYaml | nindent 6 }}
+    expose:
+     - "8080"
+    networks:
+      - envoymesh
+    environment:
+      - PORT=8080
+    volumes:
+      - ./tests:/tests
   {{- end }}
   engine:
     image: {{ $engine.image }}
