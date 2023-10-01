@@ -44,13 +44,13 @@
   {{- end }}
 
   {{- if not (hasKey $enrichment "identity_host") -}}
-    {{- $identity_host := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "clusters" $clusters "appName" $appName "service" "identity") -}}
+    {{- $identity_host := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "envoy" $envoy "appName" $appName "service" "identity") -}}
     {{- if ne $identity_host "identity" -}}
       {{- $_ := set $enrichment "identity_host" $identity_host -}}
     {{- end -}}
   {{- end -}}
   {{- if not (hasKey $enrichment "auth_host") -}}
-    {{- $auth_host := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "clusters" $clusters "appName" $appName "service" "authmgmt") -}}
+    {{- $auth_host := include "titan-mesh-helm-lib-chart.envoy.canary.cluster" (dict "envoy" $envoy "appName" $appName "service" "authmgmt") -}}
     {{- if ne $auth_host "authmgmt" -}}
       {{- $_ := set $enrichment "auth_host" $auth_host -}}
     {{- end -}}
