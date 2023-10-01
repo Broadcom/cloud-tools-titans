@@ -1,0 +1,1313 @@
+verbose: info
+apiVersion: v2
+logFolderPath: &logFolder /usr/local/tomcat/logs
+
+containers:
+  main:
+    image:
+      name: r3
+      tag: 1.147.11
+      pullPolicy: IfNotPresent
+    appFolderPath: /usr/local/tomcat
+    appFolderLibPath: /usr/local/tomcat/lib
+    appFolderConfPath: /usr/local/tomcat/lib
+    dataFolderPath: /data/
+    secretFolderPath: /secrets/
+    logFileName: r3_epmp_i.log
+    configFolderPath: &configFolder /usr/local/tomcat/config
+    imagePullPolicy: IfNotPresent
+    workingDir: /usr/local/tomcat
+    volumeMounts:
+      - name: configs
+        mountPath: /usr/local/symantec/r3_epmp_i/configs
+      - name: configs
+        mountPath: /usr/local/tomcat/lib/r3_epmp_i/application-override.properties
+        subPath: application-override.properties
+      - name: configs
+        mountPath: /usr/local/tomcat/lib/id_epmp_i_support-override.properties
+        subPath: id_epmp_i_support-override.properties
+      - name: configs
+        mountPath: /usr/local/tomcat/conf/server.xml
+        subPath: tomcat-server.xml
+      - name: configs
+        mountPath: /usr/local/tomcat/conf/web.xml
+        subPath: tomcat-web.xml
+      - name: configs
+        mountPath: /usr/local/tomcat/configs/logback.xml
+        subPath: logback.xml
+    command:
+      - dumb-init
+      - --
+      - catalina.sh
+      - run
+    envs:
+      CONFIG_FOLDER: *configFolder
+      LOG_FOLDER: *logFolder
+      JAVA_OPTS: "-Xmx256m -Xms256m -Dsun.net.inetaddr.ttl=60 -Dsun.net.inetaddr.negative.ttl=10 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.rmi.port=17264 -Dcom.sun.management.jmxremote.port=17264 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Djava.rmi.server.hostname=127.0.0.1 -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/usr/local/tomcat/logs/ -Xlog:gc=info:file=/usr/local/tomcat/logs/gc.log:time,level,tags:filecount=3,filesize=100m -Dlogback.configurationFile=/usr/local/tomcat/configs/logback.xml -Dlogging.config=file:/usr/local/tomcat/configs/logback.xml"
+
+collectd:
+  compatibility: 1
+  
+logging:
+  level:
+    root: warn
+    root_package: warn
+    service_package: info
+    service: info
+
+outbound:
+  gc:
+    enabled: true
+    namespacePtr: serviceNamespace
+    routeMatch:
+    - pathPrefix: /gc_epmp_i/
+  identity:
+    enabled: true
+    namespacePtr: serviceNamespace
+    routeMatch:
+    - pathPrefix: /id_epmp_i/
+  cnc:
+    enabled: false
+  r3:
+    enabled: true
+    routeMatch:
+    - pathPrefix: /r3_epmp_i/
+
+startupProbe:
+  failureThreshold: 50
+readinessProbe:
+  timeoutSeconds: 2
+  failureThreshold: 1
+livenessProbe:
+  timeoutSeconds: 2
+  failureThreshold: 12
+  
+
+service:
+  name: r3
+  blockExternalSystemTokens: False
+  exchangeMap:
+    enabled: true
+    exchangeMapTimeoutInterval: 50000
+    exchangeMapScanInterval: 30000
+  maxHeaderSize: 16384
+  keepAliveTimeout: -1
+  maxConcurrentStreams: 1024
+  maxConcurrentStreamExecution: 50
+  type: ClusterIP # optional, ClusterIP will be set as default
+  ports:
+    http:
+      port: 8080
+      healthCheckPath: '/r3_epmp_i/status'
+      http2Enabled: false
+mesh:
+  enabled: true
+inbound:
+  enabled: true
+  internal:
+    - uri: '/r3_epmp_i/status'
+      match: prefix
+      container: main
+      tokenCheck: false
+  public:
+    - uri: '/r3_epmp_i'
+      match: prefix
+      tokenCheck: false
+
+serviceTag: r3
+
+# backend information will be exposed to containers' through environmental varaibles
+# expose BACKEND_MYSQL_ADDR=mmysql.svc.cluster.local
+# expose BACKEND_MYSQL_PORT=3306
+backends:
+  vault:
+    enabled: True
+
+
+
+ratelimit:
+  enabled: false
+troubleshooting:
+  main:
+    enable: false
+    command:
+      - "sh"
+      - "-c"
+      - "touch /tmp/healthy; while true; do echo hello; sleep 10;done"
+
+  # allowedIps: 127.0.0.1, ::1, 0:0:0:0:0:0:0:1, 10.0.0.0/8, 100.122.0.0/16, 100.81.0.0/16, 100.73.0.0/16, 52.70.209.0/24, 52.7.88.0/24, 100.64.0.0/10, 172.16.0.0/12, 143.127.0.0/16, 155.64.0.0/1
+  #   6, 166.98.0.0/16, 198.19.224.0/19, 198.6.32.0/19, 213.156.160.0/19, 202.65.16.0/20, 209.112.112.0/20, 67.219.240.0/20, 63.245.192.0/20, 216.168.240.0/20, 216.10.192.0/20, 216.250.16.0/20, 95.131.104.0/21, 10
+  #   3.9.96.0/22, 198.153.192.0/22, 199.43.188.0/22, 199.58.156.0/22, 65.205.248.0/22, 194.106.220.0/23, 196.14.170.0/23, 198.153.190.0/23, 199.43.186.0/23, 199.43.192.0/23, 199.85.126.0/23, 192.251.86.0/24, 192.
+  #   92.94.0/24, 198.153.196.0/24, 198.187.197.0/24, 198.187.198.0/24, 199.43.185.0/24, 199.43.194.0/24, 199.85.125.0/24, 204.178.110.0/24, 216.35.137.128/25, 206.204.10.192/27, 192.168.0.0/16, 100.126.0.0/16
+
+
+terminationGracePeriodSeconds: 121
+
+canary:
+  enabled: true
+  labelRegex: "^[A-Za-z0-9._-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" 
+  labelLength: 10
+  routeHeader: x-epmp-route-by-release
+
+
+titanSideCars:
+  # customTpls:
+  #   envoy:
+  #     filters:
+  #     - name: envoy.filters.http.dynamic_routing_manager
+  #       config:
+  #         cluster: local-configured-dynamic-routing-manager
+  envoy:
+    livenessFailureThreshold: 8
+    livenessPeriodSeconds: 15
+    connectionDrainDuration: 120
+    clusters:
+      local-myapp: # reserved keyword
+        gateway:
+        # enable r3 envoy sidecar as the envoy-ingress gateway
+          enabled: true  
+          # use r3 as the fallback router if no matching static route is configured for incoming http requests 
+          defaultBackend: "local-myapp" 
+        retryPolicy:
+          retryOn: reset,connect-failure,refused-stream
+        connectionTimeout: 0.5s
+        healthChecks:
+          path: /r3_epmp_i/status
+          interval: 3s
+          timeout: 2s
+          unhealthyThreahold: 2
+      local-configured-dynamic-routing-manager:
+        scheme: HTTP
+        type: STATIC
+        retryPolicy:
+          retryOn: reset,connect-failure,refused-stream
+        connectionTimeout: 0.5s
+        port: 8084
+        healthChecks:
+          path: /v1/validatorMgmt/health
+          interval: 3s
+          timeout: 2s
+          unhealthyThreahold: 2
+      remote-myapp: # reserved keyword
+        dns_refresh_rate: 15s
+        retryPolicy:
+          retryOn: reset,connect-failure,refused-stream
+        healthChecks:
+          interval: 3s
+          timeout: 2s
+        # Settings for other mesh services to communicate with your service (envoy proxy)
+        routes:
+        - match:
+            prefix: /r3_epmp_i/
+  ingress:
+    enabled: true
+
+
+routing:
+  demo-service:
+    routes:
+      - route: /v1/demo-service
+        amqp: saep.demo.request.exchange
+      - route: /v2/pods
+    environments:
+      - ci
+      - dev
+  edr-liveshell-service:
+    routes:
+      - route: /v1/edr/liveshell
+        amqp: edr.liveshell.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-database-search-service:
+    routes:
+      - route: /edr/v1/search
+        amqp: edr.database.search.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-sandbox-auto-submission-service:
+    routes:
+      - route: /edr/v1/sandbox/autosubmission
+        amqp: edr.sandbox.auto.submission.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-sandbox-submission-service:
+    routes:
+      - route: /edr/v1/sandbox/submission
+        amqp: edr.sandbox.submission.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-sandbox-response-handler-service:
+    routes:
+      - route: /edr/v1/sandbox/response-handler
+        amqp: edr.sandbox.response.handler.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-endpoint-search-service:
+    routes:
+      - route: /edr/v1/endpoint/search
+        amqp: edr.endpointsearch.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-incident-rule-management-service:
+    routes:
+      - route: /edr/rule/v1
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-incident-management-service:
+    routes:
+      - route: /edr/incident/v1
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-lineage-service:
+    routes:
+      - route: /v1/edr/lineage
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-provisioning-service:
+    routes:
+      - route: /edr/v1/provisioning
+        amqp: edr.provioning.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-ui-service:
+    routes:
+      - route: /ui/edr/v1/
+        amqp: edr.ui.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-incident-connector-service:
+    routes:
+      - route: /edr/api/v1
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-incident-handler:
+    routes:
+      - route: /v1/edr/incident-handler
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  edr-incident-storage-service:
+    routes:
+      - route: /v1/edr/incidentstorage
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  opstate-ingestion-service:
+    routes:
+      - route: /v1/opstates/
+        amqp: saep.opstate.request.exchange
+      - route: /v2/opstates/
+      - route: /v1/opstates/bulk
+      - route: /v2/opstates/bulk
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  mdr-v2-service:
+    routes:
+      - route: /v2/mdr/
+      - route: /v3/mdr/
+      - route: /v3/assets/bulk/
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  cloud-adapter-aws-service:
+    routes:
+      - route: /cloud-platforms/aws/
+        amqp: cloud-adapter-aws-service.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  cloud-adapter-azure-service:
+    routes:
+      - route: /cloud-platforms/azure/
+        amqp: cloud-adapter-azure-service.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  cwp-ui-service:
+    routes:
+      - route: /ui/cwp/v1/
+        amqp: epmp.cwp_ui.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  hardening-frontend-service:
+    routes:
+      - route: /v1/hardening/front/
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  hardening-backend-service:
+    routes:
+      - route: /v1/hardening/back/
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  symone-ui-service:
+    routes:
+      - route: /ui/symone/
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  adsync-service:
+    routes:
+      - route: /epmp/v1/adsync
+      - route: /epmp/v2/adsync
+        amqp: epmp.adsyncservice.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  scheduler-service:
+    alias: scheduler-service-cp1
+    ciAlias: scheduler-service
+    routes:
+      - route: /epmp/v1/schedules
+        amqp: epmp.scheduler.exchange
+      - route: /epmp/v1/scheduler-notification
+        amqp: epmp.scheduler.notifications.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  common-command-service:
+    routes:
+      - route: /v1/ccs
+        amqp: saep.common.command.request.exchange
+      - route: /v1/endpoint-console/commands
+        amqp: saep.common.command.request.exchange.endpoint
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  aws-token-provider:
+    routes:
+      - route: /v1/awsp
+        amqp: saep.aws.request.exchange.token
+      - route: /v1/icdm/cloud-tokens
+        amqp: saep.aws.request.exchange.cloud-tokens
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  notification-aggregator-service:
+    routes:
+      - route: /icdm/v1/notifications
+        amqp: saep.notificationaggregator.exchange.notification
+      - route: /icdm/v1/notification-templates
+        amqp: saep.notificationaggregator.exchange.templates
+    environments:
+      - dev
+      - verify
+      - psr
+      - prod
+  flowable-integration-service:
+    routes:
+      - route: /v2/workflow
+        amqp: ses.common.workflow.integration.exchange
+    environments:
+      - ci
+      - dev
+  workflow-integration-service:
+    routes:
+      - route: /v1/workflow
+        amqp: ses.common.workflow.integration.exchange
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  common-workbench-service:
+    routes:
+      - route: /v1/workbench
+        amqp: ses.common.workbench.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  event-ingestion-service:
+    routes:
+      - route: /saep/v1/events
+        amqp: saep.cspevents.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  binary-upload-service:
+    routes:
+      - route: /v1/binary_upload/
+        amqp: saep.binaryupload.request.exchange
+      - route: /v1/binary_upload_notification/
+        amqp: saep.binaryupload.s3notification.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  binary-upload-service-hybrid:
+    routes:
+      - route: /v1/binary_upload_aws
+        amqp: saep.binaryupload.aws.hybrid.request.exchange
+      - route: /v1/binary_upload_notification_aws
+        amqp: saep.binaryupload.aws.hybrid.s3notification.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod      
+  file-insight-service:
+    routes:
+      - route: /v1/fileInsight
+        amqp: saep.file.insight.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  hash-importing-service:
+    routes:
+      - route: /v1/his
+        amqp: saep.hashimporting.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  rating-service:
+    routes:
+      - route: /v1/rating
+        amqp: saep.rating.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  assessment-service:
+    routes:
+      - route: /v1/assessment
+        amqp: saep.assessment.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  shadow-data-service:
+    routes:
+      - route: /v1/shadow_data
+        amqp: saep.shadowdata.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  sep-eg-upgrade-service:
+    routes:
+      - route: /v1/eg/migration
+        amqp: sep.ep.upgrade.migration
+      - route: /v2/eg/migration
+        amqp: sep.ep.upgrade.v2.migration
+      - route: /v1/eg/migration_jobs/aggregate
+        amqp: sep.ep.upgrade.v1.migration.jobs.aggregate
+      - route: /v1/eg/assets/aggregate
+        amqp: sep.ep.upgrade.v1.assets.aggregate
+      - route: /v1/eg/policies/aggregate
+        amqp: sep.ep.upgrade.v1.policies.aggregate
+      - route: /saep/v1/upgrade
+        amqp: sep.ep.upgrade
+      - route: /saep/v1/sepupgrade
+        amqp: sep.eg.v1.sepupgrade
+    environments:
+      - dev
+      - verify
+      - psr
+      - prod
+      - ci
+  sesc-sepm-orch-service:
+    routes:
+      - route: /v1/sepm/
+        amqp: saep.sepmorch.request.exchange
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+      - ci
+  sepm-bridge-feeder:
+    routes:
+      - route: /v1/sepm-bridge/
+        amqp: saep.sep.bridge.device.skip.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  common-policy-service:
+    routes:
+      - route: /v1/policy/policies
+        amqp: saep.commonpolicy.request.exchange
+      - route: /v1/policy/policygroups
+      - route: /v1/policy/assignments
+      - route: /v1/policy/external
+      - route: /v1/policy/assignments/assettypes
+      - route: /v1/policy/assignments/assetgroups
+      - route: /v1/policy/managedfeatures
+      - route: /v2/policy/applications
+        amqp: saep.common.policy.request.exchange
+      - route: /v2/policy/policies
+      - route: /v2/policy/policygroups
+      - route: /v2/policy/policytypes
+      - route: /v2/policy/provisions
+      - route: /v2/policy/assignments
+      - route: /v2/policy/managedfeatures
+      - route: /v2/policy/metadata
+      - route: /v2/policy/metadatas
+      - route: /v2/policy/assignments/assettypes      
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  licensing-service:
+    routes:
+      - route: /saep/v1/license
+        amqp: saep.licensing.request.exchange
+      - route: /saep/v2/license
+        amqp: saep.licensing.v2.request.exchange
+      - route: /saep/v3/license
+        amqp: saep.licensing.v3.request.exchange
+      - route: /saep/v1/license/create
+        amqp: saep.licensing.create.request.exchange
+      - route: /saep/v1/license/active-features/info
+        amqp: saep.licensing.feature.info.request.exchange
+      - route: /saep/v1/license/active-features
+        amqp: saep.licensing.active.features.request.exchange
+      - route: /saep/v1/license/allow-features
+        amqp: saep.licensing.active.features.request.exchange
+      - route: /saep/v1/customer
+        amqp: saep.licensing.customer.information.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  ses-content-management-service:
+    routes:
+      - route: /alliance/v1/liveupdate
+        amqp: alliance.liveupdate.content.request.exchange
+      - route: /alliance/v1/content
+        amqp: alliance.content.mgmt.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - prod
+  networkintegrity-service:
+    routes:
+      - route: /evergreen/v1/ccd/journeyline/provisioning
+        amqp: meg.ccd.journeyline.request.provisioning.exchange
+      - route: /evergreen/v1/networkintegrity/provisioning
+        amqp: meg.networkintegrity.request.exchange
+      - route: /evergreen/v1/networkintegrity/vpn
+        amqp: meg.networkintegrity.request.vpn.exchange
+      - route: /evergreen/v1/vpn
+        amqp: meg.vpn.request.exchange
+      - route: /evergreen/v1/networkintegrity/nis
+        amqp: meg.networkintegrity.request.nis.exchange
+      - route: /evergreen/v1/secure-cloud-access
+        amqp: meg.sca.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  intelligence-bridge-epmp:
+    routes:
+      - route: /v1/mecs/intelligence-bridge
+        amqp: mecs.intelligence.bridge
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  ses-mobile-service:
+    routes:
+      - route: /v1/ses_mobile
+        amqp: ses.mobile.service.exchange
+      - route: /v2/ses_mobile
+        amqp: ses.mobile.v2.service.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  mobile-aggregator-service:
+    routes:
+      - route: /v1/mobile-aggregator
+    environments:
+      - ci
+      - dev
+  os-assessment-service:
+    routes:
+      - route: /v1/os-assessment
+      - route: /v1/mobile-device/os
+    environments:
+      - ci
+      - dev
+  routing-service:
+    routes:
+      - route: /v1/mecs/routing-service
+        amqp: mecs.routing.request
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  airwatch-service:
+    routes:
+      - route: /v2/mecs/airwatch-service
+        amqp: mecs.airwatchservice.v2.request
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  ses-mdm-intune:
+    routes:
+      - route: /v1/mecs-intune-service
+        amqp: ses.mdm.intune.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  uem-mock-service:
+    routes:
+      - route: /v1/uem-mock-service
+    environments:
+      - ci
+      - dev
+      - psr
+  configuration-service:
+    routes:
+      - route: /v1/mecs/configuration-service
+        amqp: mecs.configuration.request
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  mobile-inventory-broker-service:
+    routes:
+      - route: /v2/mecs/mis
+        amqp: mecs.broker.mis.request.exchange
+      - route: /v1/mecs/mobile-inventory-broker-service
+        amqp: mecs.broker.request
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  app-control-service:
+    routes:
+      - route: /v1/app-control
+      - route: /v1/app-isolation
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  acm-processor:
+    routes:
+      - route: /v1/acm-processor
+    environments:
+      - dev
+      - psr
+      - verify
+      - prod
+  csp-broker-service:
+    routes:
+      - route: /v1/csp
+        amqp: saep.cspbroker.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  policy-artifact-service:
+    routes:
+      - route: /v1/pas
+        amqp: saep.policy-artifact.request.exchange
+      - route: /v2/pas
+        amqp: saep.policy-artifact.v2.request.exchange
+      - route: /v3/pas
+        amqp: saep.policy-artifact.v3.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  shadow-walker-service:
+    routes:
+      - route: /v1/shadow_walker
+        amqp: saep.shadowwalker.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  alerts-processing-service:
+    routes:
+      - route: /v2/alert-rules
+        amqp: ses.alert.rules.v2.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  inventory-query-service:
+    routes:
+      - route: /v1/iqs
+        amqp: saep.query.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  common-inventory-service:
+    routes:
+      - route: /v1/cis
+        amqp: saep.common.inventory.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  saep-provisioning-service:
+    routes:
+      - route: /saep/v1/provisioning/
+        amqp: saep.provisioning.request.exchange
+      - route: /saep/v2/provisioning/
+        amqp: saep.provisioning.v2.request.exchange
+      - route: /saep/v1/locale
+        amqp: icdm.provisioning.locale.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  reporting-service:
+    routes:
+      - route: /v2/reporting
+        amqp: ses.reporting.request.exchange
+      - route: /v3/reporting
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  reporting-object-service:
+    routes:
+      - route: /v4/reporting
+        amqp: ses.reporting.request.v4.exchange 
+    environments:
+      - ci
+      - dev
+  antimalware-service:
+    routes:
+      - route: /saep/v1/antimalware
+        amqp: saep.antimalware.request.exchange
+      - route: /saep/v2/antimalware
+      - route: /saep/v2/evergreen/provisioning
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  network-ips-service:
+    routes:
+      - route: /saep/v1/ips
+        amqp: saep.ips.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  firewall-service:
+    routes:
+      - route: /saep/v1/firewall
+        amqp: saep.firewall.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  exploit-mitigation-service:
+    routes:
+      - route: /saep/v1/mem
+        amqp: saep.mem.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  software-service:
+    routes:
+      - route: /epmp/v1/software
+        amqp: epmp.softwareservice.request.exchange
+      - route: /epmp/v3/connecttokens
+        amqp: epmp.softwareservice.connecttokens.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  connection-profile-service:
+    routes:
+      - route: /epmp/v1/connprofiles
+        amqp: sepc.connprofile.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  enrollment-service:
+    alias: enrollment-service-cp1
+    ciAlias: enrollment-service
+    routes:
+      - route: /v1/enrollment
+        amqp: ses.enrollment.request.exchange
+      - route: /v1/enrollment/agent/dlp
+        amqp: ses.enrollment.dlp.request.exchange
+      - route: /v1/enrollment/agent/ccd
+        amqp: ses.enrollment.ccd.request.exchange
+      - route: /v1/enrollment/agent/send/pin
+        amqp: ses.enrollment.agent.send.pin.request.exchange
+      - route: /v1/enrollment/hub
+        amqp: ses.enrollment.hub.request.exchange
+      - route: /v1/enrollment/email_domain
+        amqp: ses.enrollment.emaildomain.request.exchange
+      - route: /v1/enrollment/mobile
+        amqp: ses.mobile.enrollment.request.exchange
+      - route: /v1/unenrollment
+        amqp: ses.unenrollment.request.exchange
+      - route: /v2/bootstrap
+        amqp: ses.enrollment.bootstrap.request.exchange
+      - route: /v1/enrollment/provision
+        amqp: ses.enrollment.provision.request.exchange
+      - route: /v1/enrollment/state
+        amqp: ses.enrollment.state.request.exchange
+      - route: /v1/enrollment/email_auth
+        amqp: ses.enrollment.email.auth.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  asset-service:
+    routes:
+      - route: /v1/assets/
+        amqp: ses.assets.request.exchange
+      - route: /v1/assets/bulk
+        amqp: ses.assets-bulk-ops.request.exchange
+      - route: /v1/asset-groups
+        amqp: ses.asset-groups.request.exchange
+      - route: /v1/opstates_old
+        amqp: ses.asset-opstate.request.exchange
+      - route: /v1/status
+        amqp: ses.asset-status.request.exchange
+      - route: /v1/status/bulk
+        amqp: ses.asset-status-bulk.request.exchange
+      - route: /v1/installed_products
+        amqp: ses.installed-products.request.exchange
+      - route: /v1/supported_group_types
+        amqp: ses.supported-group-types.request.exchange
+      - route: /v1/asset-service/health
+        amqp: ses.asset-service-health.request.exchange
+      - route: /v2/assets
+        amqp: ses.assets.v2.request.exchange
+      - route: /v2/assets/devices
+        amqp: ses.assets.v2.devices.request.exchange
+      - route: /v2/assets/hubs
+      - route: /v2/assets/bulk
+        amqp: ses.assets.bulk.v2.request.exchange
+      - route: /v2/asset-groups
+        amqp: ses.asset-groups.v2.search.request.exchange
+      - route: /v2/asset-groups/bulk
+        amqp: ses.asset-groups.v2.request.exchange
+      - route: /v2/supported_group_types
+        amqp: ses.supported-group-types.v2.request.exchange
+      - route: /v2/asset-service/health
+        amqp: ses.asset-service.health.v2.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  discovery-service:
+    routes:
+      - route: /epmp/v1/discovery
+        amqp: sepc.discovery.request.exchange
+      - route: /epmp/v2/discovery
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  dnd-ui-service:
+    routes:
+      - route: /ui/dnd/v1
+        amqp: epmp.dnd.ui.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  device-integrity-service:
+    routes:
+      - route: /saep/v1/deviceintegrity
+        amqp: saep.deviceintegrity.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  device-control-service:
+    routes:
+      - route: /saep/v1/devicecontrol
+        amqp: saep.devicecontrol.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  portal-authorization-service:
+    routes:
+      - route: /v1/portal
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  topology-service:
+    routes:
+      - route: v1/tdad/topology
+        amqp: tdad.topology.service.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  forensics-service:
+    routes:
+      - route: v1/tdad/forensics
+        amqp: tdad.forensics.service.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  adgateway-service:
+    routes:
+      - route: v1/tdad-adgateway
+        amqp: tdad.adgateway.service.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  tdad-policy-service:
+    routes:
+      - route: v1/tdad-policy
+        amqp: tdad.policy.service.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  tdad-mask-service:
+    routes:
+      - route: v1/tdad-mask
+        amqp: tdad.mask.service.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  icdm-policy-service:
+    routes:
+      - route: /v2/policy/target_rules/provision
+        amqp: saep.policy.target.rule.provision.request.exchange
+      - route: /v2/policy/target_rules
+        amqp: saep.policy.target.rule.request.exchange
+      - route: /v3/policy/assignments
+        amqp: saep.policy.assignment.request.exchange
+      - route: /v3/policy/provisions
+        amqp: saep.policy.v3.provision.request.exchange
+      - route: /v3/policy/metadata
+        amqp: saep.policy.metadata.request.exchange
+      - route: /v3/policy/agent/notifications
+        amqp: saep.policy.agent.notifications.request.exchange
+      - route: /v3/policy/policies/libraries
+        amqp: saep.v3.library.policy.request.exchange
+      - route: /v3/policy/policies/agentpolicy/*/versions/*
+        amqp: saep.v3.agent.policy.request.exchange
+      - route: /v3/policy/managedfeatures
+        amqp: saep.policy.managed.request.exchange
+      - route: /v3/policy/metadatas
+        amqp: saep.policy.metadatas.request.exchange
+      - route: /v3/policy/external
+        amqp: saep.policy.v3.external.request.exchange
+      - route: /v3/policy/autoupgrade
+        amqp: saep.policy.v3.autoupgrade.request.exchange
+      - route: /v3/policy/import
+        amqp: saep.policy.v3.policy.import.request.exchange
+      - route: /v4/policy/policies
+        amqp: saep.policy.v4.policy.policies.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  endpoint-console-user-management-service:
+    routes:
+      - route: /v1/endpoint-console/user-mgmt
+        amqp: saep.user-mgmt.request.exchange
+      - route: /v1/endpoint-console/role-mgmt
+        amqp: saep.role-mgmt.request.exchange
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  adminapp-service:
+    routes:
+      - route: /saep/v1/adminapp/customer/provisioning
+        amqp: saep.adminapp.request.exchange.provisioning
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  policy-agent-service:
+    routes:
+      - route: /actuator/v1/policy-agent-service
+        amqp: policy.agent.service.actuator
+      - route: /v2/policy/managedproducts/31B0C880-0229-49E8-94C5-48D56B1BD7B9
+        amqp: saep.policy.agent.dcs.request.exchange
+      - route: /v3/policy/managedproducts
+        amqp: saep.policy.agent.request.exchange
+      - route: /v2/policy/managedproducts
+      - route: /v1/policy/managedproducts
+      - route: /v3/policy/download
+      - route: /v2/policy/download
+      - route: /v2/agentpolicy
+      - route: /v1/policy/policypackages
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  policy-agent-download-service:
+    routes:
+      - route: /actuator/v1/policy-agent-download-service
+        amqp: policy.agent.download.service.actuator
+      - route: /v5/policy/managedproducts
+      - route: /v4/policy/managedproducts
+      - route: /v2/policy/policypackages
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod
+  idp-ui-service:
+    routes:
+      - route: /ui/idp
+        amqp: epmp.idp_ui.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  um-ui-service:
+    routes:
+      - route: /ui/um
+        amqp: epmp.um_ui.request.exchange
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  client-application-service:
+    routes:
+      - route: /v1/client-applications
+      - route: /v2/client-applications
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  device-posture-service:
+    routes:
+      - route: /v1/device_compliance
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  asset-sync-service:
+    routes:
+      - route: /v1/sync
+    environments:
+      - ci
+      - dev
+  cdm-adminapp-ui-service:
+    routes:
+      - route: /v1/cdm-admin-ui/configuration
+    environments:
+      - ci
+      - dev
+      - verify
+      - psr
+      - prod
+  app-evaluation-service:
+    routes:
+      - route: /v1/app-evaluation-service
+    environments:
+      - ci
+      - dev
+      - psr
+      - verify
+      - prod

@@ -1,0 +1,209 @@
+titanSideCars:
+  issuers: 
+  - issuer: "http://token-generator"
+    jwks: http://token-generator/tokens/jwks
+    cluster: token-generator
+    locations:
+      fromHeaders:
+      - name: ":path"
+        valuePrefix: "/oauth2/tokens/"
+  envoy:
+    clusters:
+      token-generator:
+        scheme: HTTP
+        address: token-generator
+        port: 8080
+      local-configured-dynamic-routing-manager:
+        address: extauth
+        port: 8080
+  # customTpls:
+  #   envoy:
+  #     filters:
+  #     - name: envoy.filters.http.dynamic_routing_manager
+  #       config:
+  #         serviceUrl: http://extauth:8080
+  #         cluster: local-configured-dynamic-routing-manager
+    
+  validation:
+    environment:
+      ingress:
+        address: "https://proxy:9443"
+      containers:
+        proxy:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/envoy:1.26.1-redhat-fips-titan-proxy-wasm-bundle.22
+        ratelimit: 
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/ratelimit:v1.4.0.3-redhat-fips-master.1
+        token-generator:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/token-generator:0.205.5
+        myapp:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/echo-server:0.8.6
+        redis:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/redistimeseries:1.10.5
+        engine:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/alpine-bash-curl-jq:latest
+        extauth:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/dynamic-route-manager:0.1.1
+        
+    # tests:
+    #   - name: "Enrich test - header"
+    #     request:
+    #       path: "/identity/v1/authentication"
+    #       method: POST
+    #       headers:
+    #         - name: x-epmp-ratelimit-sp
+    #           value: "anker_test"
+    #       body:
+    #         email: aaa@test.com
+    #         password: ihavenopassword
+    #     result:
+    #       code: 
+    #        value: "200"
+    #       headers:
+    #       - name: x-epmp-wasm-enrich
+    #         value: "true"
+    #       body:
+    #         - path: ".request.headers.x-auth-audit-sp"
+    #           # op: eq # eq, ne, prefix, suffix, co, pr, npr
+    #           value: "anker_test" # N/A for pr and npr
+    #         # - path: ".request.domains[].status"
+    #         #   select: 
+    #         #     key: 
+    #         #   .=="domain1" 
+    #         #   op: eq # eq, ne, prefix, suffix, co, pr, npr
+    #         #   value: "active"
+    #         #   ### jq -r '.request.domains[] | select(.=="domain1") | .status'
+    #         # - path: ".request.domains[].partition_id"
+    #         #   select: .environment=="production" 
+    #         #   op: eq # eq, ne, prefix, suffix, co, pr, npr
+    #         #   value: "SEPC"
+    #         #   ### jq -r '.request.domains[] | select(.environment=="production") | .partition_id'
+  
+    #   - name: "RBAC positive test - token"
+    #     request:
+    #       path: "/identity/v3/jobs"
+    #       token:
+    #         scope: system
+    #         privs: "icds:maint:purge"
+    #       headers:
+    #         - name: x-epmp-customer-id
+    #           value: "test_customer"
+    #         - name: x-epmp-domain-id
+    #           value: "test_domain"
+    #     result: 
+    #       code:
+    #         op: in
+    #         values: 
+    #         - "200"
+    #         - "201"
+    #   - name: "RBAC negative test - token"
+    #     request:
+    #       path: "/identity/v3/jobs"
+    #       token:
+    #         scope: system
+    #         privs: "authentication"
+    #       headers:
+    #         - name: x-epmp-customer-id
+    #           value: "test_customer"
+    #         - name: x-epmp-domain-id
+    #           value: "test_domain"
+    #     result: 
+    #       code:
+    #         value: "403"
+
+  # integration:
+  #   environment:
+  #     ingress:
+  #       address: "https://api.saas.broadcomcloud.com"
+  #   tests:
+  #     - name: "well-known"
+  #       request:
+  #         path: "/.well-known/openid-configuration"
+  #       result:
+  #         code:
+  #           value: "200"
+  #         body:
+  #         - path: ".issuer"
+  #           op: eq
+  #           value: "https://api.saas.broadcomcloud.com"
+  #     - name: "well-known dev-stage"
+  #       request:
+  #         address: https://api.saas.broadcomcloud.com
+  #         path: "/.well-known/openid-configuration"
+  #       result:
+  #         code:
+  #           value: "200"
+  #         body:
+  #         - path: ".issuer"
+  #           op: eq
+  #           value: "https://api.saas.broadcomcloud.com"
+  #     - name: "oauth2 keys - find an element in []"
+  #       request:
+  #         address: https://api.saas.broadcomcloud.com
+  #         path: "/oauth2/keys"
+  #       result:
+  #         code:
+  #           value: "200"
+  #         body:
+  #         - path: ".keys[].kty"
+  #           select:
+  #             key: .kid
+  #             value: uNj9Ned4QkyR8oOpFCp4_A
+  #           op: eq
+  #           value: RSA
+  #     - name: "well-knows - has"
+  #       request:
+  #         address: https://api.saas.broadcomcloud.com
+  #         path: "/.well-known/openid-configuration"
+  #       result:
+  #         code:
+  #           value: "200"
+  #         body:
+  #         - path: ".scopes_supported[]"
+  #           op: has
+  #           value: email
+  #     - name: "well-knows - pr"
+  #       request:
+  #         address: https://api.saas.broadcomcloud.com
+  #         path: "/.well-known/openid-configuration"
+  #       result:
+  #         code:
+  #           value: "200"
+  #         body:
+  #         - path: ".scopes_supported"
+  #           op: pr
+  #     - name: "well-knows - npr"
+  #       request:
+  #         address: https://api.saas.broadcomcloud.com
+  #         path: "/.well-known/openid-configuration"
+  #       result:
+  #         code:
+  #           value: "200"
+  #         body:
+  #         - path: ".scopes_support"
+  #           op: npr
+  #     - name: "oauth2 keys - pr an attribute of element in []"
+  #       request:
+  #         address: https://api.saas.broadcomcloud.com
+  #         path: "/oauth2/keys"
+  #       result:
+  #         code:
+  #           value: "200"
+  #         body:
+  #         - path: ".keys[].kty"
+  #           select:
+  #             key: .kid
+  #             value: uNj9Ned4QkyR8oOpFCp4_A
+  #           op: pr
+  #     - name: "oauth2 keys - pr an attribute of element in []"
+  #       request:
+  #         address: https://api.saas.broadcomcloud.com
+  #         path: "/oauth2/keys"
+  #       result:
+  #         code:
+  #           value: "200"
+  #         body:
+  #         - path: ".keys[].ktb"
+  #           select:
+  #             key: .kid
+  #             value: uNj9Ned4QkyR8oOpFCp4_A
+  #           op: npr
