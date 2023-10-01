@@ -1,0 +1,45 @@
+{
+  "cacheconfig": {
+  "address":"redis",
+  "port":6379,
+  "password":"",
+  "timeout":100,
+  "remotettl":1440,
+  "clustered":false,
+  "ssl":true,
+  "localshards":16,
+  "ttl":1440
+  },
+  "custDirectory": {
+  "baseUrl":"https://api.dev.int.saas.broadcomcloud.com"
+  },
+  "logConfig": {
+  "level":"debug",
+  "path":"/tests/logs",
+  "file":"request_validator.log",
+  "maxFileSize":100,
+  "maxFileCount":5
+  },
+  "serviceuserconfig": {
+  "username":"r3User",
+  "password":"r3Password",
+  "customerId":"sepa",
+  "domainId":"sepa_us",
+  "authUrl":"https://api.dev.int.saas.broadcomcloud.com/identity/v1/authentication",
+  "timeout":100
+  },
+  "vaultconfig": {
+  "enabled":true,
+  "address":"http://vault-vault.sedicdsaas-vault.svc.cluster.local:8200",
+  "authMethod":"KUBERNETES",
+  "serviceTokenPath":"/var/run/secrets/kubernetes.io/serviceaccount/token",
+  "basePathServiceProperties": "cpe/keys/groups/svc-ses-vault-properties/group_secrets",
+  "basePathServiceUsers": "cpe/keys/groups/svc-saep-cc-adm/group_secrets",
+  "environmentUsers":"cc-dev-us-east4",
+  "environmentProperties":"sedsep-dev",
+  "timeout":1000
+  },
+  "site":"cc-dev-va",
+  "port":8080,
+  "previewMode": true
+  }
