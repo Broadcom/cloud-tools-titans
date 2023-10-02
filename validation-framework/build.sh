@@ -104,7 +104,7 @@ function prepareDockerCompose {
 }
 
 function prepareEnvoyConfigurations {
-  helm template validation . --output-dir "$PWD/tmp" -n validation -f values.yaml -f values-test.yaml -f values-env-override.yaml -f values-test-clusters.yaml
+  helm template validation . --output-dir "$PWD/tmp" -n validation -f values.yaml -f values-test.yaml -f values-env-override.yaml -f values-test-clusters.yaml -f values-canary.yaml
   rm -rf envoy
   rm -rf tests
   mkdir -p envoy/config

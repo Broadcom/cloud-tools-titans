@@ -176,18 +176,19 @@ titanSideCars:
           interval: 3s
           timeout: 2s
           unhealthyThreahold: 2
-      # local-configured-dynamic-routing-manager:
-      #   scheme: HTTP
-      #   type: STATIC
-      #   retryPolicy:
-      #     retryOn: reset,connect-failure,refused-stream
-      #   connectionTimeout: 0.5s
-      #   port: 8084
-      #   healthChecks:
-      #     path: /v1/validatorMgmt/health
-      #     interval: 3s
-      #     timeout: 2s
-      #     unhealthyThreahold: 2
+      local-configured-dynamic-routing-manager:
+        enabled: true
+        scheme: H2C
+        type: STATIC
+        retryPolicy:
+          retryOn: reset,connect-failure,refused-stream
+        connectionTimeout: 0.5s
+        port: 8084
+        healthChecks:
+          path: /v1/validatorMgmt/health
+          interval: 3s
+          timeout: 2s
+          unhealthyThreahold: 2
       remote-myapp: # reserved keyword
         dns_refresh_rate: 15s
         retryPolicy:
