@@ -1,13 +1,17 @@
 {{- $titanSideCars := .titanSideCars }}
+{{- $outbound := .outbound }}
+{{- $inbound := .inoutbound }}
+{{- $service := .service }}
 {{- if $titanSideCars }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $ingress := $titanSideCars.ingress }}
-  {{- template "titan-mesh-helm-lib-chart.outbund.import" }}
+  {{- template "titan-mesh-helm-lib-chart.outbund.import" (dict "titanSideCars" $titanSideCars "outbound" $outbound) }}
   {{- $egress := $titanSideCars.egress }}
-  {{- $service := .service }}
   {{- $validation := $titanSideCars.validation }}
   {{- $_ := set $envoy "clusters" (mergeOverwrite (deepCopy $envoy.clusters) $validation.clusters) -}}
+  {{- template "titan-mesh-helm-lib-chart.envoy.canary.clusters.map" (dict "envoy" $envoy) }}
   {{- $clusters := $envoy.clusters }}
+  {{- $canaryClusters := $envoy.canaryClusters }}
   {{- $localMyApp := index $clusters "local-myapp" }}
   {{- $gatewayEnabled := ternary ($localMyApp.enabled | default true) false (hasKey $localMyApp "gateway") }}
   {{- $counter := 0 -}}
@@ -87,9 +91,17 @@ echo "" >> /tests/logs/report.txt
           {{- end }}
         {{- end }}
         {{- if or (eq $cluster "proxy") (and (ne $cluster "proxy") (hasKey $clusters $cluster)) }}
-          {{- printf "# Egress -> host:%s - path: %s\n" $cluster . }}
+          {{- printf "# Egress -> host:%s - routing: %s\n" $cluster . }}
           {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "egress" "scheme" "http://proxy:9565" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
           {{- $counter = add1 $counter -}}
+        {{- else if or (eq $cluster "proxy") (and (ne $cluster "proxy") (hasKey $canaryClusters $cluster)) }}
+          {{- $foundCluster := index $canaryClusters $cluster }}
+          {{- range $label, $val := $foundCluster }}
+            {{- $clusterName := printf "%s-%s" $cluster $label }}
+            {{- printf "# Egress [canary] -> host:%s - routing: %s\n" $clusterName $val }}
+            {{- template "process_routing_validation" (dict "routing" (dict "route" (dict "cluster" $clusterName)) "cluster" $clusterName "clusters" $clusters "direction" "egress" "scheme" "http://proxy:9565" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+            {{- $counter = add1 $counter -}}
+          {{- end }}
         {{- end }}
       {{- end }}
     {{- end }}

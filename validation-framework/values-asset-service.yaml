@@ -1,0 +1,177 @@
+deployment:
+  terminationGracePeriodSeconds: 71
+  preStopSleep: 10
+  mesh:
+    enabled: true
+    inboundRoutingEnabled: true
+    preStopSleep: 60
+  replicaCount: 1
+  jvmHeapMin: 1024m
+  jvmHeapMax: 4096m
+  cpuLimit: 2000m
+  memoryLimit: 5632Mi
+  cpuRequest: 1500m
+  memoryRequest: 5632Mi
+  serviceLog:
+    serviceLogFile: asset-services.log
+    serviceAccessLogFile: asset-services-access.log
+    logTypeName: asset-service
+    accessLogTypeName: asset-service-access
+    serviceLevel: INFO
+  serviceCustomVolumes:
+    - name: jetstream-secret
+      secret:
+        secretName: sep-jetstream-jks-secret
+    - name: kafka-cluster-ca-cert
+      secret:
+        secretName: kafka-common-command-cluster-ca-cert-v2
+    - name: kafka-user-ca-cert
+      secret:
+        secretName: kafka-common-command-user-v2
+  serviceCustomVolumeMounts:
+    - mountPath: /usr/local/symantec/asset-service/jetstream/
+      name: jetstream-secret
+    - mountPath: /usr/local/symantec/asset-service/ccs-kafka-cluster-ca-cert/
+      name: kafka-cluster-ca-cert
+    - mountPath: /usr/local/symantec/asset-service/ccs-kafka-user-ca-cert/
+      name: kafka-user-ca-cert
+  filebeatContainer:
+    cpuLimit: 200m
+    cpuRequest: 200m
+
+
+properties:
+  assetMaxLimitPerDomain: 50
+  assetThreadPoolCount: 16
+  assetGroupHierarchyLevelMax: 10
+  assetGroupCountMax: 10000
+  assetUnenrollSendNotification: true
+  assetUnenrollSendAuditEvents: true
+  mdrBulkApiLimit: 500
+  mdrBulkIfMaxLimit: 20
+  commandKafkaBootstrapServers: kafka-common-command-kafka-bootstrap.sedsep-dev-kafka-command.svc.cluster.local:9093
+  commandKafkaSslTruststorePasswordLocation: ssl.truststore.password.v2
+  commandKafkaSslKeystorePasswordLocation: ssl.keystore.password.v2
+  commandKafkaPropertiesSecurityProtocol: SSL
+  commandKafkaSslTruststoreType: PKCS12
+  commandKafkaSslKeystoreType: PKCS12
+  commandKafkaChangeTopic: saep.command.change.topic
+  commandKafkaEnable: true
+  commandKafkaListenerBatch: true
+flyway:
+  dbUserSecretPath: mysql-operators/mysql-mdr/asset-user
+  flywayUserSecretPath: mysql-operators/mysql-mdr/admin-user
+
+vault:
+  group: svc-icdm-core-properties
+  prefixType: STANDARD
+  sourcesTpl: 9780b7a5ef89ab69939703a20557cd7a2f162215261296938b2ca13c0696cb99.asset.vault.path
+  additionalSources:
+    - mysql-operators/mysql-mdr/asset-user
+    - infra-common/v1
+    - kafka-operators/kafka-common-command
+
+# enable outbound calls
+outbound:
+  identity:
+    enabled: true
+  mdr-aurora:
+    enabled: true
+  mdr-v2-service:
+    enabled: true
+  endpoint-console-user-management-service:
+    enabled: true
+  antimalware-service:
+    enabled: true
+  common-command-service:
+    enabled: true
+  js-api:
+    enabled: true
+  portal-authorization-service:
+    enabled: true
+  client-application-service:
+    enabled: true
+  software-service:
+    enabled: true
+  saep-provisioning-service:
+    enabled: true
+  licensing-service:
+    enabled: true
+  scheduler-service-cp1:
+    enabled: true
+
+# objects required to enable HTTP inbound calls
+service:
+  serviceType: Headless
+  ports:
+    http:
+      port: 8080
+      healthCheckPath: '/actuator/health'
+      http2Enabled: false
+
+inbound:
+  public:
+    - uri: '/v1/assets'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v1/asset-groups'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v1/opstates_old'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v1/status'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v1/installed_products'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v1/supported_group_types'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v1/asset-service/health'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v2/assets'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v2/asset-groups'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v2/supported_group_types'
+      match: prefix
+      container: main
+      tokenCheck: false
+    - uri: '/v2/asset-service/health'
+      match: prefix
+      container: main
+      tokenCheck: false
+
+readinessProbe:
+  httpGet:
+    path: /actuator/health
+    port: 8080
+    scheme: HTTP
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  failureThreshold: 2
+
+livenessProbe:
+  servicehost: false
+  httpGet:
+    path: /actuator/health
+    port: 8080
+    scheme: HTTP
+  periodSeconds: 10
+  failureThreshold: 18
+
+nameOverride: asset-service-2023-06-0
