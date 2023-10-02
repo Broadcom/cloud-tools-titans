@@ -1,11 +1,8 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.matcher-route" }}
   {{- $route := .route -}}
+  {{- $clearKey := .clearKey | default "" -}}
   {{- $additionalHeaders := .headers -}}
   {{- $headers := list -}}
-  {{- range $additionalHeaders -}}
-    {{- $headers = append $headers . -}}
-  {{- end -}}
-
   {{- if .routing }}
     {{- if $route.prefix }}
   prefix: {{ $route.prefix | quote }}
@@ -34,8 +31,19 @@
   {{- else if $route.notMethod }}
     {{- $headers = append $headers (dict "key" ":method" "neq" $route.notMethod) }}
   {{- end }}
-  {{- range $route.headers }}
-    {{- $headers = append $headers . }}
-  {{- end }}
+  {{- if ne $clearKey "" -}}
+    {{- range $route.headers }}
+      {{- if ne .key $clearKey -}}
+        {{- $headers = append $headers . }}
+      {{- end -}}
+    {{- end }}
+    {{- range $additionalHeaders -}}
+      {{- $headers = append $headers . }}
+    {{- end -}}
+  {{- else -}}
+    {{- range $route.headers }}
+      {{- $headers = append $headers . }}
+    {{- end }}
+  {{- end -}}
   {{- include "titan-mesh-helm-lib-chart.envoy.matcher-headers" (dict "headers" $headers) | nindent 0 }}
 {{- end }}
