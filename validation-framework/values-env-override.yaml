@@ -10,19 +10,25 @@ titanSideCars:
   envoy:
     clusters:
       token-generator:
-        scheme: HTTP
+        scheme: H2C
         address: token-generator
         port: 8080
-      # local-configured-dynamic-routing-manager:
-      #   address: extauth
-      #   port: 8080
-  # customTpls:
-  #   envoy:
-  #     filters:
-  #     - name: envoy.filters.http.dynamic_routing_manager
-  #       config:
-  #         serviceUrl: http://extauth:8080
-  #         cluster: local-configured-dynamic-routing-manager
+      local-configured-dynamic-routing-manager:
+        enabled: true
+        scheme: H2C
+        address: extauth
+        port: 8080
+        healthChecks:
+          path: /v1/validatorMgmt/health
+
+
+  customTpls:
+    envoy:
+      filters:
+      - name: envoy.filters.http.dynamic_routing_manager
+        config:
+          serviceUrl: http://extauth:8080
+          cluster: local-configured-dynamic-routing-manager
     
   validation:
     environment:
@@ -41,8 +47,8 @@ titanSideCars:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/redistimeseries:1.10.5
         engine:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/alpine-bash-curl-jq:latest
-        # extauth:
-        #   image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/dynamic-route-manager:0.1.1
+        extauth:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/dynamic-route-manager:0.1.1
         
     # tests:
     #   - name: "Enrich test - header"
