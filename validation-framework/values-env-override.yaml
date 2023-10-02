@@ -15,6 +15,7 @@ titanSideCars:
         port: 8080
       local-configured-dynamic-routing-manager:
         enabled: true
+        type: STRICT_DNS
         scheme: H2C
         address: extauth
         port: 8080

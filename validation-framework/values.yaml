@@ -145,7 +145,7 @@ terminationGracePeriodSeconds: 121
 
 canary:
   enabled: true
-  labelRegex: "^[A-Za-z0-9._-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" 
+  labelRegex: "^[A-Za-z0-9-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" 
   labelLength: 10
   routeHeader: x-epmp-route-by-release
 
@@ -177,7 +177,8 @@ titanSideCars:
           timeout: 2s
           unhealthyThreahold: 2
       local-configured-dynamic-routing-manager:
-        scheme: HTTP
+        enabled: true
+        scheme: H2C
         type: STATIC
         retryPolicy:
           retryOn: reset,connect-failure,refused-stream
