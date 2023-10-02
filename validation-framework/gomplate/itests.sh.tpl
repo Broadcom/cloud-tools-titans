@@ -15,7 +15,7 @@ echo "" >> {{ $logFolder }}/report.txt
 exec 2> {{ $logFolder }}/itest-trace.log
 
 
-{{ template "test_cases_core_framework" (dict "environment" $environment "tests" $tests) }}
+{{ template "test_cases_core_framework" (dict "environment" $environment "tests" $tests "remote" true) }}
 
     {{- end }}
   {{- end }}

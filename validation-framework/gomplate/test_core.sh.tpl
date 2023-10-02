@@ -1,11 +1,19 @@
 {{- define "test_cases_core_framework" }}
   {{- $environment := .environment -}}
+  {{- $remote := .remote | default false }}
   {{- $tests := .tests -}}
   {{- if and $environment $tests }}
     {{- $ingress := $environment.ingress | default (dict "address" "envoy-ingress:9443") }}
     {{- $logFolder := $environment.logFolder | default "./logs" }}
 
 {{ template "validation_bash_core_functions" }}
+
+    {{- if $remote }}
+      {{- if hasKey $environment "token-generator" }}
+        {{- $address := $environment.address | default "https://token-generator:9443" }}
+        {{- printf "tokenGeneratorUrl=%s/tokens\n" $address }}
+      {{- end }}
+    {{- end }}
 
 mkdir -p {{ $logFolder }}
 
