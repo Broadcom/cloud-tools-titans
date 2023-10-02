@@ -33,8 +33,7 @@
   {{- $routes := list }}
   {{- if and $gatewayEnable (eq $direction "ingress") }}
     {{- $releaseBaseLabel := "0000-00-0" -}}
-    {{- $releaseClusters := include "titan-mesh-helm-lib-chart.envoy.canary.clusters" (dict "clusters" $clusters) | fromJson -}}
-    {{- range $cn, $cl := $releaseClusters -}}
+    {{- range $cn, $cl := $envoy.canaryClusters -}}
       {{- $route := dict "cluster" $cn -}}
       {{- $routes = append $routes (dict "route" $route) -}}
     {{- end -}}
