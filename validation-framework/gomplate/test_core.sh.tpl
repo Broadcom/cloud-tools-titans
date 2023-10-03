@@ -11,7 +11,7 @@
     {{- if $remote }}
       {{- if hasKey $environment "token-generator" }}
         {{- $address := $environment.address | default "https://token-generator:9443" }}
-        {{- printf "tokenGeneratorUrl=%s/tokens\n" $address }}
+        {{- printf "\ntokenGeneratorUrl=%s/tokens\n" $address }}
       {{- end }}
     {{- end }}
 
