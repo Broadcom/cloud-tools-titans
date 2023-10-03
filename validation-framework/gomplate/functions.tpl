@@ -151,17 +151,22 @@
   {{- $cmd := "" -}}
   {{- $method := "GET" -}}
   {{- $headers := dict -}}
+  {{- $matchAllRoutes := false }}
   {{- if hasKey $routing "match" -}}
     {{- $supported := true }}
     {{- $tokenCheck := $routing.tokenCheck | default false }}
     {{- $authType := "Bearer" }}
     {{- $rbac := $routing.rbac }}
+    {{- $enrich := $routing.enrich }}
     {{- $match := $routing.match -}}
     {{- if hasKey $match "method" -}}
       {{- $method = $match.method -}}
     {{- end -}}
     {{- if hasKey $match "prefix" -}}
       {{- $path = printf "%s/abc" (trimSuffix "/" $match.prefix) -}}
+      {{- if and (eq $match.prefix "/") (not (hasKey $match "headers")) }}
+        {{- $matchAllRoutes = true }}
+      {{- end }}
     {{- else if hasKey $match "path" -}}
       {{- $path = printf "%s" $match.path -}}
     {{- else if hasKey $match "regex" -}}
@@ -232,14 +237,15 @@
       {{- end }}
       {{- $hdrStr := "" }}
       {{- range $k, $v := $headers -}}
-          {{- if eq  $hdrStr "" -}}
-            {{- $hdrStr = printf "-H %s:%s" $k $v -}}
-          {{- else -}}
-            {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
-          {{- end -}}
+        {{- if eq  $hdrStr "" -}}
+          {{- $hdrStr = printf "-H %s:%s" $k $v -}}
+        {{- else -}}
+          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
+        {{- end -}}
       {{- end -}}
       {{- $usePreviousTokenCall := false }}
-      {{- if $rbac }}
+      {{- $callMade := false }}
+      {{- if or $rbac $enrich }}
         {{- $policies := $rbac.policies }}
         {{- range $policies }}
           {{- $name := .name }}
@@ -306,43 +312,102 @@
           {{- end }}
           {{- if $requestToken }}
             {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
-            {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
+            {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $path $matchAllRoutes) | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
             {{- printf "check_test_call\n" -}}
             {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
             {{- $usePreviousTokenCall = true }}
+            {{- $callMade = true }}
+          {{- end }}
+        {{- end }}
+        {{- $actions := $enrich.actions }}
+        {{- range $actions }}
+          {{- $action := .action }}
+          {{- if eq $action "extract" }}
+            {{- $privs := "" }}
+            {{- $scope := "" }}            
+            {{- $roles := "" }}            
+            {{- $cid := "" }}
+            {{- $did := "" }}
+            {{- $uri := "" }}
+            {{- $clid := "" }}         
+            {{- $requestToken := false }}
+            {{- if hasPrefix "token." (.from | default "") }}            
+              {{- $claim := trimPrefix "token." (.from | default "") }}
+              {{- $value := "" }}
+              {{- if ne (.if_contain | default "") "" }}
+                {{- $value = .if_contain }}
+              {{- else if ne (.if_start_with | default "") "" }}
+                {{- $value = printf "%sabc" .if_start_with }}
+              {{- else if ne (.if_eq | default "") "" }}
+                {{- $value = printf "%s" .if_eq }}
+              {{- else }}
+                {{- $value = "some_value" }}
+              {{- end }}
+              {{- if ne $value "" }}
+                {{- if eq $claim "scope" }}
+                  {{- $scope = $value }}
+                {{- else if eq $claim "privs" }}
+                  {{- $privs = $value }}
+                {{- else if eq $claim "roles" }}
+                  {{- $roles = $value }}
+                {{- else if eq $claim "customer_id" }}
+                  {{- $cid = $value }}
+                {{- else if eq $claim "domain_id" }}
+                  {{- $did = $value }}
+                {{- else if eq $claim "uri" }}
+                  {{- $uri = $value }}
+                {{- else if eq $claim "client_id" }}
+                  {{- $clid = $value }}
+                {{- end }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- end }}
+            {{- if $requestToken }}
+              {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
+              {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $path $matchAllRoutes) | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
+              {{- printf "check_test_call\n" -}}
+              {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .to)) }}
+              {{- printf "test_check %s %s\n" ((ternary .with "" (hasKey . "with")) | quote) ((ternary "eq" "pr" (hasKey . "with")) | quote) }}
+              {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+              {{- $usePreviousTokenCall = true }}
+              {{- $callMade = true }}
+            {{- end }}
           {{- end }}
         {{- end }}
       {{- else }}
         {{- printf "http_call %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) -}}
+        {{- $callMade = true }}
       {{- end }}
-      {{- if hasKey $routing "redirect" -}}
-        {{- $redirect := $routing.redirect -}}
-        {{- printf "check_test_call %s\n" (($redirect.responseCode | default "301") | quote) }}
-        {{- printf "echo %s >> %s\n" (printf "Test case[auto][redirect] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
-      {{- else if hasKey $routing "directResponse" -}}
-        {{- $directResponse := $routing.directResponse -}}
-        {{- printf "check_test_call %s\n" ($directResponse.status | quote) }}
-        {{- printf "echo %s >> %s\n" (printf "Test case[auto][directResponse] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
-      {{- else if hasKey $routing "route" -}}
-        {{- $route := $routing.route -}}
-        {{- if not $usePreviousTokenCall }}
+      {{- if $callMade }}
+        {{- if hasKey $routing "redirect" -}}
+          {{- $redirect := $routing.redirect -}}
+          {{- printf "check_test_call %s\n" (($redirect.responseCode | default "301") | quote) }}
+          {{- printf "echo %s >> %s\n" (printf "Test case[auto][redirect] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+        {{- else if hasKey $routing "directResponse" -}}
+          {{- $directResponse := $routing.directResponse -}}
+          {{- printf "check_test_call %s\n" ($directResponse.status | quote) }}
+          {{- printf "echo %s >> %s\n" (printf "Test case[auto][directResponse] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+        {{- else if hasKey $routing "route" -}}
+          {{- $route := $routing.route -}}
+          {{- if not $usePreviousTokenCall }}
+            {{- printf "check_test_call\n" }}
+          {{- end }}
+          {{- if hasKey $route "prefixRewrite" -}}
+            {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
+            {{- printf "test_check %s %s\n" ($route.prefixRewrite | quote) ("prefix" | quote) }}
+          {{- end -}}
+            {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
+            {{- printf "test_check %s\n" ($cluster | quote) }}
+          {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing - path rewrite]result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+        {{- else -}}
           {{- printf "check_test_call\n" }}
-        {{- end }}
-        {{- if hasKey $route "prefixRewrite" -}}
-          {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
-          {{- printf "test_check %s %s\n" ($route.prefixRewrite | quote) ("prefix" | quote) }}
+          {{- if ne $cluster "proxy" }}
+            {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
+            {{- printf "test_check %s\n" ($cluster | quote) }}
+          {{- end }}
+          {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
         {{- end -}}
-          {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
-          {{- printf "test_check %s\n" ($cluster | quote) }}
-        {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing - path rewrite]result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
-      {{- else -}}
-        {{- printf "check_test_call\n" }}
-        {{- if ne $cluster "proxy" }}
-          {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
-          {{- printf "test_check %s\n" ($cluster | quote) }}
-        {{- end }}
-        {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
-      {{- end -}}
+      {{- end }}
     {{- end }}
   {{- end -}}
 {{- end -}}
