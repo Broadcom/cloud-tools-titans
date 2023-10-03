@@ -7,11 +7,25 @@ titanSideCars:
       local-myapp:
         type: STRICT_DNS
         address: myapp
-        
+      default_validator:
+        type: STRICT_DNS
+        scheme: HTTP
+        address: myapp
+        port: 8080
+        routes:
+          - match:
+              prefix: /validate_any_route
+
   ratelimit:
     enabled: true
     address: ratelimit
     type: STRICT_DNS
-    
+  
+  egress:
+    additionalRoutes:
+      - route:
+          cluster: default_validator
+
   validation:
     enabled: true
+

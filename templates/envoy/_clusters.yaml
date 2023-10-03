@@ -99,7 +99,16 @@
         {{- $setupCluster = false }}
         {{- range $egress.routes }}
           {{- if .route }}
-            {{- if .route.cluster }} 
+            {{- if .route.cluster }}
+              {{- if eq .route.cluster $cluster }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- range $egress.additionalRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }}             
               {{- if eq .route.cluster $cluster }}
                 {{- $setupCluster = true  }}
               {{- end }}
@@ -113,6 +122,15 @@
                 {{- $setupCluster = true }}
               {{- end }}
             {{- end }}           
+          {{- end }}
+        {{- end }}
+        {{- range $ingress.additionalRoutes }}
+          {{- if .route }}
+            {{- if .route.cluster }}             
+              {{- if eq .route.cluster $cluster }}
+                {{- $setupCluster = true  }}
+              {{- end }}
+            {{- end }}
           {{- end }}
         {{- end }}
         {{- range $addAdditionalClustersForFilters }}
