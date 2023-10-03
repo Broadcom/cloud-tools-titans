@@ -142,6 +142,28 @@ function get_token() {
   # echo "jwt=$jwt"
 }
 
+function authenticate() {
+  local body=""
+  local headers=""
+  [[ ! -z "$1" ]] && body=$(cat $1)
+  [[ ! -z "$2" ]] && body=$2
+  [[ ! -z "$3" ]] && headers=$3
+  
+  set -x
+  if [[ ! -z $body ]] && [[ ! -z $headers ]];
+  then
+    jwt=""
+    http_call "POST" "$tokenGeneratorUrl" "$headers" "" "$body" "true"
+    if [ "$code" == "200" ];
+    then
+      jwt=$(echo $resp| jq -r '.access_token')
+    fi
+  else
+    echo "Error on authenticate: read credential" >> /tests/logs/error.log
+  fi 
+  set +x
+}
+
 function check_test_call() {
   {{/* if [[ -z "$1" ]]
   then

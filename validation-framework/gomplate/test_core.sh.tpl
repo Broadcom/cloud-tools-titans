@@ -10,8 +10,10 @@
 
     {{- if $remote }}
       {{- if hasKey $environment "token-generator" }}
-        {{- $address := $environment.address | default "https://token-generator:9443" }}
-        {{- printf "\ntokenGeneratorUrl=%s/tokens\n" $address }}
+        {{- $tokenService := index $environment "token-generator" }}
+        {{- $url := $tokenService.url | default "https://token-generator:9443/tokens" }}
+        {{- printf "\n\n" }}
+        {{- printf "tokenGeneratorUrl=%s\n" $url }}
       {{- end }}
     {{- end }}
 
@@ -44,6 +46,7 @@ badTestChecks=0
       {{- if $request }}
         {{- $address := $request.address | default $ingress.address }}
         {{- $token := $request.token }}
+        {{- $credential := $request.credential }}
         {{- $authType := "" }}
         {{- if $token }}
           {{- $privs := $token.privs | default "" }}
@@ -55,6 +58,23 @@ badTestChecks=0
           {{- $clid := $token.client_id | default "" }}
           {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
           {{- $authType = "Bearer" }}
+        {{- else if $credential }}
+          {{- $headers := $credential.headers }}
+          {{- $hdrStr := "" }}
+          {{- range $headers -}}
+            {{- if eq  $hdrStr "" -}}
+              {{- $hdrStr = printf "-H %s:%s" .name .value -}}
+            {{- else -}}
+              {{- $hdrStr = printf "%s -H %s:%s" $hdrStr .name .value -}}
+            {{- end -}}
+          {{- end -}}
+          {{- if hasKey $credential "data" }}
+            {{- printf "authenticate %s %s %s\n" ("" | quote) (($credential.data | toJson) | squote) ($hdrStr | squote) }}
+            {{- $authType = "Bearer" }}
+          {{- else if hasKey $credential "file" }}
+            {{- printf "authenticate %s %s %s\n" ($credential.file | quote) ("" | quote) ($hdrStr | squote) }}
+            {{- $authType = "Bearer" }}
+          {{- end }}
         {{- end }}
         {{- $headers := $request.headers }}
         {{- $hdrStr := "" }}
