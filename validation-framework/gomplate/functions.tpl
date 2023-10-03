@@ -151,6 +151,7 @@
   {{- $cmd := "" -}}
   {{- $method := "GET" -}}
   {{- $headers := dict -}}
+  {{- $matchAllRoutes := false }}
   {{- if hasKey $routing "match" -}}
     {{- $supported := true }}
     {{- $tokenCheck := $routing.tokenCheck | default false }}
@@ -163,6 +164,9 @@
     {{- end -}}
     {{- if hasKey $match "prefix" -}}
       {{- $path = printf "%s/abc" (trimSuffix "/" $match.prefix) -}}
+      {{- if and (eq $match.prefix "/") (not (hasKey $match "headers")) }}
+        {{- $matchAllRoutes = true }}
+      {{- end }}
     {{- else if hasKey $match "path" -}}
       {{- $path = printf "%s" $match.path -}}
     {{- else if hasKey $match "regex" -}}
@@ -308,7 +312,7 @@
           {{- end }}
           {{- if $requestToken }}
             {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
-            {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
+            {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $path $matchAllRoutes) | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
             {{- printf "check_test_call\n" -}}
             {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
             {{- $usePreviousTokenCall = true }}
@@ -360,7 +364,7 @@
             {{- end }}
             {{- if $requestToken }}
               {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
-              {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
+              {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $path $matchAllRoutes) | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
               {{- printf "check_test_call\n" -}}
               {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .to)) }}
               {{- printf "test_check %s %s\n" ((ternary .with "" (hasKey . "with")) | quote) ((ternary "eq" "pr" (hasKey . "with")) | quote) }}
