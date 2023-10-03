@@ -202,6 +202,50 @@ titanSideCars:
             prefix: /r3_epmp_i/
   ingress:
     enabled: true
+  egress:
+    routes:
+      - match:
+          prefix: /
+        enrich:
+          actions:
+          - action: extract
+            from: token.privs
+            to: x-epmp-partition-id
+            with: CP3_cc-dev-va
+            if_contain: dcs_manage_domain
+          - action: extract
+            from: token.privs
+            to: x-epmp-partition-id
+            with: CP3_cc-dev-va
+            if_contain: cwp_portal_access      
+      - route:
+          cluster: apihost-v2
+      - route:
+          cluster: identity
+      - route:
+          cluster: apihost
+      - route:
+          cluster: event-search
+      - route:
+          cluster: opstate-ingestion-service-ci
+      - route:
+          cluster: mdr-aurora
+      - route:
+          cluster: mdr-v2-service
+      - route:
+          cluster: cwp-ui-service-ci
+      - route:
+          cluster: srm
+      - route:
+          cluster: saep-provisioning-service-ci
+      - route:
+          cluster: sep-eg-upgrade-service-ci
+      - route:
+          cluster: nas-ci
+      - route:
+          cluster: policy-agent-service-ci
+      - route:
+          cluster: licensing-service-ci
 
 
 routing:
