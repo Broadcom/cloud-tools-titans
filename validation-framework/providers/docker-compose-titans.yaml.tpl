@@ -81,6 +81,7 @@ services:
       - RUNTIME_ROOT=/envoy
       - RUNTIME_SUBDIRECTORY=ratelimit
       - RUNTIME_WATCH_ROOT=false
+      - SHADOW_MODE=false
       - PORT=8070
   {{- end }}
   myapp:
