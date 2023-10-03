@@ -156,6 +156,7 @@
     {{- $tokenCheck := $routing.tokenCheck | default false }}
     {{- $authType := "Bearer" }}
     {{- $rbac := $routing.rbac }}
+    {{- $enrich := $routing.enrich }}
     {{- $match := $routing.match -}}
     {{- if hasKey $match "method" -}}
       {{- $method = $match.method -}}
@@ -239,7 +240,7 @@
           {{- end -}}
       {{- end -}}
       {{- $usePreviousTokenCall := false }}
-      {{- if $rbac }}
+      {{- if or $rbac $enrich }}
         {{- $policies := $rbac.policies }}
         {{- range $policies }}
           {{- $name := .name }}
@@ -301,6 +302,80 @@
                 {{- else if eq .op "ne" }}
                   {{- $requestToken = true }}
                 {{- end }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if $requestToken }}
+            {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
+            {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) -}}
+            {{- printf "check_test_call\n" -}}
+            {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+            {{- $usePreviousTokenCall = true }}
+          {{- end }}
+        {{- end }}
+        {{- $actions := $enrich.actions }}
+        {{- range $actions }}
+          {{- $action := .action }}
+          {{- $privs := "" }}
+          {{- $scope := "" }}            
+          {{- $roles := "" }}            
+          {{- $cid := "" }}
+          {{- $did := "" }}
+          {{- $uri := "" }}
+          {{- $clid := "" }}
+          {{- $from := .from }}          
+          {{- $to := .to }}          
+          {{- $with := .with }}          
+          {{- $if_contain := .if_contain }}          
+          {{- $requestToken := false }}
+
+          {{- if hasPrefix "token." $from }}            
+            {{- $claim := trimPrefix "token." $from }}
+            {{- if eq $claim "scope" }}
+              {{- if eq .op "co" }}
+                {{- $scope = .val }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "privs" }}
+              {{- if eq .op "co" }}
+                {{- $privs = ternary .val (printf "%s %s" $privs .val) (eq $privs "") }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "roles" }}
+              {{- if eq .op "co" }}
+                {{- $roles = ternary .val (printf "%s %s" $roles .val) (eq $roles "") }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "customer_id" }}
+              {{- if eq .op "eq" }}
+                {{- $cid = .val }}
+                {{- $requestToken = true }}
+              {{- else if eq .op "ne" }}
+                {{- $cid = randAlpha 8 }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "domain_id" }}
+              {{- if eq .op "eq" }}
+                {{- $did = .val }}
+                {{- $requestToken = true }}
+              {{- else if eq .op "ne" }}
+                {{- $did = randAlpha 8 }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "uri" }}
+              {{- if eq .op "eq" }}
+                {{- $uri = .val }}
+                {{- $requestToken = true }}
+              {{- else if eq .op "prefix" }}
+                {{- $uri = printf "%s%s" .val (randAlpha 3) }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "client_id" }}
+              {{- if eq .op "eq" }}
+                {{- $did = .val }}
+                {{- $requestToken = true }}
+              {{- else if eq .op "ne" }}
+                {{- $requestToken = true }}
               {{- end }}
             {{- end }}
           {{- end }}
