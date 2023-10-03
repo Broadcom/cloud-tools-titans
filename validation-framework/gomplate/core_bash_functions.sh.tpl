@@ -4,6 +4,8 @@
 credential="dGVzdDp0ZXN0"
 tokenGeneratorUrl="http://token-generator:8080/tokens"
 lookupresult=""
+testCallInfo=""
+expectedQueryPath=""
 {{/* testname="" */}}
 
 function http_call() {
@@ -22,6 +24,7 @@ function http_call() {
   [ -f "/tests/data/resp" ] && rm /tests/data/resp
   [[ $url == "https://"* ]] && insecure="--insecure"
   [[ $tokencall != "true" ]] && ((testCalls=testCalls+1))
+  testCallInfo="$method $url headers:$headers"
 
   if [ -z "$authtype" ]
   then
@@ -193,6 +196,8 @@ function check_test_call() {
     else
       echo "Unsupported operator $expectop for value $expectcode" 
     fi
+    echo "Test call[$testCallInfo] result[$test_result]" >> /tests/logs/report.txt   
+
   {{/* fi */}}
 }
 
@@ -283,6 +288,7 @@ function test_check() {
           test_result="failed"
       fi
     fi
+    echo "Test check on[$expectedQueryPath] result[$test_result] [$lookupresult $expectop $expectvalue]" >> /tests/logs/report.txt
   fi
   set +x
 }
