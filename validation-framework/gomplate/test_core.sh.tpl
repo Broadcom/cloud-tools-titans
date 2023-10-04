@@ -9,11 +9,11 @@
 {{ template "validation_bash_core_functions" }}
 
     {{- if $remote }}
-      {{- if hasKey $environment "token-generator" }}
-        {{- $tokenService := index $environment "token-generator" }}
+      {{- if hasKey $environment "tokenService" }}
+        {{- $tokenService := $environment.tokenService }}
         {{- $url := $tokenService.url | default "https://token-generator:9443/tokens" }}
         {{- printf "\n\n" }}
-        {{- printf "tokenGeneratorUrl=%s\n" $url }}
+        {{- printf "tokenServiceUrl=%s\n" ($url | quote) }}
       {{- end }}
     {{- end }}
 
@@ -46,8 +46,13 @@ badTestChecks=0
       {{- if $request }}
         {{- $address := $request.address | default $ingress.address }}
         {{- $token := $request.token }}
+        {{- $tokenUrl := $request.tokenUrl }}
         {{- $credential := $request.credential }}
         {{- $authType := "" }}
+        {{- if $tokenUrl }}
+          {{- printf "\n" }}
+          {{- printf "tokenServiceUrl=%s\n" ($tokenUrl | quote) }}        
+        {{- end }}
         {{- if $token }}
           {{- $privs := $token.privs | default "" }}
           {{- $scope := $token.scope | default "" }}            
@@ -59,21 +64,27 @@ badTestChecks=0
           {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
           {{- $authType = "Bearer" }}
         {{- else if $credential }}
-          {{- $headers := $credential.headers }}
-          {{- $hdrStr := "" }}
-          {{- range $headers -}}
-            {{- if eq  $hdrStr "" -}}
-              {{- $hdrStr = printf "-H %s:%s" .name .value -}}
-            {{- else -}}
-              {{- $hdrStr = printf "%s -H %s:%s" $hdrStr .name .value -}}
+          {{- $req := $credential.request }}
+          {{- if $req }}
+            {{- $headers := $req.headers }}
+            {{- $hdrStr := "" }}
+            {{- range $headers -}}
+              {{- if eq  $hdrStr "" -}}
+                {{- $hdrStr = printf "-H %s:%s" .name .value -}}
+              {{- else -}}
+                {{- $hdrStr = printf "%s -H %s:%s" $hdrStr .name .value -}}
+              {{- end -}}
             {{- end -}}
-          {{- end -}}
-          {{- if hasKey $credential "data" }}
-            {{- printf "authenticate %s %s %s\n" ("" | quote) (($credential.data | toJson) | squote) ($hdrStr | squote) }}
-            {{- $authType = "Bearer" }}
-          {{- else if hasKey $credential "file" }}
-            {{- printf "authenticate %s %s %s\n" ($credential.file | quote) ("" | quote) ($hdrStr | squote) }}
-            {{- $authType = "Bearer" }}
+            {{- $body := $req.body }}
+            {{- if $body }}
+              {{- if hasKey $body "data" }}
+                {{- printf "authenticate %s %s %s\n" ("" | quote) (($body.data | toJson) | squote) ($hdrStr | squote) }}
+                {{- $authType = "Bearer" }}
+              {{- else if hasKey $body "file" }}
+                {{- printf "authenticate %s %s %s\n" ($body.file | quote) ("" | quote) ($hdrStr | squote) }}
+                {{- $authType = "Bearer" }}
+              {{- end }}
+            {{- end }}
           {{- end }}
         {{- end }}
         {{- $headers := $request.headers }}

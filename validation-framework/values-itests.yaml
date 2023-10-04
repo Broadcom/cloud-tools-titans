@@ -1,0 +1,121 @@
+titanSideCars:
+  integration:
+    environment:
+      ingress:
+        address: "https://api.dev-stage.int.saas.broadcomcloud.com"
+      tokenService: 
+        url: "https://api.dev-stage.int.saas.broadcomcloud.com/identity/v1/authentication?response_type=token&scope=system"
+    tests:
+      - name: "well-known"
+        request:
+          address: "https://api.saas.broadcomcloud.com"
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".issuer"
+            op: eq
+            value: "https://api.saas.broadcomcloud.com"
+      - name: "well-known dev-stage"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".issuer"
+            op: eq
+            value: "https://api.saas.broadcomcloud.com"
+      - name: "oauth2 keys - find an element in []"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/oauth2/keys"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".keys[].kty"
+            select:
+              key: .kid
+              value: uNj9Ned4QkyR8oOpFCp4_A
+            op: eq
+            value: RSA
+      - name: "well-knows - has"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".scopes_supported[]"
+            op: has
+            value: email
+      - name: "well-knows - pr"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".scopes_supported"
+            op: pr
+      - name: "well-knows - npr"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/.well-known/openid-configuration"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".scopes_support"
+            op: npr
+      - name: "oauth2 keys - pr an attribute of element in []"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/oauth2/keys"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".keys[].kty"
+            select:
+              key: .kid
+              value: uNj9Ned4QkyR8oOpFCp4_A
+            op: pr
+      - name: "oauth2 keys - pr an attribute of element in []"
+        request:
+          address: https://api.saas.broadcomcloud.com
+          path: "/oauth2/keys"
+        result:
+          code:
+            value: "200"
+          body:
+          - path: ".keys[].ktb"
+            select:
+              key: .kid
+              value: uNj9Ned4QkyR8oOpFCp4_A
+            op: npr
+      # - name: "retrieve oauth2/clients"
+      #   request:
+      #     path: "/oauth2/clients"
+      #     credential:
+      #       request:
+      #         headers:
+      #           - name: x-epmp-customer-id
+      #             value: symantecinfra1
+      #           - name: x-epmp-domain-id
+      #             value: symantecdomain1
+      #         body:
+      #           file: /tests/secrets/credential.json
+      #     headers:
+      #       - name: x-epmp-customer-id
+      #         value: symantecinfra1
+      #       - name: x-epmp-domain-id
+      #         value: symantecdomain1
+      #   result:
+      #     code:
+      #       value: "200"
