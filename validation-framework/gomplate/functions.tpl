@@ -127,6 +127,27 @@
         {{- else }}
           {{- printf "Unsupported usage: only \"has\" oprator(%s) is supported on the path(%s)[] with value(%s)\n >>/tests/logs/error.log\n" $op $path $value }}
         {{- end }}
+      {{- else if contains "[]" $path }}
+        {{- $parts := split "[]" $path }}
+        {{- $preStr := "" }}
+        {{- range (split "." $parts._0) }}
+          {{- if ne . "" }}
+            {{ $preStr = printf "%s.%s" $preStr (printf "\\\"%s\\\"" .) }}
+          {{- end }}
+        {{- end }}
+        {{- if eq $preStr "" }}
+          {{- $preStr = "." }}
+        {{- end }}
+        {{- $suffixStr := "" }}
+        {{- range  (split "." $parts._1) }}
+          {{- if ne . "" }}
+            {{ $suffixStr = printf "%s.%s" $suffixStr (printf "\\\"%s\\\"" .) }}
+          {{- end }}
+        {{- end }}
+        {{- printf "expectedQueryPath=%s\n" (printf "%s[]%s" $preStr $suffixStr) }} 
+        {{- printf "set -x\n" }}
+        {{- printf "lookupresult=$(echo %s | jq -r %s)\n"  $resp  (printf "%s[]%s" $preStr $suffixStr) }}
+        {{- printf "set +x\n" }}
       {{- else }}
         {{- $parts := split "." $path }}
         {{- $jpath := "" }}

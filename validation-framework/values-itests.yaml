@@ -119,3 +119,6 @@ titanSideCars:
       #   result:
       #     code:
       #       value: "200"
+      #     body:
+      #     - path: .[].client_id
+      #       op: pr
