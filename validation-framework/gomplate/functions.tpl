@@ -64,6 +64,7 @@
 {{- define "build_execute_jq_cmd" -}}
   {{- $resp := ternary "$respheaders" "$resp" (hasKey . "from") }}
   {{- if .jq }}
+    {{- printf "expectedQueryPath=%s\n" (.jq | squote) }}
     {{- printf "set -x\n" }}
     {{- printf "lookupresult=$(echo %s | jq -r '%s')\n" $resp .jq }}   
     {{- printf "set +x\n" }} 
@@ -100,6 +101,7 @@
             {{- $jobj = printf "%s.%s" $jobj (printf "%s" . | quote) }}
           {{- end }}
         {{- end }}
+        {{- printf "expectedQueryPath='%s[] | select(%s==%s) | %s'\n" $jpath $kpath ($svalue | quote) $jobj }}
         {{- printf "set -x\n" }}
         {{- printf "lookupresult=$(echo %s | jq -r '%s[] | select(%s==%s) | %s')\n" $resp $jpath $kpath ($svalue | quote) $jobj }}  
         {{- printf "set +x\n" }}  
@@ -118,6 +120,7 @@
               {{- end }}
             {{- end }}
           {{- end }}
+          {{- printf "expectedQueryPath='%s | select(.==%s) | .'\n" $jpath ($value | quote) }}
           {{- printf "set -x\n" }}
           {{- printf "lookupresult=$(echo %s | jq -r '%s | select(.==%s) | .')\n"  $resp $jpath ($value | quote)}}
           {{- printf "set +x\n" }}
@@ -131,7 +134,8 @@
           {{- if ne . "" }}
             {{- $jpath = printf "%s.%s" $jpath (printf "\\\"%s\\\"" .) }}
           {{- end }}
-        {{- end }}   
+        {{- end }}
+        {{- printf "expectedQueryPath=%s\n" $jpath }}  
         {{- printf "set -x\n" }}
         {{- printf "lookupresult=$(echo %s | jq -r %s)\n"  $resp  $jpath }}
         {{- printf "set +x\n" }}

@@ -46,6 +46,7 @@ function buildIntegrationTests {
 function runiTests {
   docker run -v $(pwd)/tests:/tests -w /tests $image bash ./itests.sh
   cat tests/logs/report.txt
+  mv tests/logs/report.txt tests/logs/report-it.txt
 }
 
 
