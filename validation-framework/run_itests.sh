@@ -22,11 +22,10 @@ for arg in "$@"; do
 done
 
 function preCheck {
-  if [ -f "values-env-override.yaml" ] && [ -f "values.yaml" ]; then
-    echo "Found service's values.yam"
-    echo "Use enviornment overrides from values-env-override.yaml"
+  if [ -f "values-itests.yaml" ] ; then
+    echo "Found values-itests.yaml"
   else
-    echo "Unable to find required vaules.yaml and/or values-env-override.yaml in the current directory"
+    echo "Unable to find required values-itests.yaml in the current directory"
     echo "Please see the README.md"
     exit 1
   fi
@@ -34,12 +33,12 @@ function preCheck {
 
 function buildIntegrationTests {
   mkdir -p tests/data
+  cp -r secrets tests
   cat gomplate/itests.sh.tpl > tests/data/itests.sh.tpl
   cat gomplate/test_core.sh.tpl >> tests/data/itests.sh.tpl
   cat gomplate/core_bash_functions.sh.tpl >> tests/data/itests.sh.tpl
   cat gomplate/functions.tpl >> tests/data/itests.sh.tpl
-  cat ../templates/envoy/_filter_wasm_enabled.yaml >> tests/data/itests.sh.tpl
-  gotpl tests/data/itests.sh.tpl -f values.yaml -f values-test.yaml -f values-env-override.yaml > tests/itests.sh
+  gotpl tests/data/itests.sh.tpl -f values-itests.yaml > tests/itests.sh
   chmod a+x tests/itests.sh
 }
 

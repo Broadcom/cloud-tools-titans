@@ -9,9 +9,11 @@
 {{ template "validation_bash_core_functions" }}
 
     {{- if $remote }}
-      {{- if hasKey $environment "token-generator" }}
-        {{- $address := $environment.address | default "https://token-generator:9443" }}
-        {{- printf "\ntokenGeneratorUrl=%s/tokens\n" $address }}
+      {{- if hasKey $environment "tokenService" }}
+        {{- $tokenService := $environment.tokenService }}
+        {{- $url := $tokenService.url | default "https://token-generator:9443/tokens" }}
+        {{- printf "\n\n" }}
+        {{- printf "tokenServiceUrl=%s\n" ($url | quote) }}
       {{- end }}
     {{- end }}
 
@@ -44,7 +46,13 @@ badTestChecks=0
       {{- if $request }}
         {{- $address := $request.address | default $ingress.address }}
         {{- $token := $request.token }}
+        {{- $tokenUrl := $request.tokenUrl }}
+        {{- $credential := $request.credential }}
         {{- $authType := "" }}
+        {{- if $tokenUrl }}
+          {{- printf "\n" }}
+          {{- printf "tokenServiceUrl=%s\n" ($tokenUrl | quote) }}        
+        {{- end }}
         {{- if $token }}
           {{- $privs := $token.privs | default "" }}
           {{- $scope := $token.scope | default "" }}            
@@ -55,6 +63,29 @@ badTestChecks=0
           {{- $clid := $token.client_id | default "" }}
           {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
           {{- $authType = "Bearer" }}
+        {{- else if $credential }}
+          {{- $req := $credential.request }}
+          {{- if $req }}
+            {{- $headers := $req.headers }}
+            {{- $hdrStr := "" }}
+            {{- range $headers -}}
+              {{- if eq  $hdrStr "" -}}
+                {{- $hdrStr = printf "-H %s:%s" .name .value -}}
+              {{- else -}}
+                {{- $hdrStr = printf "%s -H %s:%s" $hdrStr .name .value -}}
+              {{- end -}}
+            {{- end -}}
+            {{- $body := $req.body }}
+            {{- if $body }}
+              {{- if hasKey $body "data" }}
+                {{- printf "authenticate %s %s %s\n" ("" | quote) (($body.data | toJson) | squote) ($hdrStr | squote) }}
+                {{- $authType = "Bearer" }}
+              {{- else if hasKey $body "file" }}
+                {{- printf "authenticate %s %s %s\n" ($body.file | quote) ("" | quote) ($hdrStr | squote) }}
+                {{- $authType = "Bearer" }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
         {{- end }}
         {{- $headers := $request.headers }}
         {{- $hdrStr := "" }}

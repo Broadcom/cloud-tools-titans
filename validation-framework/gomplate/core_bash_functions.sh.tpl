@@ -2,7 +2,7 @@
 # functions
 {{/* set -e */}}
 credential="dGVzdDp0ZXN0"
-tokenGeneratorUrl="http://token-generator:8080/tokens"
+tokenServiceUrl="http://token-generator:8080/tokens"
 lookupresult=""
 testCallInfo=""
 expectedQueryPath=""
@@ -132,7 +132,7 @@ function get_token() {
   local JSON_FMT='{"privs":"%s","scope":"%s","roles":"%s","customer_id":"%s","domain_id":"%s","uri":"%s","client_id":"%s"}'
   local body=$(printf "$JSON_FMT" "$privs" "$scope" "$roles" "$cid" "$did" "$uri" "$clid")
   jwt=""
-  http_call "POST" "$tokenGeneratorUrl" "" "" "$body" "true"
+  http_call "POST" "$tokenServiceUrl" "" "" "$body" "true"
   set -x
   if [ "$code" == "200" ];
   then
@@ -140,6 +140,28 @@ function get_token() {
   fi
   set +x
   # echo "jwt=$jwt"
+}
+
+function authenticate() {
+  local body=""
+  local headers=""
+  [[ ! -z "$1" ]] && body=$(cat $1)
+  [[ ! -z "$2" ]] && body=$2
+  [[ ! -z "$3" ]] && headers=$3
+  
+  set -x
+  if [[ ! -z $body ]] && [[ ! -z $headers ]];
+  then
+    jwt=""
+    http_call "POST" "$tokenServiceUrl" "$headers" "" "$body" "true"
+    if [ "$code" == "200" ];
+    then
+      jwt=$(echo $resp| jq -r '.access_token')
+    fi
+  else
+    echo "Error on authenticate: missing credential or required headers" >> /tests/logs/error.log
+  fi 
+  set +x
 }
 
 function check_test_call() {
