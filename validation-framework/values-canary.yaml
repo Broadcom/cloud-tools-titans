@@ -1,13 +1,38 @@
-aliases:
-  canaryRoutingHeaderName:  &canaryRoutingHeaderName x-epmp-route-by-release
+# aliases:
+#   canaryRoutingHeaderName:  &canaryRoutingHeaderName x-epmp-route-by-release
 
-canary:
-  enabled: true
-  labelRegex: "^[A-Za-z0-9._-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" 
-  labelIndex: -10
-  routeHeader: *canaryRoutingHeaderName
+# canary:
+#   enabled: true
+#   labelRegex: "^[A-Za-z0-9._-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" 
+#   labelIndex: -10
+#   routeHeader: *canaryRoutingHeaderName
 
 global:
   titanSideCars:
-    canary:
-      routeHeaderName: *canaryRoutingHeaderName
+    # canary:
+    #   routeHeaderName: *canaryRoutingHeaderName
+    envoy:
+      clusters:
+        r3-canary:
+          connectionTimeout: 0.5s
+          port: 9443
+          address: r3-canary-verify1.svc.clusters.local
+          healthChecks:
+            path: /healthz
+            interval: 3s
+            timeout: 2s
+            unhealthyThreahold: 2
+          routes:
+          - match:
+              prefix: /
+              headers:
+              - key: x-epmp-cananry
+                eq: "true"
+
+# titanSideCars:
+#   ingress:
+#     additionalRoutes:
+#     - route:
+#         cluster: r3-canary
+          
+

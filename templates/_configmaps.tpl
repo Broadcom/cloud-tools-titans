@@ -1,5 +1,5 @@
 {{- define "titan-mesh-helm-lib-chart.configmap" }}
-  {{- $global := $.Values.global | dict "titanSideCars" (dict "envoy" dict) -}}
+  {{- $global := $.Values.global | default (dict "titanSideCars" (dict "envoy" dict)) -}}
   {{- $icdmService := $.Values.service  }}
   {{- $icdmInbound := $.Values.inbound  }}
   {{- $icdmOutbound := $.Values.outbound  }}

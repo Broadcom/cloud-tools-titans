@@ -143,11 +143,11 @@ troubleshooting:
 
 terminationGracePeriodSeconds: 121
 
-canary:
-  enabled: true
-  labelRegex: "^[A-Za-z0-9-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" 
-  labelLength: 10
-  routeHeader: x-epmp-route-by-release
+# canary:
+#   enabled: true
+#   labelRegex: "^[A-Za-z0-9-]+-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9]$" 
+#   labelLength: 10
+#   routeHeader: x-epmp-route-by-release
 
 
 titanSideCars:
@@ -202,6 +202,9 @@ titanSideCars:
             prefix: /r3_epmp_i/
   ingress:
     enabled: true
+    additionalRoutes:
+    - route:
+        cluster: r3-canary
   egress:
     routes:
       - match:

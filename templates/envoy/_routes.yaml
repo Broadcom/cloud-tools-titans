@@ -37,7 +37,14 @@
       {{- $route := dict "cluster" $cn -}}
       {{- $routes = append $routes (dict "route" $route) -}}
     {{- end -}}
-  {{- else }}
+    {{- if $ingress.additionalRoutes -}}
+      {{- if $routes -}}
+        {{- $routes = concat $ingress.additionalRoutes $routes -}}
+      {{- else -}}
+        {{- $routes = $ingress.additionalRoutes -}}
+      {{- end -}}
+    {{- end -}}
+  {{- else -}}
     {{- $routes = ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
     {{- if and (eq "ingress" $direction) (not $routes) }}
       {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
