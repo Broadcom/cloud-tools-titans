@@ -99,26 +99,26 @@ titanSideCars:
               key: .kid
               value: uNj9Ned4QkyR8oOpFCp4_A
             op: npr
-      # - name: "retrieve oauth2/clients"
-      #   request:
-      #     path: "/oauth2/clients"
-      #     credential:
-      #       request:
-      #         headers:
-      #           - name: x-epmp-customer-id
-      #             value: symantecinfra1
-      #           - name: x-epmp-domain-id
-      #             value: symantecdomain1
-      #         body:
-      #           file: /tests/secrets/credential.json
-      #     headers:
-      #       - name: x-epmp-customer-id
-      #         value: symantecinfra1
-      #       - name: x-epmp-domain-id
-      #         value: symantecdomain1
-      #   result:
-      #     code:
-      #       value: "200"
-      #     body:
-      #     - path: .[].client_id
-      #       op: pr
+      - name: "retrieve oauth2/clients"
+        request:
+          path: "/oauth2/clients"
+          credential:
+            request:
+              headers:
+                - name: x-epmp-customer-id
+                  value: symantecinfra1
+                - name: x-epmp-domain-id
+                  value: symantecdomain1
+              body:
+                file: /tests/secrets/credential.json
+          headers:
+            - name: x-epmp-customer-id
+              value: symantecinfra1
+            - name: x-epmp-domain-id
+              value: symantecdomain1
+        result:
+          code:
+            value: "200"
+          body:
+          - path: .[].client_id
+            op: pr

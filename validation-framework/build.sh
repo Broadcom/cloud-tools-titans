@@ -176,10 +176,12 @@ function runTests {
   sleep 1
   docker exec --workdir /tests  "$instance-engine-1" bash validation-test.sh
   cp tests/logs/report.txt tests/logs/report-auto.txt
-  docker exec --workdir /tests  "$instance-engine-1" bash localtests.sh
-  cp tests/logs/report.txt tests/logs/report-local.txt
   cat tests/logs/report-auto.txt
-  cat tests/logs/report.txt
+  if [ -s tests/localtests.sh ]; then
+    docker exec --workdir /tests  "$instance-engine-1" bash localtests.sh
+    cp tests/logs/report.txt tests/logs/report-local.txt
+    cat tests/logs/report-local.txt
+  fi
 }
 
 function stopEnv {
