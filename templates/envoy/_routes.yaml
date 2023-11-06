@@ -7,11 +7,16 @@
   {{- if $validation }}
     {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") }}
   {{- end }}
+  {{- $canary := $titanSideCars.canary -}}
+  {{- $canaryNamespace := $canary.namespace | default "" -}}
+  {{- $canaryHeaderName := $canary.headerName | default "x-epmp-canary" -}}
+  {{- $canaryHeaderValue := $canary.headerValue | default "canary" -}}
   {{- $ingress := $titanSideCars.ingress }}
+  {{- $ingressCanaryEnabled := ternary $ingress.canaryEnabled false (and (hasKey $ingress "canaryEnabled") (ne $canaryNamespace "")) -}}
   {{- $egress := $titanSideCars.egress }}
+  {{- $egressCanaryEnabled := ternary $egress.canaryEnabled false (and (hasKey $egress "canaryEnabled") (ne $canaryNamespace "")) -}}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
-
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $localMyApp := index $clusters "local-myapp" }}
   {{- $ingressRoutesFromLocalMyapp := false -}}
@@ -28,6 +33,18 @@
   {{- if $gatewayEnable }}
     {{- range $cn, $cv := $clusters }}
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
+        {{- $supportCanary := ternary $cv.supportCanary true (hasKey $cv "supportCanary") -}}
+        {{- if and $ingressCanaryEnabled $supportCanary -}}
+          {{- $canaryCluster := printf "%s-%s" $cn $canaryNamespace -}}
+          {{- range $cv.routes }}
+            {{- $newcluster := dict "cluster" $canaryCluster }}
+            {{- $match := .match -}}
+            {{- $headers := $match.headers | default list -}}
+            {{- $headers = append $headers (dict "key" $canaryHeaderName "eq" $canaryHeaderValue) -}}
+            {{- $_ := set $match "headers" $headers -}}
+            {{- $routes = append $routes (dict "match" $match "route" $newcluster "ratelimit" .ratelimit) }}
+          {{- end }}
+        {{- end -}}
         {{- range $cv.routes }}
           {{- $newcluster := dict "cluster" $cn }}
           {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
@@ -51,6 +68,7 @@
       {{- end }}
     {{- end }} 
   {{- end }}
+  {{- $canaryEnabled := ternary $ingressCanaryEnabled $egressCanaryEnabled (eq "ingress" $direction) -}}
   {{- range $routes }}
     {{- $route := .route }}
     {{- if or .route .redirect .directResponse $ingressRoutesFromLocalMyapp }}
@@ -72,49 +90,11 @@
       {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default $remoteMyApp.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
       {{- if or $cluster .directResponse .redirect }}
         {{- if not .match }}
-          {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}   
-          {{- range $cluster.routes }}
-            {{- $clusterRoute := .route }}
-                - match:
-            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
-            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
-            {{- range  $route.disableFilters }}
-              {{- $disabledFilter := index $envoy.perRouteFilters . -}}
-              {{- if $disabledFilter }}
-                  typed_per_filter_config:
-                {{- printf "%s:" . | nindent 20 }}
-                {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
-                {{- print "disabled: true" | nindent 22 }}
-              {{- end }}
-            {{- end }}
-                  route:
-            {{- if $clusterRoute.prefixRewrite }}
-                    prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
-            {{- else if $clusterRoute.regexRewrite }}
-                    regex_rewrite:
-                      pattern:
-                        google_re2: {}
-                        regex: {{ $clusterRoute.regexRewrite.pattern }}
-                      substitution: {{ $clusterRoute.regexRewrite.substitution }}
-            {{- end }}
-                    cluster: {{ $route.cluster }}
-            {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite (and $validationEnabled $gatewayEnable) }}
-                    auto_host_rewrite: true
-            {{- end }}
-                    retry_policy:
-                      num_retries: {{ coalesce $retryPolicy.numRetries "1" }}
-                      retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
-            {{- if $retryPolicy.retriableStatusCode }}
-                      retriable_status_codes: 
-              {{- range $retryPolicy.retriableStatusCode }}
-                        - {{ . }}
-              {{- end }}
-            {{- end }}
-            {{- if $retryPolicy.hostSelectionRetryMaxAttempts }}
-                      host_selection_retry_max_attempts: {{ $retryPolicy.hostSelectionRetryMaxAttempts }}
-            {{- end }}
-                    timeout: {{ coalesce $route.timeout $clusterRoute.timeout (ternary $remoteMyApp.timeout $cluster.timeout (or $gatewayEnable (eq $direction "egress"))) "15s" }}
-          {{- end  }}
+          {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
+          {{- if and $canaryEnabled (ternary $cluster.supportCanary true (hasKey $cluster "supportCanary")) }}
+            {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster.routes" (dict "envoy" $envoy "cluster" $cluster "route" $route "remoteMyApp" $remoteMyApp "retryPolicy" $retryPolicy "retryOn" $retryOn "gatewayEnable" $gatewayEnable "direction" $direction "validationEnabled" $validationEnabled "canaryEnabled" $canaryEnabled "canary" $canary) }}
+          {{- end }}
+          {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster.routes" (dict "envoy" $envoy "cluster" $cluster "route" $route "remoteMyApp" $remoteMyApp "retryPolicy" $retryPolicy "retryOn" $retryOn "gatewayEnable" $gatewayEnable "direction" $direction "validationEnabled" $validationEnabled) }}
         {{- else }}
                 - match:
           {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}

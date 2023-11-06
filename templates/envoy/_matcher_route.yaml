@@ -1,6 +1,14 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.matcher-route" }}
   {{- $route := .route }}
+  {{- $canaryEnabled := .canaryEnabled | default false -}}
+  {{- $canary := .canary -}}
+  {{- $canaryNamespace := $canary.namespace | default "" -}}
+  {{- $canaryHeaderName := $canary.headerName | default "x-epmp-canary" -}}
+  {{- $canaryHeaderValue := $canary.headerValue | default "canary" -}}
   {{- $headers := list }}
+  {{- if $canaryEnabled }}
+    {{- $headers = append $headers (dict "key" $canaryHeaderName "eq" $canaryHeaderValue) }}
+  {{- end }}
   {{- if .routing }}
     {{- if $route.prefix }}
   prefix: {{ $route.prefix | quote }}

@@ -5,12 +5,16 @@
   {{- if $validation -}}
     {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") -}}
   {{- end }}
+  {{- $canary := $titanSideCars.canary -}}
+  {{- $canaryNamespace := $canary.namespace | default "" -}}
   {{- $releaseNamespace := .releaseNamespace }}
   {{- $chartName := .chartName }}
   {{- $useDynamicConfiguration := .useDynamicConfiguration }}
   {{- $issuers := $titanSideCars.issuers }}
   {{- $ingress := $titanSideCars.ingress }}
+  {{- $ingressCanaryEnabled := ternary $ingress.canaryEnabled false (and (hasKey $ingress "canaryEnabled") (ne $canaryNamespace "")) -}}
   {{- $egress := $titanSideCars.egress }}
+  {{- $egressCanaryEnabled := ternary $egress.canaryEnabled false (and (hasKey $egress "canaryEnabled") (ne $canaryNamespace "")) -}}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $circuitLocal := $envoy.localCircuitBreakers  }}
   {{- $circuitRemote := $envoy.remoteCircuitBreakers  }}
@@ -26,6 +30,7 @@
   {{- end }}
   {{- $myClusters := dict }}
   {{- range $cluster, $value := $clusters }}
+    {{- $setupCanary := false -}}
     {{- if eq $cluster "local-myapp" }}
       {{- if eq $defaultBackend "local-myapp" }}
     - name: local-myapp
@@ -102,6 +107,9 @@
             {{- if .route.cluster }}
               {{- if eq .route.cluster $cluster }}
                 {{- $setupCluster = true  }}
+                {{- if $egressCanaryEnabled -}} 
+                  {{- $setupCanary = true -}}
+                {{- end -}}
               {{- end }}
             {{- end }}
           {{- end }}
@@ -111,6 +119,9 @@
             {{- if .route.cluster }}             
               {{- if eq .route.cluster $cluster }}
                 {{- $setupCluster = true  }}
+                {{- if $egressCanaryEnabled -}} 
+                  {{- $setupCanary = true -}}
+                {{- end -}}
               {{- end }}
             {{- end }}
           {{- end }}
@@ -120,6 +131,9 @@
             {{- if .route.cluster }} 
               {{- if eq .route.cluster $cluster }}
                 {{- $setupCluster = true }}
+                {{- if $ingressCanaryEnabled -}} 
+                  {{- $setupCanary = true -}}
+                {{- end -}}
               {{- end }}
             {{- end }}           
           {{- end }}
@@ -129,6 +143,9 @@
             {{- if .route.cluster }}             
               {{- if eq .route.cluster $cluster }}
                 {{- $setupCluster = true  }}
+                {{- if $ingressCanaryEnabled -}} 
+                  {{- $setupCanary = true -}}
+                {{- end -}}
               {{- end }}
             {{- end }}
           {{- end }}
@@ -173,9 +190,9 @@
           {{- $clusterHostname := $clusterValue.hostname | default $clusterAddress }}
           {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
       connect_timeout: {{ $clusterValue.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
-      {{- if $clusterValue.dnsRefreshRate }}
+          {{- if $clusterValue.dnsRefreshRate }}
       dns_refresh_rate: {{ $clusterValue.dnsRefreshRate }}
-      {{- end }}
+          {{- end }}
       type: {{ $clusterType }}
       ignore_health_on_host_removal: true
       dns_lookup_family: V4_ONLY
@@ -218,6 +235,106 @@
       lb_policy: {{ $clusterValue.lbPolicy | default "LEAST_REQUEST" }}
       load_assignment:
         cluster_name: {{ $cluster }}
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              hostname: {{ $clusterHostname }}
+              address:
+                socket_address:
+                  address: {{ ternary "127.0.0.1" $clusterIpAddress (hasPrefix "local-" $cluster) }}
+            {{- if $gatewayEnable }}
+                  port_value: {{ coalesce $clusterValue.targetPort $clusterValue.port "9443" }}
+            {{- else }}
+                  port_value: {{ $clusterValue.port | default "9443" }}
+            {{- end }}
+      common_lb_config:
+        healthy_panic_threshold:
+          value: {{  $clusterValue.healthyPanicThreshold | default "25" }}
+      health_checks:
+          {{- $healthCheck :=  $clusterValue.healthChecks  }}
+      - http_health_check: 
+          path: {{ $healthCheck.path | default "/healthz" }}
+        interval: {{ $healthCheck.interval | default "1s" }}
+        timeout: {{ $healthCheck.timeout | default "1s" }}
+        healthy_threshold: {{ $healthCheck.healthyThreahold | default "1" }}
+        unhealthy_threshold: {{ $healthCheck.unhealthyThreahold | default "1" }}
+        no_traffic_interval: {{ $healthCheck.noTrafficInterval | default "3s" }}
+          {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $scheme  "envoy" $envoy "sni" $clusterAddress) | nindent 6 }}
+        {{- end }}
+      {{- end }}
+      {{- if and $setupCanary (ternary $value.supportCanary true (hasKey $value "supportCanary")) }}
+        {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp")) }}
+          {{- $canaryCluster := printf "%s-%s" $cluster $canaryNamespace -}}
+          {{- $_ := set $myClusters $canaryCluster "created"  }}
+    - name: {{ $canaryCluster }}
+          {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+          {{- end }}
+          {{- $clusterValue := mergeOverwrite (deepCopy ($remoteApp | default dict)) $value }}
+          {{- if $validationEnabled -}}
+            {{- $_ := set $clusterValue "address" "myapp" -}}
+            {{- $_ := set $clusterValue "targetPort" "8080" -}}
+            {{- $_ := set $clusterValue "port" "8080" -}}
+            {{- $_ := set $clusterValue "type" "STRICT_DNS" -}}
+            {{- $_ := set $clusterValue "scheme" "HTTP" -}}
+            {{- $_ := set $clusterValue "hostname" $cluster -}}
+            {{- $_ := unset $clusterValue "ip" -}}
+          {{- end -}}
+          {{- $serviceName := $clusterValue.alias | default $cluster }}
+          {{- $serviceName = printf "%s%s" $serviceName (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
+          {{- if $clusterValue.external }}
+            {{- $serviceName = $clusterValue.alias | default $cluster }}
+          {{- end }}
+          {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName $canaryNamespace) }}
+          {{- $clusterIpAddress := $clusterAddress }}
+          {{- $clusterHostname := $clusterValue.hostname | default $clusterAddress }}
+          {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
+      connect_timeout: {{ $clusterValue.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
+          {{- if $clusterValue.dnsRefreshRate }}
+      dns_refresh_rate: {{ $clusterValue.dnsRefreshRate }}
+          {{- end }}
+      type: {{ $clusterType }}
+      ignore_health_on_host_removal: true
+      dns_lookup_family: V4_ONLY
+          {{- $outlierDetection := $clusterValue.outlierDetection }}
+          {{- $hasOutlierDetection := false }}
+          {{- if $outlierDetection }}
+            {{- $hasOutlierDetection = true }}
+          {{- end }}
+      outlier_detection:
+        enforcing_consecutive_5xx: {{ ternary ($outlierDetection.enforcingConsecutive5xx | default "0") "0" $hasOutlierDetection }}
+        enforcing_success_rate: {{ ternary ($outlierDetection.enforcingSuccessRate | default "0") "0" $hasOutlierDetection }}
+        enforcing_consecutive_gateway_failure: {{ ternary ($outlierDetection.enforcingConsecutiveGatewayFailure | default "0") "0" $hasOutlierDetection }}
+        enforcing_failure_percentage: {{ ternary ($outlierDetection.enforcingFailurePercentage | default "0") "0" $hasOutlierDetection }}
+          {{- if (ternary ($outlierDetection.splitExternalLocalOriginErrors | default false) false $hasOutlierDetection) }}
+        split_external_local_origin_errors: true  
+        enforcing_consecutive_local_origin_failure: {{ ternary ($outlierDetection.enforcingConsecutiveLocalOriginFailure | default "0") "0" $hasOutlierDetection }}
+        enforcing_local_origin_success_rate: {{ ternary ($outlierDetection.enforcingLocalOriginSuccessRate | default "0") "0" $hasOutlierDetection }}
+        enforcing_failure_percentage_local_origin: {{ ternary ($outlierDetection.enforcingFailurePercentageLocalOrigin | default "0") "0" $hasOutlierDetection }}
+          {{- end }}
+          {{- $circuitBreakers := mergeOverwrite ((ternary $circuitLocal $circuitRemote (hasPrefix "local-" $cluster)) | default dict) ( $clusterValue.circuitBreakers | default dict) }}
+      circuit_breakers:
+        thresholds:
+        - priority: "DEFAULT"
+        {{- if $circuitBreakers.maxConnections }}
+          max_connections: {{ $circuitBreakers.maxConnections }}
+        {{- end }}
+        {{- if $circuitBreakers.maxRequests }}
+          max_requests: {{ $circuitBreakers.maxRequests }}
+        {{- end }}
+        {{- if $circuitBreakers.maxPendingRequests }}
+          max_pending_requests: {{ $circuitBreakers.maxPendingRequests }}
+        {{- end }}
+          track_remaining: {{ $circuitBreakers.trackRemaining | default "true" }}
+          retry_budget:
+            budget_percent:
+              value: {{ $circuitBreakers.retryBudgetPercentage | default "20.0" }}
+            min_retry_concurrency: {{ $circuitBreakers.minRetryConcurrency | default "3" }}
+        {{- $scheme := ternary ( $clusterValue.scheme | default "HTTP") ( $clusterValue.scheme | default "HTTP2") (hasPrefix "local-" $cluster) }}
+        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $scheme "cluster" (index $clusters $cluster)) | nindent 6 }}
+      lb_policy: {{ $clusterValue.lbPolicy | default "LEAST_REQUEST" }}
+      load_assignment:
+        cluster_name: {{ $canaryCluster }}
         endpoints:
         - lb_endpoints:
           - endpoint:

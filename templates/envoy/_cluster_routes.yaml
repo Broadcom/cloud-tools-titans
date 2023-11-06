@@ -1,0 +1,60 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.cluster.routes" }}
+  {{- $envoy := .envoy }}
+  {{- $cluster := .cluster }}
+  {{- $route := .route }}
+  {{- $remoteMyApp := .remoteMyApp }}
+  {{- $retryPolicy := .retryPolicy }}
+  {{- $retryOn := .retryOn -}}
+  {{- $gatewayEnable := .gatewayEnable }}
+  {{- $direction := .direction }}
+  {{- $canaryEnabled := .canaryEnabled | default false -}}
+  {{- $validationEnabled := .validationEnabled -}} 
+  {{- $canary := .canary -}}
+  {{- $canaryNamespace := $canary.namespace | default "" -}}
+  {{- range $cluster.routes }}
+    {{- $clusterRoute := .route }}
+    {{- $clusterMatch := .match }}
+                - match:
+    {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" $clusterMatch "routing" true "canary" $canary "canaryEnabled" $canaryEnabled) | nindent 18 }}
+    {{- if not $canaryEnabled -}}
+      {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" $clusterMatch.query_parameters) | nindent 18 }}
+    {{- end -}}
+    {{- range  $route.disableFilters }}
+      {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+      {{- if $disabledFilter }}
+                  typed_per_filter_config:
+        {{- printf "%s:" . | nindent 20 }}
+        {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+        {{- print "disabled: true" | nindent 22 }}
+        {{- end }}
+      {{- end }}
+                  route:
+      {{- if $clusterRoute.prefixRewrite }}
+                    prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
+      {{- else if $clusterRoute.regexRewrite }}
+                    regex_rewrite:
+                      pattern:
+                        google_re2: {}
+                        regex: {{ $clusterRoute.regexRewrite.pattern }}
+                      substitution: {{ $clusterRoute.regexRewrite.substitution }}
+      {{- end }}
+                    cluster: {{ ternary (printf "%s-canary" $route.cluster) $route.cluster $canaryEnabled }}
+      {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite (and $validationEnabled $gatewayEnable) }}
+                    auto_host_rewrite: true
+      {{- end }}
+                    retry_policy:
+                      num_retries: {{ coalesce $retryPolicy.numRetries "1" }}
+                      retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
+      {{- if $retryPolicy.retriableStatusCode }}
+                      retriable_status_codes: 
+      {{- range $retryPolicy.retriableStatusCode }}
+                        - {{ . }}
+      {{- end }}
+    {{- end }}
+    {{- if $retryPolicy.hostSelectionRetryMaxAttempts }}
+                      host_selection_retry_max_attempts: {{ $retryPolicy.hostSelectionRetryMaxAttempts }}
+    {{- end }}
+                    timeout: {{ coalesce $route.timeout $clusterRoute.timeout (ternary $remoteMyApp.timeout $cluster.timeout (or $gatewayEnable (eq $direction "egress"))) "15s" }}
+  {{- end  }}
+{{- end }}
+
