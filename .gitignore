@@ -6,6 +6,5 @@ validation-framework/charts/
 validation-framework/tests/
 validation-framework/docker-compose.yaml
 validation-framework/values-test-clusters.yaml
-validation-framework/values-env-override.yaml
 validation-framework/values.yaml
 validation-framework/secrets/credential.json
