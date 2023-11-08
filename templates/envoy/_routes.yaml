@@ -78,14 +78,23 @@
                 - match:
             {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
             {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
-            {{- range  $route.disableFilters }}
+            {{- $hasPerRouteFilter := false -}}
+            {{- range $route.disableFilters }}
               {{- $disabledFilter := index $envoy.perRouteFilters . -}}
               {{- if $disabledFilter }}
+                {{- $hasPerRouteFilter = true -}}
+              {{- end -}}
+            {{- end }}
+            {{- if $hasPerRouteFilter }}
                   typed_per_filter_config:
-                {{- printf "%s:" . | nindent 20 }}
-                {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
-                {{- print "disabled: true" | nindent 22 }}
-              {{- end }}
+              {{- range $route.disableFilters }}
+                {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+                {{- if $disabledFilter }}
+                  {{- printf "%s:" . | nindent 20 }}
+                  {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+                  {{- print "disabled: true" | nindent 22 }}
+                {{- end }}
+              {{- end -}}
             {{- end }}
                   route:
             {{- if $clusterRoute.prefixRewrite }}
@@ -121,14 +130,23 @@
           {{- if ne $clusterName "" }}
             {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
             {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
+            {{- $hasPerRouteFilter := false -}}
             {{- range $route.disableFilters }}
               {{- $disabledFilter := index $envoy.perRouteFilters . -}}
               {{- if $disabledFilter }}
+                {{- $hasPerRouteFilter = true -}}
+              {{- end -}}
+            {{- end }}
+            {{- if $hasPerRouteFilter }}
                   typed_per_filter_config:
-                {{- printf "%s:" . | nindent 20 }}
-                {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
-                {{- print "disabled: true" | nindent 22 }}
-              {{- end }}
+              {{- range $route.disableFilters }}
+                {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+                {{- if $disabledFilter }}
+                  {{- printf "%s:" . | nindent 20 }}
+                  {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+                  {{- print "disabled: true" | nindent 22 }}
+                {{- end }}
+              {{- end -}}
             {{- end }}
                   route:
                     cluster: {{ $clusterName }} 
