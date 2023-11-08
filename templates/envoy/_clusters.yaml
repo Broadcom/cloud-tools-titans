@@ -169,7 +169,7 @@
             {{- $serviceName = $clusterValue.alias | default $cluster }}
           {{- end }}
           {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
-          {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
+          {{- $clusterIpAddress := $clusterValue.ip | default (printf "%s." $clusterAddress) }}
           {{- $clusterHostname := $clusterValue.hostname | default $clusterAddress }}
           {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
       connect_timeout: {{ $clusterValue.connectionTimeout | default (ternary "0.25s" "1s" (hasPrefix "local-" $cluster)) }}
@@ -254,7 +254,7 @@
       {{- $clusterValue := index $clusters $cluster }} 
       {{- $serviceName := printf "%s%s" $cluster (include "titan-mesh-helm-lib-chart.nameExt" $titanSideCars) }}
       {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName ($clusterValue.namespace | default $releaseNamespace )) }}
-      {{- $clusterIpAddress := $clusterValue.ip | default $clusterAddress }}
+      {{- $clusterIpAddress := $clusterValue.ip | default (printf "%s." $clusterAddress) }}
       {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
     - name: {{ $cluster }}
       {{- if $useDynamicConfiguration }}
