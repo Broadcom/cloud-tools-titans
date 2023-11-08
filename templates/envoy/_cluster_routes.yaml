@@ -19,33 +19,42 @@
     {{- if not $canaryEnabled -}}
       {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" $clusterMatch.query_parameters) | nindent 18 }}
     {{- end -}}
-    {{- range  $route.disableFilters }}
+    {{- $hasPerRouteFilter := false -}}
+    {{- range $route.disableFilters }}
       {{- $disabledFilter := index $envoy.perRouteFilters . -}}
       {{- if $disabledFilter }}
+        {{- $hasPerRouteFilter = true -}}
+      {{- end -}}
+    {{- end }}
+    {{- if $hasPerRouteFilter }}
                   typed_per_filter_config:
-        {{- printf "%s:" . | nindent 20 }}
-        {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
-        {{- print "disabled: true" | nindent 22 }}
+      {{- range $route.disableFilters }}
+        {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+        {{- if $disabledFilter }}
+          {{- printf "%s:" . | nindent 20 }}
+          {{- printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type | nindent 22 }}
+          {{- print "disabled: true" | nindent 22 }}
         {{- end }}
-      {{- end }}
+      {{- end -}}
+    {{- end }}
                   route:
-      {{- if $clusterRoute.prefixRewrite }}
+    {{- if $clusterRoute.prefixRewrite }}
                     prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
-      {{- else if $clusterRoute.regexRewrite }}
+    {{- else if $clusterRoute.regexRewrite }}
                     regex_rewrite:
                       pattern:
                         google_re2: {}
                         regex: {{ $clusterRoute.regexRewrite.pattern }}
                       substitution: {{ $clusterRoute.regexRewrite.substitution }}
-      {{- end }}
+    {{- end }}
                     cluster: {{ ternary (printf "%s-canary" $route.cluster) $route.cluster $canaryEnabled }}
-      {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite (and $validationEnabled $gatewayEnable) }}
+    {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite (and $validationEnabled $gatewayEnable) }}
                     auto_host_rewrite: true
-      {{- end }}
+    {{- end }}
                     retry_policy:
                       num_retries: {{ coalesce $retryPolicy.numRetries "1" }}
                       retry_on: {{ coalesce $retryPolicy.retryOn $retryOn }}
-      {{- if $retryPolicy.retriableStatusCode }}
+    {{- if $retryPolicy.retriableStatusCode }}
                       retriable_status_codes: 
       {{- range $retryPolicy.retriableStatusCode }}
                         - {{ . }}
