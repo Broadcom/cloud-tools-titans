@@ -47,7 +47,7 @@
                         regex: {{ $clusterRoute.regexRewrite.pattern }}
                       substitution: {{ $clusterRoute.regexRewrite.substitution }}
     {{- end }}
-                    cluster: {{ ternary (printf "%s-canary" $route.cluster) $route.cluster $canaryEnabled }}
+                    cluster: {{ ternary (printf "%s-%s" $route.cluster $canaryNamespace) $route.cluster $canaryEnabled }}
     {{- if or (eq $direction "egress") $cluster.autoHostRewrite $route.autoHostRewrite (and $validationEnabled $gatewayEnable) }}
                     auto_host_rewrite: true
     {{- end }}
