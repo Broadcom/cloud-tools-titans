@@ -7,7 +7,10 @@
   {{- $egress := $titanSideCars.egress  -}}
   {{- if or (and $ingress (not $ingress.enabled)) (and $egress (not $egress.enabled)) -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false -}}
-    {{- $configmap := include "titan-mesh-helm-lib-chart.configs.envoy" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" $.Release.Namespace "chartName" $.Chart.Name "useDynamicConfiguration" $useDynamicConfiguration) | fromYaml -}}
+    {{- $configmap := include "titan-mesh-helm-lib-chart.configs.envoy.dmc" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | fromYaml -}}
+    {{- if not $useDynamicConfiguration -}}
+      {{- $configmap = include "titan-mesh-helm-lib-chart.configs.envoy" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | fromYaml -}}
+    {{- end -}}
     {{- $envoyFile := dict -}}
     {{- range $k, $v := $configmap -}}
       {{- if eq $k "envoy.yaml" -}}
