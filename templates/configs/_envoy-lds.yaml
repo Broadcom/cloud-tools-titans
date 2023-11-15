@@ -1,0 +1,16 @@
+{{- define "titan-mesh-helm-lib-chart.configs.envoy.lds" }}
+  {{- $titanSideCars := .titanSideCars }}
+  {{- $appName := .appName }}
+  {{- $releaseNamespace := .releaseNamespace }}
+  {{- $chartName := .chartName }}
+  {{- $ingress := $titanSideCars.ingress }}
+  {{- $egress := $titanSideCars.egress }}
+  {{- $ingressEnabled := ternary $ingress.enabled true (hasKey $ingress "enabled") -}}
+  {{- $egressEnabled := ternary $egress.enabled true (hasKey $egress "enabled") -}}
+  {{- if or $ingressEnabled $egressEnabled }}
+lds.yaml: |
+  resources:
+    {{- include "titan-mesh-helm-lib-chart.envoy.listeners" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" true "appName" $appName) }}
+  
+  {{- end }}
+{{- end }}
