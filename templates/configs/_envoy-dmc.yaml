@@ -1,4 +1,4 @@
-{{- define "titan-mesh-helm-lib-chart.configs.envoy" }}
+{{- define "titan-mesh-helm-lib-chart.configs.envoy.dmc" }}
   {{- $titanSideCars := .titanSideCars }}
   {{- $appName := .appName }}
   {{- $releaseNamespace := .releaseNamespace }}
@@ -15,13 +15,35 @@
   {{- if not (index $clusters "local-myapp") }}
     {{- fail ".Values.titanSideCars.envoy.clusters.local-myapp is required" }}
   {{- end }}
-  {{- $ingress := $titanSideCars.ingress  }}
-  {{- $egress := $titanSideCars.egress  }}
+  {{- $ingress := $titanSideCars.ingress }}
+  {{- $egress := $titanSideCars.egress }}
   {{- $ingressEnabled := ternary $ingress.enabled true (hasKey $ingress "enabled") -}}
   {{- $egressEnabled := ternary $egress.enabled true (hasKey $egress "enabled") -}}
   {{- if or $ingressEnabled $egressEnabled }}
     {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
 envoy.yaml: |
+  node:
+    cluster: {{ $appName }}
+    id: {{ printf "%s-id" $appName }}
+
+  dynamic_resources:
+      {{- if $supportPathConfigSource }}
+    cds_config:
+      path_config_source: 
+        path: {{ printf "%s/cds/cds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+        watched_directory: 
+          path: {{ printf "%s/cds" (trimSuffix "/" $envoyConfigFolder) }}
+    lds_config:
+      path_config_source:
+        path: {{ printf "%s/lds/lds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+        watched_directory: 
+          path: {{ printf "%s/lds" (trimSuffix "/" $envoyConfigFolder) }}
+      {{- else }}
+    cds_config:
+      path: {{ printf "%s/cds/cds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+    lds_config:
+      path: {{ printf "%s/lds/lds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+      {{- end }}
   admin:
     access_log_path: /dev/stdout
     address:
@@ -38,15 +60,6 @@ envoy.yaml: |
             address: 127.0.0.1
             port_value: {{ $envoyStatsPort }}
             protocol: UDP
-    {{- if $envoy.statsConfigRaw }}
-  stats_config:
-      {{- $envoy.statsConfigRaw | toYaml | nindent 2 }}
-    {{- end }}
-  static_resources:
-    clusters:
-    {{- include "titan-mesh-helm-lib-chart.envoy.clusters" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" false "appName" $appName) }}
-    listeners:
-    {{- include "titan-mesh-helm-lib-chart.envoy.listeners" (dict "titanSideCars" $titanSideCars "releaseNamespace" $releaseNamespace "chartName" $chartName "useDynamicConfiguration" false "appName" $appName) }}
 
   {{- end }}
 {{- end }}
