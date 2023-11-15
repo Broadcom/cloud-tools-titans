@@ -14,6 +14,31 @@ fi
 opt3=$3
 
 function preCheck {
+  if ! command -v docker-compose &> /dev/null
+  then
+      echo "docker-compose is required"
+      echo "See README.md for detail"
+      exit 1
+  fi
+  if ! command -v helm &> /dev/null
+  then
+      echo "helm tool is required"
+      echo "See README.md for detail"
+      exit 1
+  fi
+  if ! command -v gotpl &> /dev/null
+  then
+      echo "gotpl is required"
+      echo "See README.md for detail"
+      exit 1
+  fi
+  if ! command -v k8split &> /dev/null
+  then
+      echo "k8split is required"
+      echo "See README.md for detail"
+      exit 1
+  fi
+
   if [ "$chartname" == "" ] && [ "$chartver" == "" ]; then
     echo "Please specify your umbrella helm chart name and version, e.g."
     echo "./build.sh icds-all-in-one 1.203.48"
