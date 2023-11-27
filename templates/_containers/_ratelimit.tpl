@@ -6,6 +6,8 @@
 {{- if $titanSideCars }}
   {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
   {{- $ratelimitEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
+  {{- $envoy := $titanSideCars.envoy -}}
+  {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
   {{- $ratelimit := $titanSideCars.ratelimit -}}
   {{- $ratelimitMonitorByEnvoy := $ratelimit.monitorByEnvoy -}}
   {{- $ratelimitCPU := $ratelimit.cpu -}}
@@ -136,7 +138,7 @@
   terminationMessagePath: /dev/termination-log
   volumeMounts:
     - mountPath: /configs/ratelimit/config/ratelimit_config.yaml
-      name: titan-configs
+      name: {{ ternary "titan-configs-envoy-dmc" "titan-configs" $useDynamicConfiguration }} 
       subPath: ratelimit_config.yaml
     - mountPath: /logs/
       name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
