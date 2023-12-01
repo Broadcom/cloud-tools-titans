@@ -214,11 +214,11 @@
           {{- else if hasKey . "eq" -}}
             {{- $val = .eq -}}
           {{- else if hasKey . "sw" -}}
-            {{- $val = printf "%s%s" .sw (randAscii 5) -}}          
+            {{- $val = printf "%s%s" .sw (randAlpha 5) -}}          
           {{- else if hasKey . "ew" -}}
-            {{- $val = printf "%s%s" (randAscii 5) .ew -}}             
+            {{- $val = printf "%s%s" (randAlpha 5) .ew -}}             
           {{- else if hasKey . "co" -}}
-            {{- $val = printf "%s%s%s" (randAscii 5) .co (randAscii 5) -}}              
+            {{- $val = printf "%s%s%s" (randAlpha 5) .co (randAlpha 5) -}}              
           {{- else if hasKey . "lk" -}}
             {{- $val = randFromRegex .lk }}
           {{- else if hasKey . "pr" -}}
@@ -226,15 +226,15 @@
               {{- $val = "def" -}}          
             {{- end }}
           {{- else if hasKey . "neq" -}}
-            {{- $val = printf "%s%s" .neq (randAscii 5) -}}          
+            {{- $val = printf "%s%s" .neq (randAlpha 5) -}}          
           {{- else if hasKey . "nsw" -}}
-            {{- $val = printf "%s%s" (randAscii 5) .nsw -}}          
+            {{- $val = printf "%s%s" (randAlpha 5) .nsw -}}          
           {{- else if hasKey . "new" -}}
-            {{- $val = printf "%s%s" .new (randAscii 5) -}} 
+            {{- $val = printf "%s%s" .new (randAlpha 5) -}} 
           {{- else if hasKey . "nco" -}}
-            {{- $val = printf "%s" (randAscii 5) -}} 
+            {{- $val = printf "%s" (randAlpha 5) -}} 
           {{- else if hasKey . "nlk" -}}
-          {{/* {{- $val = printf "%s" (randAscii 5) -}}  */}}
+          {{/* {{- $val = printf "%s" (randAlpha 5) -}}  */}}
           {{- end -}}
           {{- if ne $val "" -}}
             {{- if eq $key ":path" -}}
@@ -256,6 +256,8 @@
                   {{- $method = $neq -}}
                 {{- end -}}
               {{- end }}
+            {{- else if eq $key ":authority" -}}
+              {{- $_ := set $headers "Host" $val -}}
             {{- else -}}
               {{- $_ := set $headers $key $val -}}
             {{- end -}}

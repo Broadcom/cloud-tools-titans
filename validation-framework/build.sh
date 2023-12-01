@@ -118,7 +118,11 @@ function processAIOAdvance {
   ./handlalice.sh
   for file in "$chartname"/charts/*; do
     if [[ -d "$file" ]]; then
-      gotpl ../gomplate/extract_routes.tpl -f "$file/values.yaml" --set cluster="$(basename $file)" >> clusters.yaml
+      folder=$(basename $file)
+      if [ "$folder" != "envoy-ingress" ];
+      then
+        gotpl ../gomplate/extract_routes.tpl -f "$file/values.yaml" --set cluster="$folder" >> clusters.yaml
+      fi
     fi
   done
   gotpl ../gomplate/build_cluster.tpl -f clusters.yaml > ../values-test-clusters.yaml
@@ -236,7 +240,10 @@ function runTests {
   if [[ $? -ne 0 ]]
   then
     echo "Failed at runTests - autotest step"
-    stopEnv
+    if [ "$opt3" != "--debug" ]
+    then
+      stopEnv
+    fi
     exit 1
   fi
   cp tests/logs/report.txt tests/logs/report-auto.txt
@@ -246,7 +253,10 @@ function runTests {
     if [[ $? -ne 0 ]]
     then
       echo "Failed at runTests - localtests step"
-      stopEnv
+      if [ "$opt3" != "--debug" ]
+      then
+        stopEnv
+      fi
       exit 1
     fi
     cp tests/logs/report.txt tests/logs/report-local.txt
