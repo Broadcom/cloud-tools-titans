@@ -58,7 +58,7 @@ echo "[`date`]### Execute auto-generated tests ###" > /tests/logs/report.txt
 echo "" >> /tests/logs/report.txt
 
     {{ if hasKey $ingress "routes" }}
-# Process ingress routes
+      {{- printf "# Process ingress routes\n" }}
       {{- range $ingress.routes }}
         {{- $cluster := "proxy" }}
         {{- $route := .route }}
@@ -69,7 +69,7 @@ echo "" >> /tests/logs/report.txt
         {{- end }}
         {{- if or (eq $cluster "proxy") (and (ne $cluster "proxy") (hasKey $clusters $cluster)) }}
           {{- printf "# Ingress -> host:%s - path: %s\n" $cluster . }}
-            {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+            {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck "false" (hasKey $ingress "tokenCheck"))) }}
           {{- $counter = add1 $counter -}}
         {{- end }}
       {{- end }}     

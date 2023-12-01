@@ -5,6 +5,7 @@
   {{- $respfile := .respfile -}}
   {{- $direction := .direction -}}
   {{- $reportfile := .reportfile -}}
+  {{- $tokenCheck := .tokenCheck | default false }}
   {{- if $routing -}}
     {{- $scheme := .scheme -}}
     {{- $rtest := false -}}
@@ -17,14 +18,14 @@
     {{- end -}}
     {{- if $rtest -}}
       {{- if $routing.match -}}
-        {{- template "validate_routing_curl_jq_cmds" (dict "routing" $routing "cluster" $cluster "clusters" $clusters "scheme" $scheme "respfile" $respfile "reportfile" $reportfile) -}}
+        {{- template "validate_routing_curl_jq_cmds" (dict "routing" $routing "cluster" $cluster "clusters" $clusters "scheme" $scheme "respfile" $respfile "reportfile" $reportfile "tokenCheck" $tokenCheck) -}}
       {{- else if $routing.route -}}
         {{- $route := $routing.route -}}
         {{- if and $route.cluster $clusters -}}
           {{- $clusteValue := index $clusters $route.cluster -}}
           {{- if $clusteValue }}
             {{- range $clusteValue.routes }}
-              {{- template "validate_routing_curl_jq_cmds" (dict "routing" . "cluster" $cluster "clusters" $clusters "scheme" $scheme "respfile" $respfile "reportfile" $reportfile) -}}
+              {{- template "validate_routing_curl_jq_cmds" (dict "routing" . "cluster" $cluster "clusters" $clusters "scheme" $scheme "respfile" $respfile "reportfile" $reportfile "tokenCheck" $tokenCheck) -}}
             {{- end }}
           {{- end }}
         {{- end }}
@@ -172,6 +173,7 @@
   {{- $reportfile := .reportfile -}}
   {{- $cluster := .cluster -}}
   {{- $scheme := .scheme -}}
+  {{- $tokenCheck := .tokenCheck | default false }}
   {{- $path := "" -}}
   {{- $cmd := "" -}}
   {{- $method := "GET" -}}
@@ -179,7 +181,7 @@
   {{- $matchAllRoutes := false }}
   {{- if hasKey $routing "match" -}}
     {{- $supported := true }}
-    {{- $tokenCheck := $routing.tokenCheck | default false }}
+    {{- $tokenCheck = ternary $routing.tokenCheck $tokenCheck (hasKey $routing "tokenCheck") }}
     {{- $authType := "Bearer" }}
     {{- $rbac := $routing.rbac }}
     {{- $enrich := $routing.enrich }}
@@ -400,7 +402,7 @@
           {{- end }}
         {{- end }}
       {{- else }}
-        {{- printf "http_call %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) -}}
+        {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (ternary (printf "%s" "Bearer" | quote) (printf "" | quote) $tokenCheck) -}}
         {{- $callMade = true }}
       {{- end }}
       {{- if $callMade }}
