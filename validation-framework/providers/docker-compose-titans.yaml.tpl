@@ -17,11 +17,10 @@
       {{- $ratelimitEnabled = true -}}
     {{- end -}}
   {{- end -}}
-version: '3.7'
+version: '2'
 services:
   proxy:
     image: {{ $proxy.image }}
-    platform: linux/amd64
     volumes:
       - ./envoy/config:/envoy/config
       - ./envoy/ratelimit:/envoy/ratelimit
@@ -51,7 +50,6 @@ services:
   {{- if $ratelimitEnabled }}
   redis:
     image: {{ $redis.image }}
-    platform: linux/amd64
     restart: always
     expose:
       - "6379"
@@ -63,7 +61,6 @@ services:
 
   ratelimit:
     image: {{ $ratelimit.image }}
-    platform: linux/amd64
     command: /bin/ratelimit
     expose:
       - "8070"
@@ -89,7 +86,6 @@ services:
   {{- end }}
   myapp:
     image: {{ $myapp.image }}
-    platform: linux/amd64
     expose:
      - "8080"
     networks:
@@ -101,7 +97,6 @@ services:
   {{- if $tokenGenerator }}
   token-generator:
     image: {{ $tokenGenerator.image }}
-    platform: linux/amd64
     entrypoint:
     {{- $tokenGenerator.cmds | default (list "/usr/local/broadcom/token-generator/token-generator" "-logFile" "stdout" "-issuer" "http://token-generator" "-useDynamicKey" "true") | toYaml | nindent 6 }}
     expose:
@@ -113,7 +108,6 @@ services:
   {{- end }}
   engine:
     image: {{ $engine.image }}
-    platform: linux/amd64
     entrypoint: 
       - tail 
       - -f
