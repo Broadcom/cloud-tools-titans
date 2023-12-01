@@ -35,7 +35,7 @@
       type: {{ $localApp.type | default "STATIC" }}
       dns_lookup_family: V4_ONLY
       lb_policy: LEAST_REQUEST
-        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" $localApp.scheme  "cluster" $localApp ) | nindent 6 }}
+        {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" (ternary "HTTP" $localApp.scheme $validationEnabled)  "cluster" $localApp ) | nindent 6 }}
       connect_timeout: {{ $localApp.connectionTimeout | default "0.25s" }}
       common_lb_config:
         healthy_panic_threshold:
