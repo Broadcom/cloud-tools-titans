@@ -236,6 +236,7 @@ function runTests {
   if [[ $? -ne 0 ]]
   then
     echo "Failed at runTests - autotest step"
+    stopEnv
     exit 1
   fi
   cp tests/logs/report.txt tests/logs/report-auto.txt
@@ -245,6 +246,7 @@ function runTests {
     if [[ $? -ne 0 ]]
     then
       echo "Failed at runTests - localtests step"
+      stopEnv
       exit 1
     fi
     cp tests/logs/report.txt tests/logs/report-local.txt
