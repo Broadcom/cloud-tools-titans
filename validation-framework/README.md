@@ -10,14 +10,15 @@
 * k8split
   * https://github.com/brendanjryan/k8split
 
-## Working directory
-* All commands running under the same directory of this **README.md**
+## Local testing
+* Note: 
+  * All commands running under the same directory of this **README.md**
 
-## Prepare your test environment
-* Copy values.yaml from your service helm chart here
+### Prepare your test environment for local 
 * Create a values-env-override.yaml file to change default images for your test environment
-  * See **exmaple of values-env-override.yaml** for detail
-* Download the desired umbrella helm chart to this folder
+  * See **exmaple of values-env-override.yaml** below
+* Copy values.yaml from the service helm chart which you like to test
+* Download the desired umbrella helm chart (in .tgz format) which you like to test your service's mesh configuration against
 
 ### exmaple of values-env-override.yaml
 * add local token generator
@@ -55,13 +56,15 @@ titanSideCars:
         engine:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/alpine-bash-curl-jq:latest
 ```
-## Build test environment and execute tests
+### Command to build the test environment and execute tests locally
 * run ./build.sh with required umbrella chart name and chart version, see example command
 ```bash
 ./build.sh icds-all-in-one 1.203.48
 ```
+
 ## Advanced topics
-* following configuration apply to both **titanSideCars.validation** and **titanSideCars.integration**
+* Note: 
+  * The following configuration can be applied to both **titanSideCars.validation** and **titanSideCars.integration**
 ### How to write a custom manual local test?
 * See sample test cases in values-env-override.yaml
 * echo service is used to emulate apps in the manaul local test environment
