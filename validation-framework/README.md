@@ -275,6 +275,29 @@ titanSideCars:
               value: uNj9Ned4QkyR8oOpFCp4_A
             op: npr
 ```
+## Integration with Kubernetes and Jenkins
+* Note
+  * In order to run docker contianer with Jenkins agent which is running inside as docker container of Kubernete pod, the build.sh and its dependencies  needs to be running inside a docker container
+### Build the image with needed utilities 
+* You need the image with both docker daemon and docker cli with docker compose support 
+  * official docker image with tag dind, e.g. **docker:rc-dind**
+### Example commands
+* Start up the prepared build docker image with docker-in-docker support under the required privileged mode
+  * docker run --privileged -d -v cloud-tools-titans:/titans -w /titans/validation-framework --name dind-test titan-validation-dind:0.0.1
+* Run interactive shell in the running container
+  * docker exec -it dind-test /bin/sh
+* Perform docker login to gain the access to required docker registry in order to pull required images, e.g.
+  * docker login -u {{user name}} -p {{password}} {{docker registry}}
+    * e.g. docker login -u demo -p password sbo-sps-docker-release-local.usw1.packages.broadcom.com
+* Run build.sh
+  * e.g. ./build.sh icds-all-in-one 1.209.46
+* Exit and clean up
+  * exit
+    * to exit from the interative shell of the running container
+  * docker stop dind-test
+    * Stop the running container by name
+  * docker rm dind-test
+    * Remove the running container by name
 ## Authors
 
 * **Anker Tsaur** - *anker.tsaur@broadcom.com**
