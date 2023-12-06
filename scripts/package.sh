@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 dir="$(pwd)"
 chart_name=$( grep '^name' Chart.yaml | sed 's/^.*: //' )
 chart_version=$( grep '^version' Chart.yaml | sed 's/^.*: //' )

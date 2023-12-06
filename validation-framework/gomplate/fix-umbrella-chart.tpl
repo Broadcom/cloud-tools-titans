@@ -1,7 +1,7 @@
 {{- $dependencies := .dependencies }}
 {{- $basePath := .path }}
 {{- if and $dependencies $basePath }}
-  {{- printf "#!/bin/bash\n" }}
+  {{- printf "#!/bin/sh\n" }}
   {{- range $dependencies }}
     {{- $name := .name }}
     {{- $respo := .repository }}

@@ -11,7 +11,7 @@
   {{- $gatewayEnabled := ternary ($localMyApp.enabled | default true) false (hasKey $localMyApp "gateway") }}
   {{- $counter := 0 -}}
   {{- if or $gatewayEnabled (hasKey $ingress "routes") (hasKey $egress "routes") }}
-#!/bin/bash
+#!/bin/sh
 
 mkdir -p /tests/logs
 exec 2> /tests/logs/auto-test-trace.log

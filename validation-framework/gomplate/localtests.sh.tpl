@@ -6,7 +6,7 @@
     {{- $tests := $validation.tests }}
     {{- if $tests }}
 
-#!/bin/bash
+#!/bin/sh
 mkdir -p /tests/logs
 exec 2> /tests/logs/localtest-trace.log
 
