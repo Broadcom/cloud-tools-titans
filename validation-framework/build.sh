@@ -14,9 +14,9 @@ fi
 opt3=$3
 
 function preCheck {
-  if ! command -v docker-compose &> /dev/null
+  if ! command -v docker compose &> /dev/null
   then
-      echo "docker-compose is required"
+      echo "docker compose is required"
       echo "See README.md for detail"
       exit 1
   fi
@@ -226,7 +226,7 @@ function buildLocalTests {
 
 function startupEnv {
   instance="validation-$RANDOM"
-  docker-compose -p "$instance" up -d
+  docker compose -p "$instance" up -d
   if [[ $? -ne 0 ]]
   then
     echo "Failed at startupDockerComposeEnv step"
@@ -265,7 +265,7 @@ function runTests {
 }
 
 function stopEnv {
-  docker-compose -p "$instance" down
+  docker compose -p "$instance" down
 }
 
 preCheck
@@ -293,7 +293,7 @@ else
   else
     echo ""
     echo "Run following command to stop running test environment "
-    echo "docker-compose -p $instance down"
+    echo "docker compose -p $instance down"
     echo ""
   fi
 fi
