@@ -14,7 +14,7 @@ fi
 opt3=$3
 
 function preCheck {
-  if ! command -v docker compose &> /dev/null
+  if ! command -v docker-compose &> /dev/null
   then
       echo "docker compose is required"
       echo "See README.md for detail"
@@ -50,7 +50,7 @@ function preCheck {
     echo "Found service's values.yam"
     echo "Use enviornment overrides from values-env-override.yaml"
   else
-    echo "Unable to find required vaules.yaml and/or values-env-override.yaml in the current directory"
+    echo "Unable to find required values.yaml and/or values-env-override.yaml in the current directory"
     echo "Please see the README.md"
     exit 1
   fi
@@ -75,14 +75,16 @@ function preCheck {
 }
 
 function getTitansChart {
+  pwd
   validation_titan_version=$(grep '  version' Chart.yaml | sed 's/^.*: //')
   cd ..
+  pwd
   titan_chart_name=$( grep '^name' Chart.yaml | sed 's/^.*: //' )
   titan_chart_version=$( grep '^version' Chart.yaml | sed 's/^.*: //' )
   echo "Use cloud_tools_titans version: $titan_chart_version"
   if [ "$titan_chart_version" != "$validation_titan_version" ]; then
-    echo "validation-framewor/Chart.yaml depends on version $validation_titan_version"
-    echo "Please update validation-framewor/Chart.yaml to depend on the same version - $titan_chart_version"
+    echo "validation-framework/Chart.yaml depends on version $validation_titan_version"
+    echo "Please update validation-framework/Chart.yaml to depend on the same version - $titan_chart_version"
     exit 1
   fi
   if [ -f "$titan_chart_name-$titan_chart_version.tgz" ]; then
@@ -226,7 +228,7 @@ function buildLocalTests {
 
 function startupEnv {
   instance="validation-$RANDOM"
-  docker compose -p "$instance" up -d
+  docker-compose -p "$instance" up -d
   if [[ $? -ne 0 ]]
   then
     echo "Failed at startupDockerComposeEnv step"
@@ -265,7 +267,7 @@ function runTests {
 }
 
 function stopEnv {
-  docker compose -p "$instance" down
+  docker-compose -p "$instance" down
 }
 
 preCheck
@@ -293,7 +295,7 @@ else
   else
     echo ""
     echo "Run following command to stop running test environment "
-    echo "docker compose -p $instance down"
+    echo "docker-compose -p $instance down"
     echo ""
   fi
 fi
