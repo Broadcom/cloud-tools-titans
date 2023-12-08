@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
- set -ex
+# set -ex
 currentDir=$PWD
 chartname=""
 if [ "$1" ];then
@@ -12,9 +12,8 @@ if [ "$2" ];then
 fi
 composeCMD="docker-compose"
 opt3=$3
-podman-compose
 function compose {
-  if $composeCMD == "podman-compose"; then
+  if [ "$composeCMD" = "podman-compose" ]; then
     podman-compose $@
   else
     docker-compose $@
@@ -31,7 +30,6 @@ function preCheck {
       else
           composeCMD="podman-compose"
       fi
-      exit 1
   fi
 
   if ! command -v helm &> /dev/null
