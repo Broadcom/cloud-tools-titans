@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
-# set -ex
+ set -ex
 currentDir=$PWD
 chartname=""
 if [ "$1" ];then
@@ -12,7 +12,14 @@ if [ "$2" ];then
 fi
 composeCMD="docker-compose"
 opt3=$3
-
+podman-compose
+function compose {
+  if $composeCMD == "podman-compose"; then
+    podman-compose $@
+  else
+    docker-compose $@
+  fi
+}
 function preCheck {
   if ! command -v docker-compose &> /dev/null
   then
@@ -26,6 +33,7 @@ function preCheck {
       fi
       exit 1
   fi
+
   if ! command -v helm &> /dev/null
   then
       echo "helm tool is required"
@@ -234,7 +242,7 @@ function buildLocalTests {
 
 function startupEnv {
   instance="validation-$RANDOM"
-  $composeCMD -p "$instance" up -d
+  compose -p "$instance" up -d
   if [[ $? -ne 0 ]]
   then
     echo "Failed at startupDockerComposeEnv step"
@@ -273,7 +281,7 @@ function runTests {
 }
 
 function stopEnv {
-  $composeCMD -p "$instance" down
+  compose -p "$instance" down
 }
 
 preCheck
@@ -301,7 +309,7 @@ else
   else
     echo ""
     echo "Run following command to stop running test environment "
-    echo "$composeCMD -p $instance down"
+    echo "compose -p $instance down"
     echo ""
   fi
 fi
