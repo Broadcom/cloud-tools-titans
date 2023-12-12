@@ -56,6 +56,9 @@ sh ./scripts/package.sh
 
 ## [Documentation](https://github.com/Broadcom/cloud-tools-titans/wiki)
 
+## Reference
+* envoy fips build, please see https://github.com/aakatev/envoy-fips
+
 ---
 ## Project Creator
 * **Anker Tsaur** - *anker.tsaur@broadcom.com*
