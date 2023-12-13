@@ -11,6 +11,7 @@ if [ "$2" ];then
   chartver="$2"
 fi
 composeCMD="docker-compose"
+containerDelim="-"
 opt3=$3
 function compose {
   if [ "$composeCMD" = "podman-compose" ]; then
@@ -29,6 +30,7 @@ function preCheck {
           exit 1
       else
           composeCMD="podman-compose"
+          containerDelim="_"
       fi
   fi
 
@@ -250,7 +252,7 @@ function startupEnv {
 
 function runTests {
   sleep 1
-  docker exec --workdir /tests  "$instance-engine-1" bash validation-test.sh
+  docker exec --workdir /tests  "${instance}${containerDelim}engine${containerDelim}1" bash validation-test.sh
   if [[ $? -ne 0 ]]
   then
     echo "Failed at runTests - autotest step"
@@ -263,7 +265,7 @@ function runTests {
   cp tests/logs/report.txt tests/logs/report-auto.txt
   cat tests/logs/report-auto.txt
   if [ -s tests/localtests.sh ]; then
-    docker exec --workdir /tests  "$instance-engine-1" bash localtests.sh
+    docker exec --workdir /tests  "$instance${containerDelim}engine${containerDelim}1" bash localtests.sh
     if [[ $? -ne 0 ]]
     then
       echo "Failed at runTests - localtests step"

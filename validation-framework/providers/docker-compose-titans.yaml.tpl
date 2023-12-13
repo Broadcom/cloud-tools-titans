@@ -119,8 +119,6 @@ services:
       - -f
       - /dev/null
 #    command: /tests/validation-test.sh
-    depends_on:
-      - proxy
     networks:
       - envoymesh
     volumes:
