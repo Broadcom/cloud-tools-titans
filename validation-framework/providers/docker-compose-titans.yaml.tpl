@@ -66,6 +66,7 @@ services:
     image: {{ $ratelimit.image }}
     platform: linux/amd64
     command: /bin/ratelimit
+    user: root
     expose:
       - "8070"
       - "8081"

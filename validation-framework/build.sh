@@ -283,7 +283,7 @@ function runTests {
 }
 
 function stopEnv {
-#  echo disabled
+
   compose -p "$instance" down
 }
 
