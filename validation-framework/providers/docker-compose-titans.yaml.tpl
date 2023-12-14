@@ -20,6 +20,7 @@
 version: '3.7'
 services:
   proxy:
+    user: root
     image: {{ $proxy.image }}
     platform: linux/amd64
     volumes:
@@ -119,6 +120,8 @@ services:
       - -f
       - /dev/null
 #    command: /tests/validation-test.sh
+    depends_on:
+      - proxy
     networks:
       - envoymesh
     volumes:

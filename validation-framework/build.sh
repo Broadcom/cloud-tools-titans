@@ -252,6 +252,7 @@ function startupEnv {
 
 function runTests {
   sleep 1
+  echo "Running validation-test.sh"
   docker exec --workdir /tests  "${instance}${containerDelim}engine${containerDelim}1" bash validation-test.sh
   if [[ $? -ne 0 ]]
   then
@@ -265,6 +266,7 @@ function runTests {
   cp tests/logs/report.txt tests/logs/report-auto.txt
   cat tests/logs/report-auto.txt
   if [ -s tests/localtests.sh ]; then
+    echo "Running localtests.sh"
     docker exec --workdir /tests  "$instance${containerDelim}engine${containerDelim}1" bash localtests.sh
     if [[ $? -ne 0 ]]
     then
@@ -281,6 +283,7 @@ function runTests {
 }
 
 function stopEnv {
+#  echo disabled
   compose -p "$instance" down
 }
 
