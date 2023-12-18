@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
-# set -ex
+ set -x
 currentDir=$PWD
 chartname=""
 if [ "$1" ];then
@@ -33,7 +33,7 @@ function preCheck {
           containerDelim="_"
       fi
   fi
-
+  echo "using $composeCMD"
   if ! command -v helm &> /dev/null
   then
       echo "helm tool is required"
@@ -61,7 +61,7 @@ function preCheck {
   fi
 
   if [ -f "values-env-override.yaml" ] && [ -f "values.yaml" ]; then
-    echo "Found service's values.yam"
+    echo "Found service's values.yaml"
     echo "Use enviornment overrides from values-env-override.yaml"
   else
     echo "Unable to find required values.yaml and/or values-env-override.yaml in the current directory"
