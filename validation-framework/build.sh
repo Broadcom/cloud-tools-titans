@@ -17,7 +17,7 @@ function compose {
   if [ "$composeCMD" = "podman-compose" ]; then
     podman-compose $@
   else
-    docker-compose $@
+    docker compose $@
   fi
 }
 function preCheck {
