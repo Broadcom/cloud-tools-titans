@@ -16,22 +16,29 @@ opt3=$3
 function compose {
   if [ "$composeCMD" = "podman-compose" ]; then
     podman-compose $@
+  elif [ "$composeCMD" = "docker-compose" ]; then
+    docker-compose $@
   else
     docker compose $@
   fi
 }
 function preCheck {
-  if ! command -v docker compose &> /dev/null
+  if command podman-compose &> /dev/null
   then
-      if ! command -v podman-compose &> /dev/null
-      then
-          echo "docker or podman compose is required"
-          echo "See README.md for detail"
-          exit 1
-      else
-          composeCMD="podman-compose"
-          containerDelim="_"
-      fi
+    composeCMD="podman-compose"
+    containerDelim="_"
+  elif command docker-compose &> /dev/null
+  then
+    composeCMD="docker-compose"
+    containerDelim="-"
+  elif docker compose version &> /dev/null
+  then
+    composeCMD="docker compose"
+    containerDelim="-"
+  else
+      echo "docker or podman compose is required"
+      echo "See README.md for detail"
+      exit 1
   fi
   echo "using $composeCMD"
   if ! command -v helm &> /dev/null
@@ -71,10 +78,10 @@ function preCheck {
 
   if [ -f "$chartname-$chartver.tgz" ]; then
     rm -rf tmp
-    mkdir -p tmp  
+    mkdir -p tmp
     echo "found $chartname-$chartver.tgz"
     mv "$chartname-$chartver.tgz" tmp
-  else 
+  else
     if [ -f "tmp/$chartname-$chartver.tgz" ]; then
       echo "Use found tmp/$chartname-$chartver.tgz"
       mv "tmp/$chartname-$chartver.tgz" "$chartname-$chartver.tgz"
@@ -83,7 +90,7 @@ function preCheck {
       mv "$chartname-$chartver.tgz" "tmp/$chartname-$chartver.tgz"
     else
       echo "$chartname-$chartver.tgz is not found in current directory"
-      echo "Will try to download as running from internal broadcom environment"    
+      echo "Will try to download as running from internal broadcom environment"
     fi
   fi
 }
