@@ -21,7 +21,7 @@ function compose {
   fi
 }
 function preCheck {
-  if ! command -v docker compose &> /dev/null
+  if ! command -v docker-compose &> /dev/null
   then
       if ! command -v podman-compose &> /dev/null
       then
