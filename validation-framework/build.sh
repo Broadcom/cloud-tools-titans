@@ -23,15 +23,15 @@ function compose {
   fi
 }
 function preCheck {
-  if command -v podman-compose &> /dev/null
+  if command -v podman-compose &> /dev/null ;
   then
     composeCMD="podman-compose"
     containerDelim="_"
-  elif command -v docker-compose &> /dev/null
+  elif command -v docker-compose &> /dev/null ;
   then
     composeCMD="docker-compose"
     containerDelim="-"
-  elif docker compose version &> /dev/null
+  elif docker compose version &> /dev/null ;
   then
     composeCMD="docker compose"
     containerDelim="-"
