@@ -14,6 +14,7 @@ composeCMD="docker-compose"
 containerDelim="-"
 opt3=$3
 function compose {
+  echo "using $composeCMD"
   if [ "$composeCMD" = "podman-compose" ]; then
     podman-compose $@
   elif [ "$composeCMD" = "docker-compose" ]; then
