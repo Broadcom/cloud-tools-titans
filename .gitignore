@@ -8,3 +8,4 @@ validation-framework/docker-compose.yaml
 validation-framework/values-test-clusters.yaml
 validation-framework/values.yaml
 validation-framework/secrets/credential.json
+validation-framework/icds-all-in-one-*.tgz
