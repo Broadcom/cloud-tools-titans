@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
-# set -ex
+ set -x
 currentDir=$PWD
 chartname=""
 if [ "$1" ];then
@@ -10,16 +10,38 @@ chartver=""
 if [ "$2" ];then
   chartver="$2"
 fi
-
+composeCMD="docker-compose"
+containerDelim="-"
 opt3=$3
-
+function compose {
+  echo "using $composeCMD"
+  if [ "$composeCMD" = "podman-compose" ]; then
+    podman-compose $@
+  elif [ "$composeCMD" = "docker-compose" ]; then
+    docker-compose $@
+  else
+    docker compose $@
+  fi
+}
 function preCheck {
-  if ! command -v docker compose &> /dev/null
+  if command -v podman-compose &> /dev/null ;
   then
-      echo "docker compose is required"
+    composeCMD="podman-compose"
+    containerDelim="_"
+  elif command -v docker-compose &> /dev/null ;
+  then
+    composeCMD="docker-compose"
+    containerDelim="-"
+  elif docker compose version &> /dev/null ;
+  then
+    composeCMD="docker compose"
+    containerDelim="-"
+  else
+      echo "docker or podman compose is required"
       echo "See README.md for detail"
       exit 1
   fi
+  echo "using $composeCMD"
   if ! command -v helm &> /dev/null
   then
       echo "helm tool is required"
@@ -47,20 +69,20 @@ function preCheck {
   fi
 
   if [ -f "values-env-override.yaml" ] && [ -f "values.yaml" ]; then
-    echo "Found service's values.yam"
+    echo "Found service's values.yaml"
     echo "Use enviornment overrides from values-env-override.yaml"
   else
-    echo "Unable to find required vaules.yaml and/or values-env-override.yaml in the current directory"
+    echo "Unable to find required values.yaml and/or values-env-override.yaml in the current directory"
     echo "Please see the README.md"
     exit 1
   fi
 
   if [ -f "$chartname-$chartver.tgz" ]; then
     rm -rf tmp
-    mkdir -p tmp  
+    mkdir -p tmp
     echo "found $chartname-$chartver.tgz"
     mv "$chartname-$chartver.tgz" tmp
-  else 
+  else
     if [ -f "tmp/$chartname-$chartver.tgz" ]; then
       echo "Use found tmp/$chartname-$chartver.tgz"
       mv "tmp/$chartname-$chartver.tgz" "$chartname-$chartver.tgz"
@@ -69,20 +91,22 @@ function preCheck {
       mv "$chartname-$chartver.tgz" "tmp/$chartname-$chartver.tgz"
     else
       echo "$chartname-$chartver.tgz is not found in current directory"
-      echo "Will try to download as running from internal broadcom environment"    
+      echo "Will try to download as running from internal broadcom environment"
     fi
   fi
 }
 
 function getTitansChart {
+  pwd
   validation_titan_version=$(grep '  version' Chart.yaml | sed 's/^.*: //')
   cd ..
+  pwd
   titan_chart_name=$( grep '^name' Chart.yaml | sed 's/^.*: //' )
   titan_chart_version=$( grep '^version' Chart.yaml | sed 's/^.*: //' )
   echo "Use cloud_tools_titans version: $titan_chart_version"
   if [ "$titan_chart_version" != "$validation_titan_version" ]; then
-    echo "validation-framewor/Chart.yaml depends on version $validation_titan_version"
-    echo "Please update validation-framewor/Chart.yaml to depend on the same version - $titan_chart_version"
+    echo "validation-framework/Chart.yaml depends on version $validation_titan_version"
+    echo "Please update validation-framework/Chart.yaml to depend on the same version - $titan_chart_version"
     exit 1
   fi
   if [ -f "$titan_chart_name-$titan_chart_version.tgz" ]; then
@@ -226,7 +250,7 @@ function buildLocalTests {
 
 function startupEnv {
   instance="validation-$RANDOM"
-  docker compose -p "$instance" up -d
+  compose -p "$instance" up -d
   if [[ $? -ne 0 ]]
   then
     echo "Failed at startupDockerComposeEnv step"
@@ -236,7 +260,8 @@ function startupEnv {
 
 function runTests {
   sleep 1
-  docker exec --workdir /tests  "$instance-engine-1" bash validation-test.sh
+  echo "Running validation-test.sh"
+  docker exec --workdir /tests  "${instance}${containerDelim}engine${containerDelim}1" bash validation-test.sh
   if [[ $? -ne 0 ]]
   then
     echo "Failed at runTests - autotest step"
@@ -249,7 +274,8 @@ function runTests {
   cp tests/logs/report.txt tests/logs/report-auto.txt
   cat tests/logs/report-auto.txt
   if [ -s tests/localtests.sh ]; then
-    docker exec --workdir /tests  "$instance-engine-1" bash localtests.sh
+    echo "Running localtests.sh"
+    docker exec --workdir /tests  "$instance${containerDelim}engine${containerDelim}1" bash localtests.sh
     if [[ $? -ne 0 ]]
     then
       echo "Failed at runTests - localtests step"
@@ -265,7 +291,8 @@ function runTests {
 }
 
 function stopEnv {
-  docker compose -p "$instance" down
+
+  compose -p "$instance" down
 }
 
 preCheck
@@ -293,7 +320,7 @@ else
   else
     echo ""
     echo "Run following command to stop running test environment "
-    echo "docker compose -p $instance down"
+    echo "compose -p $instance down"
     echo ""
   fi
 fi

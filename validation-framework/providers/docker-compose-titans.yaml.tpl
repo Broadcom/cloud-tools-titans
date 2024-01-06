@@ -20,6 +20,7 @@
 version: '3.7'
 services:
   proxy:
+    user: root
     image: {{ $proxy.image }}
     platform: linux/amd64
     volumes:
@@ -65,6 +66,7 @@ services:
     image: {{ $ratelimit.image }}
     platform: linux/amd64
     command: /bin/ratelimit
+    user: root
     expose:
       - "8070"
       - "8081"
