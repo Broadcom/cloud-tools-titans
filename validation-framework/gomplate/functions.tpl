@@ -277,6 +277,7 @@
       {{- if or $rbac $enrich }}
         {{- $policies := $rbac.policies }}
         {{- range $policies }}
+          {{- $rbacHdrStr := $hdrStr }}
           {{- $name := .name }}
           {{- $privs := "" }}
           {{- $scope := "" }}            
@@ -288,8 +289,11 @@
           {{- $rules := .rules }}          
           {{- $requestToken := false }}
           {{- range $rules }}
-            {{- if hasPrefix "request.token" .lop }}            
-              {{- $claim := trimPrefix "request.token[" .lop | trimSuffix "]" }}
+            {{- $lop := .lop | default "" }}
+            {{- $rop := .rop | default "" }}
+            {{- if or (hasPrefix "request.token" $lop) (hasPrefix "request.token" $rop) }}
+              {{- $tokenOprand := ternary $lop $rop (hasPrefix "request.token" $lop) }}
+              {{- $claim := trimPrefix "request.token[" $tokenOprand | trimSuffix "]" }}
               {{- if eq $claim "scope" }}
                 {{- if eq .op "co" }}
                   {{- $scope = .val }}
@@ -337,6 +341,14 @@
                   {{- $requestToken = true }}
                 {{- end }}
               {{- end }}
+            {{- end }}
+            {{- if or (hasPrefix "request.headers" $lop) (hasPrefix "request.headers" $rop) }}
+              {{- $hdrOprand := ternary $lop $rop (hasPrefix "request.headers" $lop) }}
+              {{- $hdrName := trimPrefix "request.headers[" $hdrOprand | trimSuffix "]" }}
+            {{- end }}
+            {{- if or (hasPrefix "request.body" $lop) (hasPrefix "request.body" $rop) }}
+              {{- $bodyOprand := ternary $lop $rop (hasPrefix "request.body" $lop) }}
+              {{- $bodyAttrib := trimPrefix "request.body[" $bodyOprand | trimSuffix "]" }}
             {{- end }}
           {{- end }}
           {{- if $requestToken }}

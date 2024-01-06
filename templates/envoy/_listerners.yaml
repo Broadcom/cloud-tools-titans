@@ -28,7 +28,8 @@
   {{- $customEnvoyTpls := $customTpls.envoy }}
   {{- $ingressEnabled := ternary $ingress.enabled true (hasKey $ingress "enabled") -}}
   {{- if $ingressEnabled }}
-    - name: {{ $appName }}-ingress
+    {{- $connectionMgr := $ingress.connectionMgr }}
+    - name: {{ $appName }}-ingress"
     {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.listener.v3.Listener
     {{- end }}
@@ -44,12 +45,26 @@
             access_log:
               name: envoy.access_loggers.file
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "inbound-downstream") | nindent 14 }}
-            use_remote_address: true
-            stat_prefix: ingress-proxy
-            server_name: {{ $appName }}-ingress
-            normalize_path: {{ ternary $envoy.normalizePath "true" (hasKey $envoy "normalizePath") }}
-            merge_slashes: {{ ternary $envoy.mergeSlashes "true" (hasKey $envoy "mergeSlashes") }}
-            path_with_escaped_slashes_action: {{ $envoy.pathWithEscapedSlashesAction | default "UNESCAPE_AND_FORWARD" }}
+            use_remote_address: {{ $connectionMgr.useRemoteAddress | default "true" }}
+            codec_type: {{ $connectionMgr.codeType | default "AUTO" }}
+            always_set_request_id_in_response: {{ ternary $connectionMgr.alwaysSetRequestIdInResponse "true" (hasKey $connectionMgr "alwaysSetRequestIdInResponse") }}
+            stat_prefix: {{ $connectionMgr.statPrefix | default "ingress-proxy" | quote }}
+            server_name: {{ $connectionMgr.serverName | default (printf "%s-ingress" $appName) | quote }}
+    {{- $normalizePath := ternary $envoy.normalizePath "true" (hasKey $envoy "normalizePath") }}
+    {{- if $connectionMgr.normalizePath }}
+      {{- $normalizePath = $connectionMgr.normalizePath -}}
+    {{- end }}
+    {{- $mergeSlashes := ternary $envoy.mergeSlashes "true" (hasKey $envoy "mergeSlashes") }}
+    {{- if $connectionMgr.mergeSlashes }}
+      {{- $mergeSlashes = $connectionMgr.mergeSlashes -}}
+    {{- end }}
+    {{- $pathWithEscapedSlashesAction := $envoy.pathWithEscapedSlashesAction | default "UNESCAPE_AND_FORWARD" }}
+    {{- if $connectionMgr.pathWithEscapedSlashesAction }}
+      {{- $pathWithEscapedSlashesAction = $connectionMgr.pathWithEscapedSlashesAction -}}
+    {{- end }}
+            normalize_path: {{ $normalizePath }}
+            merge_slashes: {{ $mergeSlashes }}
+            path_with_escaped_slashes_action: {{ $pathWithEscapedSlashesAction }}
             preserve_external_request_id: {{ $ingress.preserveExternalRequestId | default "true" }}
     {{- if $ingressIdleTimeout }}
             stream_idle_timeout: {{ $ingressIdleTimeout }}
@@ -140,11 +155,13 @@
               alpn_protocols:
               - h2
               - http/1.1
-    {{- if $egress.routes }}
+  {{- end }}
+  {{- if $egress.routes }}
+    {{- $connectionMgr := $egress.connectionMgr }}
     - name: {{ $appName }}-egress
-      {{- if $useDynamicConfiguration }}
+    {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.listener.v3.Listener
-      {{- end }}
+    {{- end }}
       address:
         socket_address:
           address: 0.0.0.0
@@ -155,22 +172,22 @@
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
             stat_prefix: egress-proxy
-            server_name: {{ $appName }}-egress
+            server_name: {{ $connectionMgr.serverName | default (printf "%s-egress" $appName) | quote }}
             preserve_external_request_id: {{ $egress.preserveExternalRequestId | default "false" }}
             access_log:
               name: envoy.access_loggers.file
-      {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-downstream") | nindent 14 }}
-      {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" "HTTP2" "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-downstream") | nindent 14 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" "HTTP2" "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
             http_filters:
-      {{- include "titan-mesh-helm-lib-chart.envoy.filter.custome.response" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy) | nindent 12 }}
-      {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers "appName" $appName) | nindent 12 }}
-      {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy "appName" $appName) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.custome.response" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers "appName" $appName) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy "appName" $appName) | nindent 12 }}
             - name: envoy.filters.http.router
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
                 upstream_log:
                 - name: envoy.access_loggers.file
-      {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-upstream") | nindent 18 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-upstream") | nindent 18 }}
             route_config:
               name: {{ $appName }}-egress
               internal_only_headers:
@@ -180,9 +197,8 @@
               virtual_hosts:
               - name: {{ $appName }}-egress
                 domains: '*'
-      {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $egress "clusters" $clusters "direction" "egress") | nindent 14 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $egress "clusters" $clusters "direction" "egress") | nindent 14 }}
                 rate_limits: []
-      {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress" "appName" $appName) }}
-    {{- end }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress" "appName" $appName) }}
   {{- end }}
 {{- end }}
