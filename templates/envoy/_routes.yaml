@@ -159,7 +159,7 @@
                         regex: {{ $route.regexRewrite.pattern }}
                       substitution: {{ $route.regexRewrite.substitution }}
             {{- end }}
-            {{- if or (eq $direction "egress") (and (eq $direction "ingress") (not (hasPrefix "local-" $clusterName))) $cluster.autoHostRewrite $route.autoHostRewrite (and $validationEnabled $gatewayEnable) }}
+            {{- if or (eq $direction "egress") (and (eq $direction "ingress") (not (hasPrefix "local-" $clusterName)) (not $gatewayEnable)) $cluster.autoHostRewrite $route.autoHostRewrite (and $validationEnabled $gatewayEnable) }}
                     auto_host_rewrite: true
             {{- end }}
                     retry_policy:
