@@ -50,6 +50,7 @@
   typed_config:
     "@type": type.googleapis.com/envoy.extensions.filters.http.ratelimit.v3.RateLimit
     domain: {{ $ratelimit.domain | default $appName }}
+    timeout: {{ $ratelimit.timeout | default "2s" }}
     failure_mode_deny: {{ $ratelimit.failureModeDeny | default "false" }}
     enable_x_ratelimit_headers: {{ $ratelimit.enableRatelimitResponseHeaders | default "DRAFT_VERSION_03" }}
     rate_limit_service:
@@ -57,6 +58,6 @@
       grpc_service:
         envoy_grpc:
           cluster_name: ratelimit
-        timeout: 0.5s
+        timeout: {{ $ratelimit.timeout | default "2s" }}
   {{- end }}
 {{- end }}
