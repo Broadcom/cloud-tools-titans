@@ -52,11 +52,12 @@
     domain: {{ $ratelimit.domain | default $appName }}
     failure_mode_deny: {{ $ratelimit.failureModeDeny | default "false" }}
     enable_x_ratelimit_headers: {{ $ratelimit.enableRatelimitResponseHeaders | default "DRAFT_VERSION_03" }}
+    timeout: {{ $ratelimit.timeout | default "2s" }}
     rate_limit_service:
       transport_api_version: V3
       grpc_service:
         envoy_grpc:
           cluster_name: ratelimit
-        timeout: 0.5s
+        timeout: {{ $ratelimit.timeout | default "2s" }}
   {{- end }}
 {{- end }}
