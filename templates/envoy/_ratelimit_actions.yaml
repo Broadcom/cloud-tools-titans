@@ -44,7 +44,6 @@
       {{- $ratelimit := .ratelimit }}
       {{- $rtName := regexReplaceAll "\\W+" ($ratelimit.name | default "keyval") "-" }}
       {{- if (ternary $ratelimit.enabled ($ratelimit | default false) (hasKey $ratelimit "enabled")) }}
-        {{- $l1hash := . | toString | sha1sum }}
         {{- $matches := .empty }}
         {{- if .match }}
           {{- $matches = list .match }}
@@ -58,6 +57,7 @@
           {{- $cluster := index $clusters $clusterName }}
           {{- $matches = $cluster.routes }}
         {{- end }}
+        {{- $l1hash := $matches | toString | sha1sum }}
         {{- $actions := .ratelimit.actions }}
         {{- range $actions }}
           {{- $action := . }}
