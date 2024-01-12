@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
- set -x
+#  set -x
 currentDir=$PWD
 chartname=""
 if [ "$1" ];then
