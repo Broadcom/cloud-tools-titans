@@ -16,6 +16,37 @@ if [ "$3" ];then
   releaseName="$3"
 fi
 
+namespace="sedicdsaas-dev-stage-sp1"
+if [ "$4" ];then
+  namespace="$4"
+fi
+
+values=""
+i=0;
+vsp=5;
+for v in "$@" 
+do
+  i=$((i + 1));
+  if [ "$values" == "" ] && [ "$v" == "-f" ];
+  then
+    if [ $i -lt $vsp ];
+    then
+      echo "Usage: build-dynamic-configs-from-umbrella.sh [umbrella chart name] [umbrella chart version] [helm release label] [namespace] [-f values files -f ...]"
+      exit 1
+    fi
+    values="$v"
+  else
+    if [ "$values" != "" ];
+    then
+      if [ "$v" == "-f" ];
+      then
+        values="$values $v"
+      else
+        values="$values $currentDir/$v"
+      fi
+    fi
+  fi
+done
 
 containerDelim="-"
 function preCheck {
@@ -128,13 +159,28 @@ function processAIOAdvance {
   cd ..
 }
 
+function runHelmCmd {
+  if [ -d "tmp/envoy/$chartname" ]; then
+    mkdir -p "tmp/envoy/configmaps"
+    rm -rf "tmp/envoy/configmaps/$chartname"
+    cd "tmp/envoy/$chartname"
+    vargs=($(echo "$values" | tr " " "\n") "")
+    helm template "$releaseName" . --debug --output-dir "$currentDir/tmp/envoy/configmaps" -n "$namespace" ${vargs[@]/#/}
+    if [[ $? -ne 0 ]]
+    then
+      cd -
+      echo "Failed to run helm template $releaseName . --output-dir $currentDir/tmp/envoy/configmaps -n $namespace $values"
+      exit 1
+    fi
+    cd -
+  else
+    echo "Unable to find generated untar unmbrella chart folder [tmp/envoy/$chartname]"
+    exit 1
+  fi
+}
+
+
 function prepareEnvoyConfigurations {
-  # helm template validation . --output-dir "$PWD/tmp" -n validation -f values.yaml -f values-test.yaml -f values-env-override.yaml -f values-test-clusters.yaml
-  # if [[ $? -ne 0 ]]
-  # then
-  #   echo "Failed at prepareEnvoyConfigurations step"
-  #   exit 1
-  # fi
   cd tmp
   envoyconfigmaps="envoy/configmaps/$chartname"
   envoyconfigs="envoy/configs/$chartname"
@@ -184,9 +230,11 @@ function prepareEnvoyConfigurations {
 }
 
 
-# preCheck
+preCheck
 
-# processAIOAdvance
+processAIOAdvance
+
+runHelmCmd
 
 prepareEnvoyConfigurations
 
