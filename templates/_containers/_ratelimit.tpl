@@ -17,6 +17,8 @@
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $envoy := $titanSideCars.envoy }}
+  {{- $ratelimitConfigPath := $envoy.ratelimitConfigPath | default "/configs/ratelimit/config" -}}
+  {{- $ratelimitConfigFileName := $envoy.ratelimitConfigFileName | default "ratelimit_config.yaml" -}}
   {{- $clusters := $envoy.clusters }}
   {{- $localApp := index $clusters "local-myapp" }}
 
@@ -137,9 +139,9 @@
     {{- end }}
   terminationMessagePath: /dev/termination-log
   volumeMounts:
-    - mountPath: /configs/ratelimit/config/ratelimit_config.yaml
+    - mountPath: {{ printf "%s/%s" $ratelimitConfigPath $ratelimitConfigFileName }}
       name: {{ ternary "titan-configs-envoy-dmc" "titan-configs" $useDynamicConfiguration }} 
-      subPath: ratelimit_config.yaml
+      subPath: {{ $ratelimitConfigFileName }}
     - mountPath: /logs/
       name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
     {{- end }}
