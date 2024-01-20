@@ -10,6 +10,13 @@ chartver=""
 if [ "$2" ];then
   chartver="$2"
 fi
+
+releaseName="icds-dev-stage-release"
+if [ "$3" ];then
+  releaseName="$3"
+fi
+
+
 containerDelim="-"
 function preCheck {
   if ! command -v helm &> /dev/null
@@ -122,60 +129,65 @@ function processAIOAdvance {
 }
 
 function prepareEnvoyConfigurations {
-  helm template validation . --output-dir "$PWD/tmp" -n validation -f values.yaml -f values-test.yaml -f values-env-override.yaml -f values-test-clusters.yaml
-  if [[ $? -ne 0 ]]
-  then
-    echo "Failed at prepareEnvoyConfigurations step"
-    exit 1
-  fi
-  rm -rf envoy
-  rm -rf tests
-  mkdir -p envoy/config
-  mkdir -p envoy/ratelimit/config
-  mkdir -p tests/logs
-  cd tmp/myapp/templates
-  k8split configmap.yaml
-  cd -
-  gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-dmc.yaml --set select="envoy.yaml" > envoy/config/envoy.yaml
-  if [[ $? -ne 0 ]]
-  then
-    echo "Failed at prepareEnvoyConfigurations - build envoy.yaml step"
-    exit 1
-  fi
-  gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-dmc.yaml --set select="envoy-sds.yaml" > envoy/config/envoy-sds.yaml
-  if [[ $? -ne 0 ]]
-  then
-    echo "Failed at prepareEnvoyConfigurations - build envoy-sds.yaml step"
-    exit 1
-  fi
+  # helm template validation . --output-dir "$PWD/tmp" -n validation -f values.yaml -f values-test.yaml -f values-env-override.yaml -f values-test-clusters.yaml
+  # if [[ $? -ne 0 ]]
+  # then
+  #   echo "Failed at prepareEnvoyConfigurations step"
+  #   exit 1
+  # fi
+  cd tmp
+  envoyconfigmaps="envoy/configmaps/$chartname"
+  envoyconfigs="envoy/configs/$chartname"
 
-  gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-dmc.yaml --set select="ratelimit_config.yaml" > envoy/ratelimit/config/ratelimit_config.yaml
-  if [[ $? -ne 0 ]]
-  then
-    echo "Failed at prepareEnvoyConfigurations - build ratelimit_config.yaml step"
-    exit 1
-  fi
-  mkdir -p envoy/config/cds
-  gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-cds.yaml --set select="cds.yaml" > envoy/config/cds/cds.yaml
-  if [[ $? -ne 0 ]]
-  then
-    echo "Failed at prepareEnvoyConfigurations - build cds.yaml step"
-    exit 1
-  fi
-  mkdir -p envoy/config/lds
-  gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-lds.yaml --set select="lds.yaml" > envoy/config/lds/lds.yaml
-  if [[ $? -ne 0 ]]
-  then
-    echo "Failed at prepareEnvoyConfigurations - build lds.yaml step"
-    exit 1
-  fi
+  for file in "$envoyconfigmaps"/charts/*; do
+    if [[ -d "$file" ]]; then
+      folder=$(basename $file)
+      mkdir -p "$envoyconfigs/$folder/envoy/config"
+      mkdir -p "$envoyconfigs/$folder/envoy/ratelimit/config"
+      cd "$envoyconfigmaps/charts/$folder/templates"
+      k8split configmap.yaml
+      cd -
+      gotpl ../gomplate/extract_envoy.tpl -f "$envoyconfigmaps/charts/$folder/templates/configmap-$releaseName-$folder-titan-configs-envoy-dmc.yaml" --set select="envoy.yaml" > "$envoyconfigs/$folder/envoy/envoy.yaml"
+      if [[ $? -ne 0 ]]
+      then
+        echo "Failed at prepareEnvoyConfigurations - build envoy.yaml step"
+        exit 1
+      fi
+      gotpl ../gomplate/extract_envoy.tpl -f "$envoyconfigmaps/charts/$folder/templates/configmap-$releaseName-$folder-titan-configs-envoy-dmc.yaml" --set select="envoy-sds.yaml" > "$envoyconfigs/$folder/envoy/config/envoy-sds.yaml"
+      if [[ $? -ne 0 ]]
+      then
+        echo "Failed at prepareEnvoyConfigurations - build envoy-sds.yaml step"
+        exit 1
+      fi
+      gotpl ../gomplate/extract_envoy.tpl -f "$envoyconfigmaps/charts/$folder/templates/configmap-$releaseName-$folder-titan-configs-envoy-dmc.yaml" --set select="ratelimit_config.yaml" > "$envoyconfigs/$folder/envoy/ratelimit/config/ratelimit_config.yaml"
+      if [[ $? -ne 0 ]]
+      then
+        echo "Failed at prepareEnvoyConfigurations - build ratelimit_config.yaml step"
+        exit 1
+      fi
+      gotpl ../gomplate/extract_envoy.tpl -f "$envoyconfigmaps/charts/$folder/templates/configmap-$releaseName-$folder-titan-configs-envoy-cds.yaml" --set select="cds.yaml" > "$envoyconfigs/$folder/envoy/config/cds.yaml"
+      if [[ $? -ne 0 ]]
+      then
+        echo "Failed at prepareEnvoyConfigurations - build cds.yaml step"
+        exit 1
+      fi
+      gotpl ../gomplate/extract_envoy.tpl -f "$envoyconfigmaps/charts/$folder/templates/configmap-$releaseName-$folder-titan-configs-envoy-lds.yaml" --set select="lds.yaml" > "$envoyconfigs/$folder/envoy/config/lds.yaml"
+      if [[ $? -ne 0 ]]
+      then
+        echo "Failed at prepareEnvoyConfigurations - build lds.yaml step"
+        exit 1
+      fi
+    fi
+  done
+  cd ..
+
 }
 
 
-preCheck
+# preCheck
 
-processAIOAdvance
+# processAIOAdvance
 
-# prepareEnvoyConfigurations
+prepareEnvoyConfigurations
 
 
