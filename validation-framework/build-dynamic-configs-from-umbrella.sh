@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
-#  set -x
+# set -x
 currentDir=$PWD
 chartname=""
 if [ "$1" ];then
@@ -140,6 +140,13 @@ function processAIOAdvance {
         cp -r "$chartname/charts/$folder" "envoy/$chartname/charts"
         cd "envoy/$chartname/charts/$folder"
         helm package . -d ..
+        if [[ $? -ne 0 ]]
+        then
+          cd -
+          echo "Failed to run helm package for $folder"
+          cd ..
+          exit 1
+        fi        
         cd ..
         rm -rf "$folder"
         cd "$currentDir/tmp"
