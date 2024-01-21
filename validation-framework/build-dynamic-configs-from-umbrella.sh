@@ -189,7 +189,7 @@ function prepareEnvoyConfigurations {
     if [[ -d "$file" ]]; then
       folder=$(basename $file)
       mkdir -p "$envoyconfigs/$folder/envoy/config"
-      mkdir -p "$envoyconfigs/$folder/envoy/ratelimit/config"
+      mkdir -p "$envoyconfigs/$folder/ratelimit/config"
       cd "$envoyconfigmaps/charts/$folder/templates"
       k8split configmap.yaml
       cd -
@@ -205,7 +205,7 @@ function prepareEnvoyConfigurations {
         echo "Failed at prepareEnvoyConfigurations - build envoy-sds.yaml step"
         exit 1
       fi
-      gotpl ../gomplate/extract_envoy.tpl -f "$envoyconfigmaps/charts/$folder/templates/configmap-$releaseName-$folder-titan-configs-envoy-dmc.yaml" --set select="ratelimit_config.yaml" > "$envoyconfigs/$folder/envoy/ratelimit/config/ratelimit_config.yaml"
+      gotpl ../gomplate/extract_envoy.tpl -f "$envoyconfigmaps/charts/$folder/templates/configmap-$releaseName-$folder-titan-configs-envoy-dmc.yaml" --set select="ratelimit_config.yaml" > "$envoyconfigs/$folder/ratelimit/config/ratelimit_config.yaml"
       if [[ $? -ne 0 ]]
       then
         echo "Failed at prepareEnvoyConfigurations - build ratelimit_config.yaml step"
