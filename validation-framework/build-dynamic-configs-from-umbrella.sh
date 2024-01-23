@@ -172,7 +172,7 @@ function runHelmCmd {
     rm -rf "tmp/envoy/configmaps/$chartname"
     cd "tmp/envoy/$chartname"
     vargs=($(echo "$values" | tr " " "\n") "")
-    helm template "$releaseName" . --debug --output-dir "$currentDir/tmp/envoy/configmaps" -n "$namespace" ${vargs[@]/#/}
+    helm template "$releaseName" . --debug --output-dir "$currentDir/tmp/envoy/configmaps" --set global.titanSideCars.envoy.generateConfigmpForGcs=true -n "$namespace" ${vargs[@]/#/}
     if [[ $? -ne 0 ]]
     then
       cd -

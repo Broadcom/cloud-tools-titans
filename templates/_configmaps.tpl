@@ -7,6 +7,12 @@
     {{- end -}}
     {{- $envoy := $titanSideCars.envoy -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
+    {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}
+    {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled" )}}
+    {{- $generateConfigMap := true }}
+    {{- if $loadDynamicConfigurationFromGcsEnabled }}
+      {{- $generateConfigMap = ternary $envoy.generateConfigmpForGcs false (hasKey $envoy "generateConfigmpForGcs") }}
+    {{- end }}
     {{- $validation := $titanSideCars.validation -}}
     {{- $validationEnabled := false -}}
     {{- if $validation -}}
@@ -24,6 +30,7 @@
     {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
     {{- if $envoyEnabled }}
       {{- if $useDynamicConfiguration }}
+        {{- if $generateConfigMap }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -32,21 +39,21 @@ metadata:
 data:
 {{ include "titan-mesh-helm-lib-chart.configs.envoy.dmc" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.envoy-sds" . | indent 2 }}
-        {{- if $opaEnabled }}
+          {{- if $opaEnabled }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa" . | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa-policy" . | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa-policy-tokenspec" . | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa-policy-ingress" . | indent 2 }}
-          {{- range $k, $v := $opa.customPolicies }}
-            {{- if ne $k "tokenSpec" }}
+            {{- range $k, $v := $opa.customPolicies }}
+              {{- if ne $k "tokenSpec" }}
   {{ printf "policy-%s.rego: |" $k }}
 {{ $v | indent 4 }}
+              {{- end }}
             {{- end }}
           {{- end }}
-        {{- end }}
-        {{- if $ratelimitEnabled }}
+          {{- if $ratelimitEnabled }}
 {{ include "titan-mesh-helm-lib-chart.configs.ratelimit" . | indent 2 }}
-        {{- end }}
+          {{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -62,6 +69,7 @@ metadata:
   name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-lds" $appName }}
 data:
 {{ include "titan-mesh-helm-lib-chart.configs.envoy.lds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
+        {{- end }}
       {{- else }}
 ---
 apiVersion: v1
