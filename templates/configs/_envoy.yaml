@@ -20,7 +20,6 @@
   {{- $ingressEnabled := ternary $ingress.enabled true (hasKey $ingress "enabled") -}}
   {{- $egressEnabled := ternary $egress.enabled true (hasKey $egress "enabled") -}}
   {{- if or $ingressEnabled $egressEnabled }}
-    {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
 envoy.yaml: |
   admin:
     access_log_path: /dev/stdout

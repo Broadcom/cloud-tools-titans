@@ -9,7 +9,12 @@
     {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
     {{- $envoy := $titanSideCars.envoy -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
+    {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}
+    {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled" )}}
     {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" -}}
+    {{- $envoyConfigFileFolder := $envoy.configFileFolder | default $envoyConfigFolder -}}
+    {{- $ratelimitConfigPath := $envoy.ratelimitConfigPath | default "/configs/ratelimit/config" -}}
+    {{- $envoyConfigVolumeMountPath := $envoy.configVolumeMountPath | default "/data" -}}
     {{- $envoyScriptsFolder := $envoy.scriptsFolder | default "/envoy" -}}
     {{- $envars := $envoy.env -}}
     {{- $clusters := $envoy.clusters }}
@@ -60,7 +65,7 @@
   command: 
     - /usr/local/bin/envoy 
     - -c
-    - {{ printf "%s/envoy.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+    - {{ printf "%s/envoy.yaml" (trimSuffix "/" $envoyConfigFileFolder) }}
     - --service-cluster
     - {{ .appName }}
     - --service-node
@@ -129,6 +134,10 @@
           {{- if $wasmFilterUsed }}
         - "true"
           {{- end }}
+        - "-m"
+        - {{ $envoyConfigFolder }}
+        - "-m"
+        - {{ $ratelimitConfigPath }}
         {{- else if $envoyHealthChecksCmdsLiveness }}
     exec:
       command:
@@ -176,12 +185,17 @@
       {{- end }}
   volumeMounts:
       {{- if $useDynamicConfiguration }}
+        {{- if $loadDynamicConfigurationFromGcsEnabled }}
+    - mountPath: {{ $envoyConfigVolumeMountPath }}
+      name: titan-configs-envoy-data
+        {{- else }}
     - mountPath: {{ $envoyConfigFolder }}
       name: titan-configs-envoy-dmc
     - mountPath: {{ printf "%s/cds" (trimSuffix "/" $envoyConfigFolder) }}
       name: titan-configs-envoy-cds
     - mountPath: {{ printf "%s/lds" (trimSuffix "/" $envoyConfigFolder) }}
       name: titan-configs-envoy-lds
+        {{- end }}
       {{- else }}
     - mountPath: {{ $envoyConfigFolder }}
       name: titan-configs

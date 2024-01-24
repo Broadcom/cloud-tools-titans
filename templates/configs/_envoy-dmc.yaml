@@ -21,6 +21,8 @@
   {{- $egressEnabled := ternary $egress.enabled true (hasKey $egress "enabled") -}}
   {{- if or $ingressEnabled $egressEnabled }}
     {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
+    {{- $cdsFolder := $envoy.cdsFolderPath | default (printf "%s/cds" (trimSuffix "/" $envoyConfigFolder)) -}}
+    {{- $ldsFolder := $envoy.ldsFolderPath | default (printf "%s/lds" (trimSuffix "/" $envoyConfigFolder)) -}}
 envoy.yaml: |
   node:
     cluster: {{ $appName }}
@@ -30,19 +32,19 @@ envoy.yaml: |
       {{- if $supportPathConfigSource }}
     cds_config:
       path_config_source: 
-        path: {{ printf "%s/cds/cds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+        path: {{ printf "%s/cds.yaml" (trimSuffix "/" $cdsFolder) }}
         watched_directory: 
-          path: {{ printf "%s/cds" (trimSuffix "/" $envoyConfigFolder) }}
+          path: {{ printf "%s" (trimSuffix "/" $cdsFolder) }}
     lds_config:
       path_config_source:
-        path: {{ printf "%s/lds/lds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+        path: {{ printf "%s/lds.yaml" (trimSuffix "/" $ldsFolder) }}
         watched_directory: 
-          path: {{ printf "%s/lds" (trimSuffix "/" $envoyConfigFolder) }}
+          path: {{ printf "%s" (trimSuffix "/" $ldsFolder) }}
       {{- else }}
     cds_config:
-      path: {{ printf "%s/cds/cds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+      path: {{ printf "%s/cds.yaml" (trimSuffix "/" $cdsFolder) }}
     lds_config:
-      path: {{ printf "%s/lds/lds.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+      path: {{ printf "%s/lds.yaml" (trimSuffix "/" $ldsFolder) }}
       {{- end }}
   admin:
     access_log_path: /dev/stdout

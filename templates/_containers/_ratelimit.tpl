@@ -8,6 +8,8 @@
   {{- $ratelimitEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
   {{- $envoy := $titanSideCars.envoy -}}
   {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
+  {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}
+  {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled" )}}
   {{- $ratelimit := $titanSideCars.ratelimit -}}
   {{- $ratelimitMonitorByEnvoy := $ratelimit.monitorByEnvoy -}}
   {{- $ratelimitCPU := $ratelimit.cpu -}}
@@ -17,6 +19,9 @@
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $envoy := $titanSideCars.envoy }}
+  {{- $ratelimitConfigPath := $envoy.ratelimitConfigPath | default "/configs/ratelimit/config" -}}
+  {{- $ratelimitConfigFileName := $envoy.ratelimitConfigFileName | default "ratelimit_config.yaml" -}}
+  {{- $ratelimitConfigVolumeMountPath := $ratelimit.configVolumeMountPath | default "/configs" -}}
   {{- $clusters := $envoy.clusters }}
   {{- $localApp := index $clusters "local-myapp" }}
 
@@ -137,9 +142,20 @@
     {{- end }}
   terminationMessagePath: /dev/termination-log
   volumeMounts:
-    - mountPath: /configs/ratelimit/config/ratelimit_config.yaml
-      name: {{ ternary "titan-configs-envoy-dmc" "titan-configs" $useDynamicConfiguration }} 
-      subPath: ratelimit_config.yaml
+    {{- if $useDynamicConfiguration }}
+      {{- if $loadDynamicConfigurationFromGcsEnabled }}
+    - mountPath: {{ $ratelimitConfigVolumeMountPath }}
+      name: titan-configs-envoy-data      
+      {{- else }}
+    - mountPath: {{ printf "%s/%s" $ratelimitConfigPath $ratelimitConfigFileName }}
+      name: titan-configs-envoy-dmc
+      subPath: {{ $ratelimitConfigFileName }}
+      {{- end }}
+    {{- else }}
+    - mountPath: {{ printf "%s/%s" $ratelimitConfigPath $ratelimitConfigFileName }}
+      name: titan-configs
+      subPath: {{ $ratelimitConfigFileName }}
+    {{- end }}
     - mountPath: /logs/
       name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
     {{- end }}
