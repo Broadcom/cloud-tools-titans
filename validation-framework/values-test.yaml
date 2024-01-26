@@ -1,5 +1,11 @@
 titanSideCars:
   envoy:
+    loadDynamicConfigurationFromGcs:
+      enabled: false
+    configFileFolder: /envoy/config
+    configFolder: /envoy/config
+    cdsFolderPath: /envoy/config/cds
+    ldsFolderPath: /envoy/config/lds
     supportPathConfigSource: true
     logFolderPath: /tests/logs
     useDynamicConfiguration: true
