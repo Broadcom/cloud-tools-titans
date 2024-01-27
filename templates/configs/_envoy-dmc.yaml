@@ -23,6 +23,8 @@
     {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
     {{- $cdsFolder := $envoy.cdsFolderPath | default (printf "%s/cds" (trimSuffix "/" $envoyConfigFolder)) -}}
     {{- $ldsFolder := $envoy.ldsFolderPath | default (printf "%s/lds" (trimSuffix "/" $envoyConfigFolder)) -}}
+    {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs -}}
+    {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled") -}}
 envoy.yaml: |
   node:
     cluster: {{ $appName }}
@@ -33,13 +35,17 @@ envoy.yaml: |
     cds_config:
       path_config_source: 
         path: {{ printf "%s/cds.yaml" (trimSuffix "/" $cdsFolder) }}
+        {{- if not $loadDynamicConfigurationFromGcsEnabled }}
         watched_directory: 
           path: {{ printf "%s" (trimSuffix "/" $cdsFolder) }}
+        {{- end }}
     lds_config:
       path_config_source:
         path: {{ printf "%s/lds.yaml" (trimSuffix "/" $ldsFolder) }}
+        {{- if not $loadDynamicConfigurationFromGcsEnabled }}
         watched_directory: 
           path: {{ printf "%s" (trimSuffix "/" $ldsFolder) }}
+        {{- end }}
       {{- else }}
     cds_config:
       path: {{ printf "%s/cds.yaml" (trimSuffix "/" $cdsFolder) }}
