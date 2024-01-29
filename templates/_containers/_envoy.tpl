@@ -10,7 +10,7 @@
     {{- $envoy := $titanSideCars.envoy -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
     {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}
-    {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled" )}}
+    {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled") }}
     {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" -}}
     {{- $envoyConfigFileFolder := $envoy.configFileFolder | default $envoyConfigFolder -}}
     {{- $ratelimitConfigPath := $envoy.ratelimitConfigPath | default "/configs/ratelimit/config" -}}

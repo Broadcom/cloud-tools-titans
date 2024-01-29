@@ -36,7 +36,7 @@
     driver: {{ $loadDynamicConfigurationFromGcs.csiDriver | default "gcsfuse.csi.storage.gke.io" }}
     volumeAttributes:
       bucketName: {{ $loadDynamicConfigurationFromGcs.bucketName | default "sedicdsaas-dev-stage-envoy" }}
-      mountOptions: {{ $loadDynamicConfigurationFromGcs.mountOptions | default (printf "only-dir=%s/%s" $namespace $appName) | quote }} 
+      mountOptions: {{ $loadDynamicConfigurationFromGcs.mountOptions | default (printf "implicit-dirs,only-dir=%s/%s" $namespace $appName) | quote }} 
         {{- else }}
 - name: titan-configs-envoy-dmc
   configMap:
