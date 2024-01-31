@@ -2,6 +2,7 @@
   {{- $titanSideCars := .titanSideCars }}
   {{- $appName := .appName -}}
   {{- $direction := .direction -}}
+  {{- $virtualHost := .virtualHost -}}
   {{- $validation := $titanSideCars.validation }}
   {{- $validationEnabled := false }}
   {{- if $validation }}
@@ -28,7 +29,6 @@
       {{- $defaultBackend = ternary $localMyApp.gateway.defaultBackend "" (hasKey $localMyApp.gateway "defaultBackend") }}
     {{- end }}
   {{- end }}
-                routes:
   {{- $routes := list }}
   {{- if $gatewayEnable }}
     {{- range $cn, $cv := $clusters }}
@@ -68,6 +68,37 @@
       {{- end }}
     {{- end }} 
   {{- end }}
+  {{- if $envoy.perRouteFilters }}
+    {{- $hasPerRouteFilter := false -}}
+    {{- range $routes -}}
+      {{- $route := .route }}
+      {{- range $route.disableFilters }}
+        {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+        {{- if $disabledFilter }}
+          {{- $hasPerRouteFilter = true -}}
+        {{- end -}}
+      {{- end }}
+    {{- end -}}
+    {{- if $hasPerRouteFilter }}
+                  typed_per_filter_config:
+      {{- range $routes }}
+        {{- $route := .route }}
+        {{- range $route.disableFilters }}
+          {{- $disabledFilter := index $envoy.perRouteFilters . -}}
+          {{- if $disabledFilter }}
+                    {{ printf "%s:" . }}
+                      {{ printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type }}
+            {{- if $disabledFilter.config }}
+                      check_settings:
+                        context_extensions:
+                          virtual_host: {{ $virtualHost }}
+            {{- end }}
+          {{- end -}}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+                routes:
   {{- $canaryEnabled := ternary $ingressCanaryEnabled $egressCanaryEnabled (eq "ingress" $direction) -}}
   {{- range $routes }}
     {{- $route := .route }}

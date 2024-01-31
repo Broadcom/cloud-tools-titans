@@ -92,6 +92,7 @@
         {{- include .name (dict "config" (.config | default dict)) | nindent 12 }}
       {{- end }}
     {{- end }}
+    {{- $virtualHost := printf "%s-ingress" $appName -}}
             - name: envoy.filters.http.router
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -99,16 +100,16 @@
                 - name: envoy.file_access_log
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "inbound-upstream") | nindent 18 }}
             route_config:
-              name: {{ $appName }}-ingress
+              name: {{ $virtualHost }}
               internal_only_headers:
               - x-envoy-original-path
               request_headers_to_add: []
               virtual_hosts:
               - domains: '*'
-                name: {{ $appName }}-ingress
+                name: {{ $virtualHos }}
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $ingress "clusters" $clusters "direction" "ingress") | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "ingress" $ingress "clusters" $clusters ) | nindent 14 }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress" "appName" $appName) }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress" "appName" $appName "virtualHost" $virtualHost) }}
         transport_socket:
           name: envoy.transport_sockets.tls
           typed_config:
@@ -141,7 +142,8 @@
               - h2
               - http/1.1
     {{- if $egress.routes }}
-    - name: {{ $appName }}-egress
+      {{- $virtualHost := printf "%s-egress" $appName }}
+    - name: {{ $virtualHost }}
       {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.listener.v3.Listener
       {{- end }}
@@ -155,7 +157,7 @@
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
             stat_prefix: egress-proxy
-            server_name: {{ $appName }}-egress
+            server_name: {{ $virtualHost }}
             preserve_external_request_id: {{ $egress.preserveExternalRequestId | default "false" }}
             access_log:
               name: envoy.access_loggers.file
@@ -172,17 +174,17 @@
                 - name: envoy.access_loggers.file
       {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-upstream") | nindent 18 }}
             route_config:
-              name: {{ $appName }}-egress
+              name: {{ $virtualHost }}
               internal_only_headers:
               - x-envoy-original-path
               - x-forwarded-for
               request_headers_to_add: []
               virtual_hosts:
-              - name: {{ $appName }}-egress
+              - name: {{ $virtualHost }}
                 domains: '*'
       {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $egress "clusters" $clusters "direction" "egress") | nindent 14 }}
                 rate_limits: []
-      {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress" "appName" $appName) }}
+      {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress" "appName" $appName "virtualHost" $virtualHost) }}
     {{- end }}
   {{- end }}
 {{- end }}
