@@ -68,35 +68,51 @@
       {{- end }}
     {{- end }} 
   {{- end }}
+  {{- $perRouteFilters := dict -}}
   {{- if $envoy.perRouteFilters }}
-    {{- $hasPerRouteFilter := false -}}
     {{- range $routes -}}
       {{- $route := .route }}
-      {{- range $route.disableFilters }}
-        {{- $disabledFilter := index $envoy.perRouteFilters . -}}
-        {{- if $disabledFilter }}
-          {{- $hasPerRouteFilter = true -}}
-        {{- end -}}
-      {{- end }}
-    {{- end -}}
-    {{- if $hasPerRouteFilter }}
-                  typed_per_filter_config:
-      {{- range $routes }}
-        {{- $route := .route }}
-        {{- range $route.disableFilters }}
-          {{- $disabledFilter := index $envoy.perRouteFilters . -}}
-          {{- if $disabledFilter }}
-                    {{ printf "%s:" . }}
-                      {{ printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type }}
-            {{- if eq "envoy.filters.http.ext_authz" . }}
-                      check_settings:
-                        context_extensions:
-                          virtual_host: {{ $virtualHost }}
-            {{- else if $disabledFilter.config }}
-                      {{ $disabledFilter.config | toYaml }}
-            {{- end }}
+      {{- if and (not $route.disableFilters) $route.cluster }}
+        {{- $clusterValue := index $clusters $route.cluster -}}
+        {{- if $clusterValue }}
+          {{- range $clusterValue.routes -}}
+            {{- $clusterRoute := .route }}
+            {{- range $clusterRoute.disableFilters }}
+              {{- if not (hasKey $perRouteFilters .) }}
+                {{-  $filter := index $envoy.perRouteFilters . -}}
+                {{- if and $filter (ternary (get $filter $direction) (ternary true false (eq $direction "ingress")) (hasKey $filter $direction)) }}
+                  {{- $_ := set $perRouteFilters . "true" }}
+                {{- end -}}
+              {{- end -}}
+            {{- end -}}
           {{- end -}}
-        {{- end }}
+        {{- end -}}
+      {{- else if hasKey $route "disableFilters" -}}
+        {{- range $route.disableFilters -}}
+          {{- if not (hasKey $perRouteFilters .) -}}
+            {{-  $filter := index $envoy.perRouteFilters . -}}
+            {{- if and $filter (ternary (get $filter $direction) (ternary true false (eq $direction "ingress")) (hasKey $filter $direction)) }}
+              {{- $_ := set $perRouteFilters . "true" -}}
+            {{- end -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if $perRouteFilters }}
+                typed_per_filter_config:
+      {{- range $k, $v := $perRouteFilters }}
+        {{- $disabledFilter := index $envoy.perRouteFilters $k -}}
+        {{- if $disabledFilter }}
+                  {{ printf "%s:" $k }}
+                    {{ printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type }}
+          {{- if eq "envoy.filters.http.ext_authz" $k }}
+                    check_settings:
+                      context_extensions:
+                        virtual_host: {{ $virtualHost }}
+          {{- else if $disabledFilter.config }}
+                    {{ $disabledFilter.config | toYaml }}
+          {{- end }}
+        {{- end -}}
       {{- end }}
     {{- end }}
   {{- end }}

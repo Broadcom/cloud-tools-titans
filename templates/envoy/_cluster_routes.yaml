@@ -20,15 +20,15 @@
       {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" $clusterMatch.query_parameters) | nindent 18 }}
     {{- end -}}
     {{- $hasPerRouteFilter := false -}}
-    {{- range $route.disableFilters }}
+    {{- range $clusterRoute.disableFilters }}
       {{- $disabledFilter := index $envoy.perRouteFilters . -}}
-      {{- if $disabledFilter }}
+      {{- if and $disabledFilter (ternary (get $disabledFilter $direction) (ternary true false (eq $direction "ingress")) (hasKey $disabledFilter $direction)) }}
         {{- $hasPerRouteFilter = true -}}
       {{- end -}}
     {{- end }}
     {{- if $hasPerRouteFilter }}
                   typed_per_filter_config:
-      {{- range $route.disableFilters }}
+      {{- range $clusterRoute.disableFilters }}
         {{- $disabledFilter := index $envoy.perRouteFilters . -}}
         {{- if $disabledFilter }}
           {{- printf "%s:" . | nindent 20 }}
