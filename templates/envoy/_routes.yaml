@@ -88,10 +88,12 @@
           {{- if $disabledFilter }}
                     {{ printf "%s:" . }}
                       {{ printf "%s: type.googleapis.com/%s" (print "@type" | quote) $disabledFilter.type }}
-            {{- if $disabledFilter.config }}
+            {{- if eq "envoy.filters.http.ext_authz" . }}
                       check_settings:
                         context_extensions:
                           virtual_host: {{ $virtualHost }}
+            {{- else if $disabledFilter.config }}
+                      {{ $disabledFilter.config | toYaml }}
             {{- end }}
           {{- end -}}
         {{- end }}
