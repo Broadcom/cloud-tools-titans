@@ -112,6 +112,53 @@
       {{- end }}
       {{- $headerMatches = append $headerMatches $hdr }}
     {{- end }}
+    {{- $queryParameters := $match.queryParameters | default $match.query_parameters -}}
+    {{- range $queryParameters }}
+      {{- $hdr := dict "name" .key }}
+      {{- if .eq }}
+        {{- $_ := set $hdr "pattern" "eq" }}
+        {{- $_ := set $hdr "value" .eq }}
+      {{- else if .neq }}
+        {{- $_ := set $hdr "pattern" "eq" }}
+        {{- $_ := set $hdr "value" .neq }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- else if .sw }}
+        {{- $_ := set $hdr "pattern" "sw" }}
+        {{- $_ := set $hdr "value" .sw }}
+      {{- else if .nsw }}
+        {{- $_ := set $hdr "pattern" "sw" }}
+        {{- $_ := set $hdr "value" .nsw }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- else if .ew }}
+        {{- $_ := set $hdr "pattern" "ew" }}
+        {{- $_ := set $hdr "value" .ew }}
+      {{- else if .new }}
+        {{- $_ := set $hdr "pattern" "ew" }}
+        {{- $_ := set $hdr "value" .new }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- else if .co }}
+        {{- $_ := set $hdr "pattern" "co" }}
+        {{- $_ := set $hdr "value" .co }}
+      {{- else if .nco }}
+        {{- $_ := set $hdr "pattern" "co" }}
+        {{- $_ := set $hdr "value" .nco }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- else if .lk }}
+        {{- $_ := set $hdr "pattern" "regex" }}
+        {{- $_ := set $hdr "value" .lk }}
+      {{- else if .nlk }}
+        {{- $_ := set $hdr "pattern" "regex" }}
+        {{- $_ := set $hdr "value" .nlk }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- else if .pr }}
+        {{- $_ := set $hdr "pattern" "ex" }}
+      {{- else if .npr }}
+        {{- $_ := set $hdr "pattern" "ex" }}
+        {{- $_ := set $hdr "invert" true }}
+      {{- end }}
+      {{- $_ := set $hdr "is_query_parameter" true }}
+      {{- $headerMatches = append $headerMatches $hdr }}
+    {{- end }}
     {{- if hasKey . "enrich" }}
       {{- range .enrich.actions }}
         {{- $_ := set . "match_headers" $headerMatches }}
