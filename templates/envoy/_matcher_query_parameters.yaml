@@ -1,6 +1,6 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" }}
-  {{- if .query_parameters }}
+  {{- if .queryParameters }}
   query_parameters:
-  {{- .query_parameters | toYaml | nindent 4 }}
+    {{ include "titan-mesh-helm-lib-chart.envoy.string.match" (dict "matches" .queryParameters) }}
   {{- end }}
 {{- end }}

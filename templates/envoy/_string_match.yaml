@@ -1,0 +1,29 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.string.match" }}
+  {{- range .matches }}
+  - name: {{ .key }}
+   {{- if or .eq .sw .ew .co .lk .neq .nsw .new .nco .nlk }}
+    string_match:
+      {{- if .eq }}
+      exact: {{ .eq | squote }}
+      {{- else if .sw }}
+      prefix: {{ .sw | squote  }}
+      {{- else if .ew }}
+      suffix: {{ .ew | squote  }}
+      {{- else if .co }}
+      contains: {{ .co | squote  }}
+      {{- else if .lk }}
+      safe_regex:
+        google_re2: {}
+        regex: {{ .lk | squote }}
+      {{- end }}
+      ignore_case: {{ .ignoreCase | default "false" }}  
+    {{- else if or .pr .npr }}
+    present_match: true
+    {{- else }}
+      {{- fail "invalid header match definition - oneof operators [eq, neq, co, nco, sw, nsw, ew, new, lk, nlk, pr, npr] is required" }}
+    {{- end }}
+    {{- if or .neq .nsw .new .nco .nlk .npr }}
+    invert_match: true
+    {{- end }} 
+  {{- end }}
+{{- end }}

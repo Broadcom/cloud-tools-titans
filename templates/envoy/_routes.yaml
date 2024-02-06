@@ -75,9 +75,13 @@
           {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}   
           {{- range $cluster.routes }}
             {{- $clusterRoute := .route }}
+            {{- $match := .match }}
                 - match:
-            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
-            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
+            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" $match "routing" true) | nindent 18 }}
+            {{- $queryParameters := $match.queryParameters | default $match.query_parameters }}
+            {{- if $queryParameters }}
+              {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "queryParameters" $queryParameters) | nindent 18 }}
+            {{- end }}
             {{- $hasPerRouteFilter := false -}}
             {{- range $route.disableFilters }}
               {{- $disabledFilter := index $envoy.perRouteFilters . -}}
@@ -125,11 +129,15 @@
                     timeout: {{ coalesce $route.timeout $clusterRoute.timeout (ternary $remoteMyApp.timeout $cluster.timeout (or $gatewayEnable (eq $direction "egress"))) "15s" }}
           {{- end  }}
         {{- else }}
+          {{- $match := .match }}
                 - match:
-          {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 18 }}
+          {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route"  $match "routing" true) | nindent 18 }}
           {{- if ne $clusterName "" }}
             {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
-            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "query_parameters" .match.query_parameters) | nindent 18 }}
+            {{- $queryParameters := $match.queryParameters | default $match.query_parameters }}
+            {{- if $queryParameters }}
+              {{- include "titan-mesh-helm-lib-chart.envoy.matcher-query-parameters" (dict "queryParameters" $queryParameters) | nindent 18 }}
+            {{- end }}
             {{- $hasPerRouteFilter := false -}}
             {{- range $route.disableFilters }}
               {{- $disabledFilter := index $envoy.perRouteFilters . -}}
