@@ -5,6 +5,7 @@
   {{- $chartName := .chartName }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $supportPathConfigSource := $envoy.supportPathConfigSource | default false }}
+  {{- $useSeparateConfigMaps := $envoy.useSeparateConfigMaps | default false }}
   {{- $envoyAdminPort := $envoy.adminPort | default "10000"  }}
   {{- $envoyStatsPort := $envoy.statsPort | default "8126"  }}
   {{- $envoyStatsFlushInterval := $envoy.statsFlushInterval | default "30s"  }}
@@ -21,8 +22,8 @@
   {{- $egressEnabled := ternary $egress.enabled true (hasKey $egress "enabled") -}}
   {{- if or $ingressEnabled $egressEnabled }}
     {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
-    {{- $cdsFolder := $envoy.cdsFolderPath | default (printf "%s/cds" (trimSuffix "/" $envoyConfigFolder)) -}}
-    {{- $ldsFolder := $envoy.ldsFolderPath | default (printf "%s/lds" (trimSuffix "/" $envoyConfigFolder)) -}}
+    {{- $cdsFolder := $envoy.cdsFolderPath | default (ternary (printf "%s/cds" (trimSuffix "/" $envoyConfigFolder)) (printf "%s" (trimSuffix "/" $envoyConfigFolder)) $useSeparateConfigMaps) -}}
+    {{- $ldsFolder := $envoy.ldsFolderPath | default (ternary (printf "%s/lds" (trimSuffix "/" $envoyConfigFolder)) (printf "%s" (trimSuffix "/" $envoyConfigFolder)) $useSeparateConfigMaps) -}}
     {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs -}}
     {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled") -}}
 envoy.yaml: |
