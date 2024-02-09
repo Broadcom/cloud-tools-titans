@@ -12,6 +12,7 @@
   {{- if $titanSideCars }}
     {{- $envoy := $titanSideCars.envoy -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
+    {{- $useSeparateConfigMaps := $envoy.useSeparateConfigMaps | default false }}
     {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
     {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
     {{- if $envoyEnabled }}
@@ -38,6 +39,7 @@
       bucketName: {{ $loadDynamicConfigurationFromGcs.bucketName | default "sedicdsaas-dev-stage-envoy" }}
       mountOptions: {{ $loadDynamicConfigurationFromGcs.mountOptions | default (printf "implicit-dirs,only-dir=%s/%s" $namespace $appName) | quote }} 
         {{- else }}
+          {{- if $useSeparateConfigMaps }}
 - name: titan-configs-envoy-dmc
   configMap:
     name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-dmc" $appName }}
@@ -50,6 +52,12 @@
   configMap:
     name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-lds" $appName }}
     defaultMode: 420
+          {{- else }}
+- name: titan-configs-envoy-dmc
+  configMap:
+    name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-dmc" $appName }}
+    defaultMode: 420
+          {{- end }}
         {{- end }}
       {{- else }}
 - name: titan-configs

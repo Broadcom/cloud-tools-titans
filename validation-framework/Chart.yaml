@@ -12,5 +12,5 @@ maintainers:
   url: https://github.gwd.broadcom.net/SED/titan-mesh-helm-lib-chart
 dependencies:
 - name: titan-mesh-helm-lib-chart
-  version: 1.3.18
+  version: 1.3.19
   repository: https://usw1.packages.broadcom.com/artifactory/sbo-sps-helm-release-local

@@ -7,6 +7,7 @@
     {{- end -}}
     {{- $envoy := $titanSideCars.envoy -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
+    {{- $useSeparateConfigMaps := $envoy.useSeparateConfigMaps | default false }}
     {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}
     {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled" )}}
     {{- $generateConfigMap := true }}
@@ -31,6 +32,7 @@
     {{- if $envoyEnabled }}
       {{- if $useDynamicConfiguration }}
         {{- if $generateConfigMap }}
+          {{- if $useSeparateConfigMaps }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -38,6 +40,72 @@ metadata:
   name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-dmc" $appName }}
 data:
 {{ include "titan-mesh-helm-lib-chart.configs.envoy.dmc" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
+{{ include "titan-mesh-helm-lib-chart.configs.envoy-sds" . | indent 2 }}
+            {{- if $opaEnabled }}
+{{ include "titan-mesh-helm-lib-chart.configs.opa" . | indent 2 }}
+{{ include "titan-mesh-helm-lib-chart.configs.opa-policy" . | indent 2 }}
+{{ include "titan-mesh-helm-lib-chart.configs.opa-policy-tokenspec" . | indent 2 }}
+{{ include "titan-mesh-helm-lib-chart.configs.opa-policy-ingress" . | indent 2 }}
+              {{- range $k, $v := $opa.customPolicies }}
+                {{- if ne $k "tokenSpec" }}
+  {{ printf "policy-%s.rego: |" $k }}
+{{ $v | indent 4 }}
+                {{- end }}
+              {{- end }}
+            {{- end }}
+            {{- if $ratelimitEnabled }}
+{{ include "titan-mesh-helm-lib-chart.configs.ratelimit" . | indent 2 }}
+            {{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-cds" $appName }}
+data:
+{{ include "titan-mesh-helm-lib-chart.configs.envoy.cds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-lds" $appName }}
+data:
+{{ include "titan-mesh-helm-lib-chart.configs.envoy.lds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
+          {{- else }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-dmc" $appName }}
+data:
+{{ include "titan-mesh-helm-lib-chart.configs.envoy.dmc" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
+{{ include "titan-mesh-helm-lib-chart.configs.envoy-sds" . | indent 2 }}
+            {{- if $opaEnabled }}
+{{ include "titan-mesh-helm-lib-chart.configs.opa" . | indent 2 }}
+{{ include "titan-mesh-helm-lib-chart.configs.opa-policy" . | indent 2 }}
+{{ include "titan-mesh-helm-lib-chart.configs.opa-policy-tokenspec" . | indent 2 }}
+{{ include "titan-mesh-helm-lib-chart.configs.opa-policy-ingress" . | indent 2 }}
+              {{- range $k, $v := $opa.customPolicies }}
+                {{- if ne $k "tokenSpec" }}
+  {{ printf "policy-%s.rego: |" $k }}
+{{ $v | indent 4 }}
+                {{- end }}
+              {{- end }}
+            {{- end }}
+            {{- if $ratelimitEnabled }}
+{{ include "titan-mesh-helm-lib-chart.configs.ratelimit" . | indent 2 }}
+            {{- end }}
+{{ include "titan-mesh-helm-lib-chart.configs.envoy.cds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
+{{ include "titan-mesh-helm-lib-chart.configs.envoy.lds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
+          {{- end }}
+        {{- else }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy" $appName }}
+data:
+{{ include "titan-mesh-helm-lib-chart.configs.envoy" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.envoy-sds" . | indent 2 }}
           {{- if $opaEnabled }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa" . | indent 2 }}
@@ -54,45 +122,6 @@ data:
           {{- if $ratelimitEnabled }}
 {{ include "titan-mesh-helm-lib-chart.configs.ratelimit" . | indent 2 }}
           {{- end }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-cds" $appName }}
-data:
-{{ include "titan-mesh-helm-lib-chart.configs.envoy.cds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy-lds" $appName }}
-data:
-{{ include "titan-mesh-helm-lib-chart.configs.envoy.lds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
-        {{- end }}
-      {{- else }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy" $appName }}
-data:
-{{ include "titan-mesh-helm-lib-chart.configs.envoy" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
-{{ include "titan-mesh-helm-lib-chart.configs.envoy-sds" . | indent 2 }}
-        {{- if $opaEnabled }}
-{{ include "titan-mesh-helm-lib-chart.configs.opa" . | indent 2 }}
-{{ include "titan-mesh-helm-lib-chart.configs.opa-policy" . | indent 2 }}
-{{ include "titan-mesh-helm-lib-chart.configs.opa-policy-tokenspec" . | indent 2 }}
-{{ include "titan-mesh-helm-lib-chart.configs.opa-policy-ingress" . | indent 2 }}
-          {{- range $k, $v := $opa.customPolicies }}
-            {{- if ne $k "tokenSpec" }}
-  {{ printf "policy-%s.rego: |" $k }}
-{{ $v | indent 4 }}
-            {{- end }}
-          {{- end }}
-        {{- end }}
-        {{- if $ratelimitEnabled }}
-{{ include "titan-mesh-helm-lib-chart.configs.ratelimit" . | indent 2 }}
         {{- end }}
       {{- end }}
     {{- end }}

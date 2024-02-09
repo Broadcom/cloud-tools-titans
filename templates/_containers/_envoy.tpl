@@ -9,6 +9,7 @@
     {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
     {{- $envoy := $titanSideCars.envoy -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
+    {{- $useSeparateConfigMaps := $envoy.useSeparateConfigMaps | default false }}
     {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}
     {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled") }}
     {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" -}}
@@ -189,12 +190,17 @@
     - mountPath: {{ $envoyConfigVolumeMountPath }}
       name: titan-configs-envoy-data
         {{- else }}
+        {{- if $useSeparateConfigMaps }}
     - mountPath: {{ $envoyConfigFolder }}
       name: titan-configs-envoy-dmc
     - mountPath: {{ printf "%s/cds" (trimSuffix "/" $envoyConfigFolder) }}
       name: titan-configs-envoy-cds
     - mountPath: {{ printf "%s/lds" (trimSuffix "/" $envoyConfigFolder) }}
       name: titan-configs-envoy-lds
+        {{- else }}
+    - mountPath: {{ $envoyConfigFolder }}
+      name: titan-configs-envoy-dmc
+        {{- end }}
         {{- end }}
       {{- else }}
     - mountPath: {{ $envoyConfigFolder }}
