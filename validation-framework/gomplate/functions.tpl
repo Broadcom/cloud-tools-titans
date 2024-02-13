@@ -215,9 +215,9 @@
           {{- else if hasKey . "sw" -}}
             {{- $val = printf "%s%s" .sw (randAlpha 5) -}}          
           {{- else if hasKey . "ew" -}}
-            {{- $val = printf "%s%s" (randAlpha 5) .ew -}}             
+            {{- $val = printf "/%s%s" (randAlpha 5) .ew -}}             
           {{- else if hasKey . "co" -}}
-            {{- $val = printf "%s%s%s" (randAlpha 5) .co (randAlpha 5) -}}              
+            {{- $val = printf "/%s%s%s" (randAlpha 5) .co (randAlpha 5) -}}              
           {{- else if hasKey . "lk" -}}
             {{- $val = randFromRegex .lk }}
           {{- else if hasKey . "pr" -}}
@@ -227,13 +227,13 @@
           {{- else if hasKey . "neq" -}}
             {{- $val = printf "%s%s" .neq (randAlpha 5) -}}          
           {{- else if hasKey . "nsw" -}}
-            {{- $val = printf "%s%s" (randAlpha 5) .nsw -}}          
+            {{- $val = printf "/%s%s" (randAlpha 5) .nsw -}}          
           {{- else if hasKey . "new" -}}
             {{- $val = printf "%s%s" .new (randAlpha 5) -}} 
           {{- else if hasKey . "nco" -}}
-            {{- $val = printf "%s" (randAlpha 5) -}} 
+            {{- $val = printf "/%s" (randAlpha 5) -}} 
           {{- else if hasKey . "nlk" -}}
-          {{/* {{- $val = printf "%s" (randAlpha 5) -}}  */}}
+            {{- $val = printf "/%s" (randAlpha 5) -}} 
           {{- end -}}
           {{- if ne $val "" -}}
             {{- if eq $key ":path" -}}
@@ -277,6 +277,7 @@
         {{- $policies := $rbac.policies }}
         {{- range $policies }}
           {{- $rbacHdrStr := $hdrStr }}
+          {{- $rbacPath := $path }}
           {{- $name := .name }}
           {{- $privs := "" }}
           {{- $scope := "" }}            
@@ -305,20 +306,22 @@
               {{- $bodyOprand := ternary $lop (ternary $rop "" (hasPrefix "request.body" $rop)) (hasPrefix "request.body" $lop) }}
               {{- $bodyAttrib := ternary (trimPrefix "request.body[" $bodyOprand | trimSuffix "]") "" (ne $bodyOprand "")  }}
               {{- if not $hasVal }}
-                {{- $val = randAlpha 5 }}
                 {{- if ne $hdrName "" }}
-                  {{- if eq  $hdrStr "" -}}
-                    {{- $hdrStr = printf "-H %s:%s" $hdrName $val -}}
+                  {{- $val = ternary (get $headers $hdrName) (randAlpha 5) (hasKey $headers $hdrName) }}
+                  {{- if eq $rbacHdrStr "" -}}
+                    {{- $rbacHdrStr = printf "-H %s:%s" $hdrName $val -}}
                   {{- else -}}
-                    {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $hdrName $val -}}
+                    {{- $rbacHdrStr = printf "%s -H %s:%s"  $rbacHdrStr $hdrName $val -}}
                   {{- end -}}
                 {{- else if ne $queryParam "" }}
-                  {{- if contains "?" $path }}
-                    {{- $path = "printf %s&%s=%s" $path $queryParam $val }}
+                  {{- $val = randAlpha 5 }}
+                  {{- if contains "?" $rbacPath }}
+                    {{- $rbacPath = "printf %s&%s=%s" $rbacPath $queryParam $val }}
                   {{- else }}
-                    {{- $path = "printf %s?%s=%s" $path $queryParam $val }}
+                    {{- $rbacPath = "printf %s?%s=%s" $rbacPath $queryParam $val }}
                   {{- end }}
                 {{- else if ne $bodyAttrib "" }}
+                  {{- $val = randAlpha 5 }}
                   {{- $_ := set $bodyJson $bodyAttrib $val }}
                 {{- end }}
               {{- end }}
@@ -378,9 +381,9 @@
               {{- $bodyStr = $bodyJson | toJson }}
             {{- end }}
             {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
-            {{- printf "http_call %s %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $path $matchAllRoutes) | quote) (printf "%s" $hdrStr | squote) (printf "%s" "Bearer" | quote) ($bodyStr | quote) -}}
+            {{- printf "http_call %s %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $rbacPath $matchAllRoutes) | quote) (printf "%s" $rbacHdrStr | squote) (printf "%s" "Bearer" | quote) ($bodyStr | quote) -}}
             {{- printf "check_test_call\n" -}}
-            {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+            {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:%s:positive] result[$test_result]: call %s %s%s" $name $method $scheme $rbacPath | quote) $reportfile }}
             {{- $usePreviousTokenCall = true }}
             {{- $callMade = true }}
           {{- end }}
