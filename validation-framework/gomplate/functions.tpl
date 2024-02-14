@@ -294,6 +294,7 @@
             {{- $lop := .lop | default "" }}
             {{- $rop := .rop | default "" }}
             {{- $val := .val | default "" }}
+            {{- $inv := .inv | default false }}
             {{- $hasVal := false }}
             {{- if .val }}
               {{- $hasVal = true }}
@@ -324,6 +325,9 @@
                   {{- $val = randAlpha 5 }}
                   {{- $_ := set $bodyJson $bodyAttrib $val }}
                 {{- end }}
+              {{- end }}
+              {{- if $inv }}
+                {{- $val = randAlpha 5 }}
               {{- end }}
               {{- $tokenOprand := ternary $lop $rop (hasPrefix "request.token" $lop) }}
               {{- $claim := trimPrefix "request.token[" $tokenOprand | trimSuffix "]" }}
@@ -388,7 +392,7 @@
             {{- $callMade = true }}
           {{- end }}
         {{- end }}
-        {{- $actions := $enrich.actions }}
+        {{/* {{- $actions := $enrich.actions }}
         {{- range $actions }}
           {{- $action := .action }}
           {{- if eq $action "extract" }}
@@ -464,7 +468,7 @@
             {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
             {{- $callMade = true }}
           {{- end }}
-        {{- end }}
+        {{- end }} */}}
       {{- else }}
         {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (ternary (printf "%s" "Bearer" | quote) (printf "" | quote) $tokenCheck) -}}
         {{- $callMade = true }}
