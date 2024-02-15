@@ -92,31 +92,30 @@ echo "" >> /tests/logs/report.txt
         {{- end }}
       {{- end }}
     {{- end }}
-  {{- end }}
 
-  {{- if $gatewayEnabled }}
+    {{- if $gatewayEnabled }}
     # Process gateway routings
-    {{- range $cluster, $clusterValue := $clusters }}
-      {{- if and (ne $cluster "remote-myapp") (not (hasPrefix "local-" $cluster)) }}
-        {{- $routes := $clusterValue.routes }}
-        {{- range $routes }}
-          {{- printf "# Gateway routing -> host:%s - routing: %s\n" $cluster . }}
-          {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "gateway" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
-          {{- $counter = add1 $counter -}}
+      {{- range $cluster, $clusterValue := $clusters }}
+        {{- if and (ne $cluster "remote-myapp") (not (hasPrefix "local-" $cluster)) }}
+          {{- $routes := $clusterValue.routes }}
+          {{- range $routes }}
+            {{- printf "# Gateway routing -> host:%s - routing: %s\n" $cluster . }}
+            {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "gateway" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+            {{- $counter = add1 $counter -}}
+          {{- end }}
         {{- end }}
       {{- end }}
     {{- end }}
-  {{- end }}
 
-  {{- printf "echo %s >> %s\n" ("Summary:" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("  Completed $testCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Failed $failedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("  Completed $testChecks tests" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Succeed $succeedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Failed $failedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    $badTestChecks bad tests" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Skipped $skippedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("Summary:" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("  Completed $testCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Failed $failedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("  Completed $testChecks tests" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Succeed $succeedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Failed $failedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    $badTestChecks bad tests" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Skipped $skippedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
 
   if [ "$failedCalls" == "$expectedFailedCalls" ] && [ "$failedTestChecks" == "$expectedfailedTestChecks" ]
   then
@@ -124,4 +123,5 @@ echo "" >> /tests/logs/report.txt
   else
     exit 1
   fi
+  {{- end }}
 {{- end }}

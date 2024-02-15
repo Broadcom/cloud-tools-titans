@@ -313,7 +313,7 @@ else
   else
     echo ""
     echo "Run following command to stop running test environment "
-    echo "compose -p $instance down"
+    echo "docker compose -p $instance down"
     echo ""
   fi
   if [ "$failed" == "true" ]
