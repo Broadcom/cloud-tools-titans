@@ -490,6 +490,20 @@
           {{- if hasKey $route "prefixRewrite" -}}
             {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
             {{- printf "test_check %s %s\n" ($route.prefixRewrite | quote) ("prefix" | quote) }}
+          {{- else if hasKey $route "regexRewrite" }}
+            {{- $regexRewrite := $route.regexRewrite }}
+            {{- $regexSubstitution := $regexRewrite.substitution }}
+            {{- $subStrs := split "\\" $regexSubstitution }}
+            {{- $newPath := $regexSubstitution }}
+            {{- $count := 1 }}
+            {{- range $subStrs }}
+              {{- if lt $count (len $subStrs) }}
+                {{- $newPath = $newPath | replace (printf "\\%d" $count) "[^/]+" }}
+                {{- $count = add1 $count }}
+              {{- end }}
+            {{- end }}
+            {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
+            {{- printf "test_check %s %s\n" ($newPath | quote) ("regex" | quote) }}
           {{- end -}}
             {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
             {{- printf "test_check %s\n" ($cluster | quote) }}

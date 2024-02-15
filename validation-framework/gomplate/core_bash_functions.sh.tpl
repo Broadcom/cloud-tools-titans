@@ -285,6 +285,15 @@ function test_check() {
           ((failedTestChecks=failedTestChecks+1))
           test_result="failed"
         fi
+      elif [[ $expectop == "regex" ]]
+      then
+        if [[ "$lookupresult" =~ $expectvalue ]] 
+        then
+          ((succeedTestChecks=succeedTestChecks+1))
+        else
+          ((failedTestChecks=failedTestChecks+1))
+          test_result="failed"
+        fi
       elif [[ $expectop == "pr" ]]
       then
         if [[ $lookupresult != "null" ]] 
