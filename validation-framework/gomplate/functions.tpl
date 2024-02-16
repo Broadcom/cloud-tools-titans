@@ -204,6 +204,7 @@
         {{- range $match.headers -}}
           {{- $key := .key -}}
           {{- $val := "" -}}
+          {{- $pre := ternary "/" "" (eq $key ":path") }}
           {{- if eq $key "Authorization" -}}
             {{- if hasPrefix "Basic" .sw -}}
               {{- $authType = "Basic" }}
@@ -215,9 +216,9 @@
           {{- else if hasKey . "sw" -}}
             {{- $val = printf "%s%s" .sw (randAlpha 5) -}}          
           {{- else if hasKey . "ew" -}}
-            {{- $val = printf "/%s%s" (randAlpha 5) .ew -}}             
+            {{- $val = printf "%s%s%s" $pre (randAlpha 5) .ew -}}             
           {{- else if hasKey . "co" -}}
-            {{- $val = printf "/%s%s%s" (randAlpha 5) .co (randAlpha 5) -}}              
+            {{- $val = printf "%s%s%s%s" $pre (randAlpha 5) .co (randAlpha 5) -}}              
           {{- else if hasKey . "lk" -}}
             {{- $val = randFromUrlRegex .lk }}
           {{- else if hasKey . "pr" -}}
@@ -227,13 +228,13 @@
           {{- else if hasKey . "neq" -}}
             {{- $val = printf "%s%s" .neq (randAlpha 5) -}}          
           {{- else if hasKey . "nsw" -}}
-            {{- $val = printf "/%s%s" (randAlpha 5) .nsw -}}          
+            {{- $val = printf "%s%s%s" $pre (randAlpha 5) .nsw -}}          
           {{- else if hasKey . "new" -}}
             {{- $val = printf "%s%s" .new (randAlpha 5) -}} 
           {{- else if hasKey . "nco" -}}
-            {{- $val = printf "/%s" (randAlpha 5) -}} 
+            {{- $val = printf "%s%s" $pre (randAlpha 5) -}} 
           {{- else if hasKey . "nlk" -}}
-            {{- $val = printf "/%s" (randAlpha 5) -}} 
+            {{- $val = printf "%s%s" $pre (randAlpha 5) -}} 
           {{- end -}}
           {{- if ne $val "" -}}
             {{- if eq $key ":path" -}}
