@@ -197,7 +197,7 @@
     {{- else if hasKey $match "path" -}}
       {{- $path = printf "%s" $match.path -}}
     {{- else if hasKey $match "regex" -}}
-      {{- $path = randFromRegex $match.regex }}
+      {{- $path = randFromUrlRegex $match.regex }}
     {{- end -}}
     {{- if $supported }}
       {{- if hasKey $match "headers" -}}
@@ -219,7 +219,7 @@
           {{- else if hasKey . "co" -}}
             {{- $val = printf "/%s%s%s" (randAlpha 5) .co (randAlpha 5) -}}              
           {{- else if hasKey . "lk" -}}
-            {{- $val = randFromRegex .lk }}
+            {{- $val = randFromUrlRegex .lk }}
           {{- else if hasKey . "pr" -}}
             {{- if .pr -}}
               {{- $val = "def" -}}          

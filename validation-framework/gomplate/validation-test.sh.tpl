@@ -68,6 +68,9 @@ echo "" >> /tests/logs/report.txt
           {{- end }}
         {{- end }}
         {{- if or (eq $cluster "proxy") (and (ne $cluster "proxy") (hasKey $clusters $cluster)) }}
+          {{- if eq $cluster "local-myapp" }}
+            {{- $cluster = "proxy" }}
+          {{- end }}
           {{- printf "# Ingress -> host:%s - path: %s\n" $cluster . }}
             {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck "false" (hasKey $ingress "tokenCheck"))) }}
           {{- $counter = add1 $counter -}}
