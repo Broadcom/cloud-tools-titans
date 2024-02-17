@@ -77,7 +77,7 @@
   {{- end }}
 {{- end -}} */}}
 
-{{/* {{- define "process_routing_enrichment_validation" -}}
+{{- define "process_routing_enrichment_validation" -}}
   {{- $method := .method -}}  
   {{- $scheme := .scheme -}}
   {{- $path := .path }}
@@ -165,9 +165,9 @@
       {{- end }}
     {{- end }}
   {{- end }}
-{{- end -}} */}}
+{{- end -}}
 
-{{/* {{- define "process_transforms" -}}
+{{- define "process_transforms" -}}
   {{- $transforms := .transforms -}}
   {{- $args := .args -}}
   {{- $outValue := $args.outValue | default "test" }}
@@ -189,10 +189,10 @@
     {{- $inValue = $outValue }}
   {{- end }}
   {{- $_ := set $args "inValue" $inValue }}
-{{- end -}} */}}
+{{- end -}}
 
 
-{{/* {{- define "request_token" -}}
+{{- define "request_token" -}}
   {{- $from := .from }}
   {{- $value := .value }}
   {{- $privs := "" }}
@@ -223,7 +223,7 @@
     {{- end }}
   {{- end }}
   {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
-{{- end -}} */}}
+{{- end -}}
 
 {{- define "process_match_headers" -}}
   {{- $match_headers := .match_headers }}
@@ -321,14 +321,14 @@
     {{- end -}}
     {{- if $rtest -}}
       {{- if $routing.match -}}
-        {{- template "validate_routing_curl_jq_cmds" (dict "routing" $routing "cluster" $cluster "clusters" $clusters "scheme" $scheme "respfile" $respfile "reportfile" $reportfile "tokenCheck" $tokenCheck) -}}
+        {{- template "validate_routing_curl_jq_cmds" (dict "routing" $routing "cluster" $cluster "clusters" $clusters "scheme" $scheme "direction" $direction "respfile" $respfile "reportfile" $reportfile "tokenCheck" $tokenCheck) -}}
       {{- else if $routing.route -}}
         {{- $route := $routing.route -}}
         {{- if and $route.cluster $clusters -}}
           {{- $clusteValue := index $clusters $route.cluster -}}
           {{- if $clusteValue }}
             {{- range $clusteValue.routes }}
-              {{- template "validate_routing_curl_jq_cmds" (dict "routing" . "cluster" $cluster "clusters" $clusters "scheme" $scheme "respfile" $respfile "reportfile" $reportfile "tokenCheck" $tokenCheck) -}}
+              {{- template "validate_routing_curl_jq_cmds" (dict "routing" . "cluster" $cluster "clusters" $clusters "scheme" $scheme "direction" $direction "respfile" $respfile "reportfile" $reportfile "tokenCheck" $tokenCheck) -}}
             {{- end }}
           {{- end }}
         {{- end }}
@@ -476,6 +476,7 @@
   {{- $reportfile := .reportfile -}}
   {{- $cluster := .cluster -}}
   {{- $scheme := .scheme -}}
+  {{- $direction := .direction }}
   {{- $tokenCheck := .tokenCheck | default false }}
   {{- $path := "" -}}
   {{- $cmd := "" -}}
@@ -637,9 +638,9 @@
           {{- $callMade = true }}
         {{- end }}
       {{- end }}
-      {{/* {{- if $enrich }}
+      {{- if $enrich }}
         {{- template "process_routing_enrichment_validation" (dict "method" $method "scheme" $scheme "path" $path "enrich" $enrich "hdrStr" $hdrStr "cluster" $cluster "direction" $direction "respfile" $respfile "reportfile" $reportfile) -}}
-      {{- end }} */}}
+      {{- end }}
     {{- else }}
       {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (ternary (printf "%s" "Bearer" | quote) (printf "" | quote) $tokenCheck) -}}
       {{- $callMade = true }}
