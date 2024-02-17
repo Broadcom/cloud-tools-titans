@@ -147,21 +147,26 @@
       {{- end }}
     {{- end }}
     {{- range $calls }}
+      {{- printf "#call=%s\n" . }}
+      {{- printf "#call.from=%s .val=%s\n" .from .val }}
       {{- $authType := "" }}
-      {{- if hasPrefix .from "header." }}
+      {{- if and (hasPrefix "header.Authorization" .from) (hasPrefix "Basic " .val) }}
+        {{- $authType = "Basic" }}
+        {{- printf "credential=%s\n" (trimPrefix "Basic " .val | quote) }}
+      {{- else if hasPrefix "header." .from  }}
         {{- if eq  $hdrStr "" -}}
           {{- $hdrStr = printf "-H %s:%s" (trimPrefix "header." .from) .val -}}
         {{- else -}}
           {{- $hdrStr = printf "%s -H %s:%s" $hdrStr (trimPrefix "header." .from) .val -}}
         {{- end -}}
-      {{- else if hasPrefix .from "token." }}
-        {{- template "request_token" (dict "from" .from  "value" $.val) -}}
+      {{- else if hasPrefix "token." .from }}
+        {{- template "request_token" (dict "from" .from  "value" .val) -}}
         {{- $authType = "Bearer" }}
-      {{- else if hasPrefix .from "query." }}
+      {{- else if hasPrefix "query." .from }}
         {{- if contains "?" $path }}
-          {{- $path = "printf %s&%s=%s" $path (trimPrefix "query." .from) .val }}
+          {{- $path = printf "%s&%s=%s" $path (trimPrefix "query." .from) .val }}
         {{- else }}
-          {{- $path = "printf %s?%s=%s" $path (trimPrefix "query." .from) .val }}
+          {{- $path = printf "%s?%s=%s" $path (trimPrefix "query." .from) .val }}
         {{- end }}
       {{- end }}
       {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
@@ -262,7 +267,7 @@
       {{- $val = randFromUrlRegex .lk }}
     {{- else if hasKey . "pr" -}}
       {{- if .pr -}}
-        {{- $val = "def" -}}          
+        {{- $val = "test" -}}          
       {{- end }}
     {{- else if hasKey . "neq" -}}
       {{- $val = printf "%s%s" .neq (randAlpha 5) -}}          
@@ -571,9 +576,9 @@
               {{- else if ne $queryParam "" }}
                 {{- $val = randAlpha 5 }}
                 {{- if contains "?" $rbacPath }}
-                  {{- $rbacPath = "printf %s&%s=%s" $rbacPath $queryParam $val }}
+                  {{- $rbacPath = printf "%s&%s=%s" $rbacPath $queryParam $val }}
                 {{- else }}
-                  {{- $rbacPath = "printf %s?%s=%s" $rbacPath $queryParam $val }}
+                  {{- $rbacPath = printf "%s?%s=%s" $rbacPath $queryParam $val }}
                 {{- end }}
               {{- else if ne $bodyAttrib "" }}
                 {{- $val = randAlpha 5 }}
