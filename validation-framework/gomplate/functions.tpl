@@ -1,81 +1,89 @@
-{{/* {{- define "process_routing_enrichment" -}}
+{{- define "process_routing_enrichment" -}}
   {{- $enrichment := .enrichment }}
   {{- $cluster := .cluster -}}
   {{- $scheme := .scheme -}}
   {{- $respfile := .respfile -}}
   {{- $direction := .direction -}}
   {{- $reportfile := .reportfile -}}
+  {{- $method := "GET" }}
+  {{- $authType := "" }}
+  {{- $tokenCheck := false }}
   {{- if $enrichment -}}
-    {{- $actions := $enrichment.actions }}
-    {{- range $actions }}
-      {{- $match_headers := list }}
-      {{- range .match_headers }}
-        {{- $header := dict }}
-        {{- $_ := set $header "key" .name }}
-        {{- if eq .pattern "ex" }}
-          {{- if .invert }}
-            {{- $_ := set $header "npr" true }}
-          {{- else }}
-            {{- $_ := set $header "pr" true }}
+    {{- if hasKey $enrichment "actions" }}
+      {{- $actions := $enrichment.actions }}
+      {{- range $actions }}
+        {{- $match_headers := list }}
+        {{- range .match_headers }}
+          {{- $header := dict }}
+          {{- $_ := set $header "key" .name }}
+          {{- if eq .pattern "ex" }}
+            {{- if .invert }}
+              {{- $_ := set $header "npr" true }}
+            {{- else }}
+              {{- $_ := set $header "pr" true }}
+            {{- end }}
+          {{- else if eq .pattern "eq" }}
+            {{- if .invert }}
+              {{- $_ := set $header "neq" .value }}
+            {{- else }}
+              {{- $_ := set $header "eq" .value }}
+            {{- end }}
+          {{- else if eq .pattern "sw" }}
+            {{- if .invert }}
+              {{- $_ := set $header "nsw" .value }}
+            {{- else }}
+              {{- $_ := set $header "sw" .value }}
+            {{- end }}
+          {{- else if eq .pattern "ew" }}
+            {{- if .invert }}
+              {{- $_ := set $header "new" .value }}
+            {{- else }}
+              {{- $_ := set $header "ew" .value }}
+            {{- end }}
+          {{- else if eq .pattern "co" }}
+            {{- if .invert }}
+              {{- $_ := set $header "nco" .value }}
+            {{- else }}
+              {{- $_ := set $header "co" .value }}
+            {{- end }}
+          {{- else if eq .pattern "regex" }}
+            {{- if .invert }}
+              {{- $_ := set $header "nlk" .value }}
+            {{- else }}
+              {{- $_ := set $header "lk" .value }}
+            {{- end }}
           {{- end }}
-        {{- else if eq pattern "eq" }}
-          {{- if .invert }}
-            {{- $_ := set $header "neq" .value }}
-          {{- else }}
-            {{- $_ := set $header "eq" .value }}
-          {{- end }}
-        {{- else if eq pattern "sw" }}
-          {{- if .invert }}
-            {{- $_ := set $header "nsw" .value }}
-          {{- else }}
-            {{- $_ := set $header "sw" .value }}
-          {{- end }}
-        {{- else if eq pattern "ew" }}
-          {{- if .invert }}
-            {{- $_ := set $header "new" .value }}
-          {{- else }}
-            {{- $_ := set $header "ew" .value }}
-          {{- end }}
-        {{- else if eq pattern "co" }}
-          {{- if .invert }}
-            {{- $_ := set $header "nco" .value }}
-          {{- else }}
-            {{- $_ := set $header "co" .value }}
-          {{- end }}
-        {{- else if eq pattern "regex" }}
-          {{- if .invert }}
-            {{- $_ := set $header "nlk" .value }}
-          {{- else }}
-            {{- $_ := set $header "lk" .value }}
-          {{- end }}
+          {{- $match_headers = append $match_headers $header }}
         {{- end }}
-        {{- $match_headers = append $match_headers $header }}
-      {{- end }}
-      {{- $result := dict "headers" dict }}
-      {{- if gt (len $match_headers) 0 -}}
-        {{- template "process_match_headers" (dict "match_headers" $match_header "result" $result) }}
-      {{- end }}
-      {{- $headers := $result.headers -}}
-      {{- $hdrStr := "" }}
-      {{- range $k, $v := $headers -}}
-        {{- if eq  $hdrStr "" -}}
-          {{- $hdrStr = printf "-H %s:%s" $k $v -}}
-        {{- else -}}
-          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
+        {{- $inout := dict "headers" dict "method" $method "authType" $authType "tokenCheck" $tokenCheck }}
+        {{- if gt (len $match_headers) 0 -}}
+          {{- template "process_match_headers" (dict "match_headers" $match_headers "inout" $inout) }}
+          {{- $method = $inout.method }}
+          {{- $authType = $inout.authType }}
+          {{- $tokenCheck = $inout.tokenCheck }}
+        {{- end }}
+        {{- $headers := $inout.headers -}}
+        {{- $hdrStr := "" }}
+        {{- range $k, $v := $headers -}}
+          {{- if eq  $hdrStr "" -}}
+            {{- $hdrStr = printf "-H %s:%s" $k $v -}}
+          {{- else -}}
+            {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
+          {{- end -}}
         {{- end -}}
-      {{- end -}}
-      {{- $act := dict }}
-      {{- $_ := set $act "action" .action }}
-      {{- $_ := set $act "to" .to }}
-      {{- $_ := set $act "from" .from }}
-      {{- if .transforms }}
-        {{- $_ := set $act "transforms" .transforms }}
+        {{- $act := dict }}
+        {{- $_ := set $act "action" .action }}
+        {{- $_ := set $act "to" .to }}
+        {{- $_ := set $act "from" .from }}
+        {{- if .transforms }}
+          {{- $_ := set $act "transforms" .transforms }}
+        {{- end }}
+        {{- $acts := list $act }}
+        {{- template "process_routing_enrichment_validation" (dict "method" "GET" "scheme" $scheme "path" "/" "hdrStr" $hdrStr "direction" $direction "cluster" $cluster "enrich" (dict "actions" $acts) "respfile" $respfile "reportfile" $reportfile) -}}
       {{- end }}
-      {{- $acts := list $act }}
-      {{- template "process_routing_enrichment_validation" (dict "method" "GET" "scheme" $scheme "path" "/" "hdrStr" $hdrStr "direction" $direction "cluster" $cluster "enrich" (dict "actions" $acts) "respfile" $respfile "reportfile" $reportfile) -}}
     {{- end }}
   {{- end }}
-{{- end -}} */}}
+{{- end -}}
 
 {{- define "process_routing_enrichment_validation" -}}
   {{- $method := .method -}}  
