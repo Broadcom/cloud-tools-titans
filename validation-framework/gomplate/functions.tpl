@@ -107,43 +107,21 @@
         {{- $toStr := printf "%s%s" (ternary "" "header." (contains "." $to)) $to }}
         {{- $_ := set $tos $toStr . }}
       {{- end }}
-      {{- $previousActionFrom := "" }}
       {{- $checks := list }}
-      {{- $value := "" }}
-      {{- $args := dict "inValue" "" "outValue" $value "expectValue" $value }}
-      {{- range (reverse $actions) }}
-        {{- if eq .action "extract" }}
-          {{- $toStr := printf "%s%s" (ternary "" "header." (contains "." .to)) .to }}
-          {{- if eq $previousActionFrom $toStr }}
-            {{- $to := get $tos $toStr | default dict }}
-            {{- $_ := set $args "outValue" $args.inValue }}
-            {{- template "process_transforms" (dict "transforms" .transforms  "args" $args) -}}
-            {{- if $to }}
-              {{- if (get $tos $to.from) }}
-              {{- else }}
-                {{- $checks = append $checks (dict "header" (printf "%s" .to) "val" $args.outValue) }}
-                {{- $calls = append $calls (dict "from" (printf "%s" .from) "val" $args.inValue "checks" $checks) }}
-              {{- end }}
+        {{- $inout := dict "skipping" dict }}
+        {{- range (reverse $actions) }}
+          {{- if eq .action "extract" }}
+            {{- $skipping := $inout.skipping }}
+            {{- if not (hasKey $skipping .from) }}
+              {{- $_ := set $inout "skipping" $skipping }}
+              {{- $_ := set $inout "inValue" "" }}
+              {{- $_ := set $inout "outValue" (randAlpha 5) }}
+              {{- $checks = list }}
+              {{- template "process_action_recursive" (dict "tos" $tos "action" . "recursive" false "inout" $inout) }}
+              {{- $checks = append $checks (dict "header" (printf "%s" $inout.to) "val" $inout.outValue) }}
+              {{- $calls = append $calls (dict "from" (printf "%s" $inout.from) "val" $inout.inValue "checks" $checks) }}
             {{- end }}
-          {{- else }}
-            {{- if ne (.if_contain | default "") "" }}
-              {{- $value = .if_contain }}
-            {{- else if ne (.if_start_with | default "") "" }}
-              {{- $value = printf "%sabc" .if_start_with }}
-            {{- else if ne (.if_eq | default "") "" }}
-              {{- $value = printf "%s" .if_eq }}
-            {{- else }}
-              {{- $value = "test" }}
-            {{- end }}
-            {{- $args = dict "inValue" "" "outValue" $value "expectValue" $value }}
-            {{- $checks = list }}
-            {{- template "process_transforms" (dict "transforms" .transforms  "args" $args) -}}
-            {{- $checks = append $checks (dict "header" (printf "%s" .to) "val" $args.outValue) }}
-            {{- $calls = append $calls (dict "from" (printf "%s" .from) "val" $args.inValue "checks" $checks) }}
-            {{- $previousActionFrom = "" }}
           {{- end }}
-          {{- $previousActionFrom = .from }}
-        {{- end }}
       {{- end }}
     {{- end }}
     {{- range $calls }}
@@ -180,11 +158,55 @@
   {{- end }}
 {{- end -}}
 
+{{- define "process_action_recursive" -}}
+  {{- $tos := .tos -}}
+  {{- $action := .action }}
+  {{- $recursive := .recursive | default false }}
+  {{- $inout := .inout -}}
+  {{- if $action }}
+    {{- $toStr := $inout.to | default "" }}
+    {{- if eq $toStr "" }}
+      {{- $toStr = $action.to }}
+    {{- end }}
+    {{- $to := get $tos $action.from | default dict }}
+    {{- $outValue := ternary $inout.inValue $inout.outValue $recursive }}
+    {{- $inValue := $inout.outValue }}
+    {{- if $to }}
+      {{- $args := dict "outValue" $outValue "inValue" $inValue }}
+      {{- template "process_transforms" (dict "transforms" $action.transforms "args" $args) }}
+      {{- if $recursive }}
+        {{- $skipping := $inout.skipping | default dict }}
+        {{- $_ := set $skipping $action.from true }}
+        {{- $_ := set $inout "skipping" $skipping }}
+      {{- else }}
+        {{- $_ := set $inout "from" $action.from }}
+        {{- $_ := set $inout "to" $action.to }}
+      {{- end }}
+      {{- $_ := set $inout "inValue" $args.inValue }}
+      {{- $_ := set $inout "outValue" $args.outValue }}
+      {{- template "process_action_recursive" (dict "tos" $tos "action" $to "recursive" true "inout" $inout) }}
+    {{- else }}
+      {{- $args := dict "outValue" $outValue "inValue" $inValue }}
+      {{- template "process_transforms" (dict "transforms" $action.transforms "args" $args) }}
+      {{- $_ := set $inout "from" $action.from }}
+      {{- if $recursive }}
+        {{- $skipping := $inout.skipping | default dict }}
+        {{- $_ := set $skipping $action.from true }}
+        {{- $_ := set $inout "skipping" $skipping }}
+      {{- else }}
+        {{- $_ := set $inout "to" $action.to }}
+        {{- $_ := set $inout "outValue" $args.outValue }}
+      {{- end }}
+      {{- $_ := set $inout "inValue" $args.inValue }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
 {{- define "process_transforms" -}}
   {{- $transforms := .transforms -}}
   {{- $args := .args -}}
-  {{- $outValue := $args.outValue | default "test" }}
-  {{- $inValue := $args.inValue | default "" }}
+  {{- $outValue := $args.outValue }}
+  {{- $inValue := $args.inValue }}
   {{- if $transforms }}
     {{- range (reverse $transforms) }}
       {{- if eq .func "scanf" }}
@@ -288,16 +310,16 @@
           {{- $method = upper .eq -}}
         {{- else if .neq -}}
           {{- $neq := upper .neq -}}
-          {{- if ne "GET" $neq -}}
-            {{- $method = $neq -}}
-          {{- else if ne "POST" $neq -}}
-            {{- $method = $neq -}}
-          {{- else if ne "PUT" $neq -}}
-            {{- $method = $neq -}}
-          {{- else if ne "DELETE" $neq -}}
-            {{- $method = $neq -}}
-          {{- else if ne "PATCH" $neq -}}
-            {{- $method = $neq -}}
+          {{- if eq "GET" $neq -}}
+            {{- $method = "DELETE" -}}
+          {{- else if eq "POST" $neq -}}
+            {{- $method = "PUT" -}}
+          {{- else if eq "PUT" $neq -}}
+            {{- $method = "POST" -}}
+          {{- else if eq "DELETE" $neq -}}
+            {{- $method = "PATCH" -}}
+          {{- else if eq "PATCH" $neq -}}
+            {{- $method = "DELETE" -}}
           {{- end -}}
         {{- end }}
       {{- else if eq $key ":authority" -}}
@@ -516,10 +538,12 @@
     {{- end -}}
     {{- $inout := dict "headers" dict "method" $method "authType" $authType "tokenCheck" $tokenCheck }}
     {{- if hasKey $match "headers" -}}
+      {{- printf "# before process_match_headers=%s\n"  $inout }}
       {{- template "process_match_headers" (dict "match_headers" $match.headers "inout" $inout) }}
       {{- $method = $inout.method }}
       {{- $authType = $inout.authType }}
       {{- $tokenCheck = $inout.tokenCheck }}
+      {{- printf "# after process_match_headers=%s\n"  $inout }}
     {{- end }}
     {{- $headers := $inout.headers -}}
     {{- $hdrStr := "" }}
