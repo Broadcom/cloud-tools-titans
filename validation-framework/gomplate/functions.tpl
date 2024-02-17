@@ -1,3 +1,306 @@
+{{/* {{- define "process_routing_enrichment" -}}
+  {{- $enrichment := .enrichment }}
+  {{- $cluster := .cluster -}}
+  {{- $scheme := .scheme -}}
+  {{- $respfile := .respfile -}}
+  {{- $direction := .direction -}}
+  {{- $reportfile := .reportfile -}}
+  {{- if $enrichment -}}
+    {{- $actions := $enrichment.actions }}
+    {{- range $actions }}
+      {{- $match_headers := list }}
+      {{- range .match_headers }}
+        {{- $header := dict }}
+        {{- $_ := set $header "key" .name }}
+        {{- if eq .pattern "ex" }}
+          {{- if .invert }}
+            {{- $_ := set $header "npr" true }}
+          {{- else }}
+            {{- $_ := set $header "pr" true }}
+          {{- end }}
+        {{- else if eq pattern "eq" }}
+          {{- if .invert }}
+            {{- $_ := set $header "neq" .value }}
+          {{- else }}
+            {{- $_ := set $header "eq" .value }}
+          {{- end }}
+        {{- else if eq pattern "sw" }}
+          {{- if .invert }}
+            {{- $_ := set $header "nsw" .value }}
+          {{- else }}
+            {{- $_ := set $header "sw" .value }}
+          {{- end }}
+        {{- else if eq pattern "ew" }}
+          {{- if .invert }}
+            {{- $_ := set $header "new" .value }}
+          {{- else }}
+            {{- $_ := set $header "ew" .value }}
+          {{- end }}
+        {{- else if eq pattern "co" }}
+          {{- if .invert }}
+            {{- $_ := set $header "nco" .value }}
+          {{- else }}
+            {{- $_ := set $header "co" .value }}
+          {{- end }}
+        {{- else if eq pattern "regex" }}
+          {{- if .invert }}
+            {{- $_ := set $header "nlk" .value }}
+          {{- else }}
+            {{- $_ := set $header "lk" .value }}
+          {{- end }}
+        {{- end }}
+        {{- $match_headers = append $match_headers $header }}
+      {{- end }}
+      {{- $result := dict "headers" dict }}
+      {{- if gt (len $match_headers) 0 -}}
+        {{- template "process_match_headers" (dict "match_headers" $match_header "result" $result) }}
+      {{- end }}
+      {{- $headers := $result.headers -}}
+      {{- $hdrStr := "" }}
+      {{- range $k, $v := $headers -}}
+        {{- if eq  $hdrStr "" -}}
+          {{- $hdrStr = printf "-H %s:%s" $k $v -}}
+        {{- else -}}
+          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
+        {{- end -}}
+      {{- end -}}
+      {{- $act := dict }}
+      {{- $_ := set $act "action" .action }}
+      {{- $_ := set $act "to" .to }}
+      {{- $_ := set $act "from" .from }}
+      {{- if .transforms }}
+        {{- $_ := set $act "transforms" .transforms }}
+      {{- end }}
+      {{- $acts := list $act }}
+      {{- template "process_routing_enrichment_validation" (dict "method" "GET" "scheme" $scheme "path" "/" "hdrStr" $hdrStr "direction" $direction "cluster" $cluster "enrich" (dict "actions" $acts) "respfile" $respfile "reportfile" $reportfile) -}}
+    {{- end }}
+  {{- end }}
+{{- end -}} */}}
+
+{{/* {{- define "process_routing_enrichment_validation" -}}
+  {{- $method := .method -}}  
+  {{- $scheme := .scheme -}}
+  {{- $path := .path }}
+  {{- $hdrStr := .hdrStr }}
+  {{- $cluster := .cluster -}}
+  {{- $direction := .direction -}}
+  {{- $enrich := .enrich }}
+  {{- $respfile := .respfile -}}
+  {{- $reportfile := .reportfile -}}
+  {{- if $enrich }}
+    {{- $calls := list }}
+    {{- $actions := $enrich.actions }}
+    {{- if $actions }}
+      {{- $froms := dict }}
+      {{- $tos := dict }}
+      {{- range $actions }}
+        {{- $_ := set $froms (printf "%s" .from) . }}
+        {{- $to := printf "%s" .to }}
+        {{- $toStr := printf "%s%s" (ternary "" "header." (contains "." $to)) $to }}
+        {{- $_ := set $tos $toStr . }}
+      {{- end }}
+      {{- $previousActionFrom := "" }}
+      {{- $checks := list }}
+      {{- $value := "" }}
+      {{- $args := dict "inValue" "" "outValue" $value "expectValue" $value }}
+      {{- range (reverse $actions) }}
+        {{- if eq .action "extract" }}
+          {{- $toStr := printf "%s%s" (ternary "" "header." (contains "." .to)) .to }}
+          {{- if eq $previousActionFrom $toStr }}
+            {{- $to := get $tos $toStr | default dict }}
+            {{- $_ := set $args "outValue" $args.inValue }}
+            {{- template "process_transforms" (dict "transforms" .transforms  "args" $args) -}}
+            {{- if $to }}
+              {{- if (get $tos $to.from) }}
+              {{- else }}
+                {{- $checks = append $checks (dict "header" (printf "%s" .to) "val" $args.outValue) }}
+                {{- $calls = append $calls (dict "from" (printf "%s" .from) "val" $args.inValue "checks" $checks) }}
+              {{- end }}
+            {{- end }}
+          {{- else }}
+            {{- if ne (.if_contain | default "") "" }}
+              {{- $value = .if_contain }}
+            {{- else if ne (.if_start_with | default "") "" }}
+              {{- $value = printf "%sabc" .if_start_with }}
+            {{- else if ne (.if_eq | default "") "" }}
+              {{- $value = printf "%s" .if_eq }}
+            {{- else }}
+              {{- $value = "test" }}
+            {{- end }}
+            {{- $args = dict "inValue" "" "outValue" $value "expectValue" $value }}
+            {{- $checks = list }}
+            {{- template "process_transforms" (dict "transforms" .transforms  "args" $args) -}}
+            {{- $checks = append $checks (dict "header" (printf "%s" .to) "val" $args.outValue) }}
+            {{- $calls = append $calls (dict "from" (printf "%s" .from) "val" $args.inValue "checks" $checks) }}
+            {{- $previousActionFrom = "" }}
+          {{- end }}
+          {{- $previousActionFrom = .from }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- range $calls }}
+      {{- $authType := "" }}
+      {{- if hasPrefix .from "header." }}
+        {{- if eq  $hdrStr "" -}}
+          {{- $hdrStr = printf "-H %s:%s" (trimPrefix "header." .from) .val -}}
+        {{- else -}}
+          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr (trimPrefix "header." .from) .val -}}
+        {{- end -}}
+      {{- else if hasPrefix .from "token." }}
+        {{- template "request_token" (dict "from" .from  "value" $.val) -}}
+        {{- $authType = "Bearer" }}
+      {{- else if hasPrefix .from "query." }}
+        {{- if contains "?" $path }}
+          {{- $path = "printf %s&%s=%s" $path (trimPrefix "query." .from) .val }}
+        {{- else }}
+          {{- $path = "printf %s?%s=%s" $path (trimPrefix "query." .from) .val }}
+        {{- end }}
+      {{- end }}
+      {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
+      {{- printf "check_test_call\n" -}}
+      {{- range .checks }}
+        {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .header)) }}
+        {{- printf "test_check %s\n" (.val | quote) }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:advance:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end -}} */}}
+
+{{/* {{- define "process_transforms" -}}
+  {{- $transforms := .transforms -}}
+  {{- $args := .args -}}
+  {{- $outValue := $args.outValue | default "test" }}
+  {{- $inValue := $args.inValue | default "" }}
+  {{- if $transforms }}
+    {{- range (reverse $transforms) }}
+      {{- if eq .func "scanf" }}
+        {{- $param := first .parameters }}
+        {{- $inValue = $param | replace "%_" (randAlpha 5) }}
+        {{- $inValue = $inValue | replace "%s" $outValue }}
+      {{- else if eq .func "base64_decode" }}
+        {{- $inValue = b64enc $inValue }}
+      {{- else if eq .func "trim_prefix" }}
+        {{- $inValue = printf "%s%s" (first .parameters) $inValue }}
+      {{- else if eq .func "split" }}
+      {{- end }}
+    {{- end }}
+  {{- else }}
+    {{- $inValue = $outValue }}
+  {{- end }}
+  {{- $_ := set $args "inValue" $inValue }}
+{{- end -}} */}}
+
+
+{{/* {{- define "request_token" -}}
+  {{- $from := .from }}
+  {{- $value := .value }}
+  {{- $privs := "" }}
+  {{- $scope := "" }}            
+  {{- $roles := "" }}            
+  {{- $cid := "" }}
+  {{- $did := "" }}
+  {{- $uri := "" }}
+  {{- $clid := "" }}         
+  {{- if hasPrefix "token." ($from | default "") }}            
+    {{- $claim := trimPrefix "token." ($from | default "") }}
+    {{- if ne $value "" }}
+      {{- if eq $claim "scope" }}
+        {{- $scope = $value }}
+      {{- else if eq $claim "privs" }}
+        {{- $privs = $value }}
+      {{- else if eq $claim "roles" }}
+        {{- $roles = $value }}
+      {{- else if eq $claim "customer_id" }}
+        {{- $cid = $value }}
+      {{- else if eq $claim "domain_id" }}
+        {{- $did = $value }}
+      {{- else if eq $claim "uri" }}
+        {{- $uri = $value }}
+      {{- else if eq $claim "client_id" }}
+        {{- $clid = $value }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
+{{- end -}} */}}
+
+{{- define "process_match_headers" -}}
+  {{- $match_headers := .match_headers }}
+  {{- $inout := .inout }}
+  {{- $method := $inout.method }}
+  {{- $authType := $inout.authType }}
+  {{- $tokenCheck := $inout.tokenCheck }}
+  {{- $headers := dict }}
+  {{- range $match_headers -}}
+    {{- $key := .key -}}
+    {{- $val := "" -}}
+    {{- $pre := ternary "/" "" (eq $key ":path") }}
+    {{- if eq $key "Authorization" -}}
+      {{- if hasPrefix "Basic" .sw -}}
+        {{- $authType = "Basic" }}
+        {{/* {{- $val = printf "Basic %s" (b64enc "test:test") -}} */}}
+      {{- end -}}
+      {{- $tokenCheck = true }}
+    {{- else if hasKey . "eq" -}}
+      {{- $val = .eq -}}
+    {{- else if hasKey . "sw" -}}
+      {{- $val = printf "%s%s" .sw (randAlpha 5) -}}          
+    {{- else if hasKey . "ew" -}}
+      {{- $val = printf "%s%s%s" $pre (randAlpha 5) .ew -}}             
+    {{- else if hasKey . "co" -}}
+      {{- $val = printf "%s%s%s%s" $pre (randAlpha 5) .co (randAlpha 5) -}}              
+    {{- else if hasKey . "lk" -}}
+      {{- $val = randFromUrlRegex .lk }}
+    {{- else if hasKey . "pr" -}}
+      {{- if .pr -}}
+        {{- $val = "def" -}}          
+      {{- end }}
+    {{- else if hasKey . "neq" -}}
+      {{- $val = printf "%s%s" .neq (randAlpha 5) -}}          
+    {{- else if hasKey . "nsw" -}}
+      {{- $val = printf "%s%s%s" $pre (randAlpha 5) .nsw -}}          
+    {{- else if hasKey . "new" -}}
+      {{- $val = printf "%s%s" .new (randAlpha 5) -}} 
+    {{- else if hasKey . "nco" -}}
+      {{- $val = printf "%s%s" $pre (randAlpha 5) -}} 
+    {{- else if hasKey . "nlk" -}}
+      {{- $val = printf "%s%s" $pre (randAlpha 5) -}} 
+    {{- end -}}
+    {{- if ne $val "" -}}
+      {{- if eq $key ":path" -}}
+        {{- $path = $val -}}
+      {{- else if eq $key ":method" -}}
+        {{- if .eq }}
+          {{- $method = upper .eq -}}
+        {{- else if .neq -}}
+          {{- $neq := upper .neq -}}
+          {{- if ne "GET" $neq -}}
+            {{- $method = $neq -}}
+          {{- else if ne "POST" $neq -}}
+            {{- $method = $neq -}}
+          {{- else if ne "PUT" $neq -}}
+            {{- $method = $neq -}}
+          {{- else if ne "DELETE" $neq -}}
+            {{- $method = $neq -}}
+          {{- else if ne "PATCH" $neq -}}
+            {{- $method = $neq -}}
+          {{- end -}}
+        {{- end }}
+      {{- else if eq $key ":authority" -}}
+        {{- $_ := set $headers "Host" $val -}}
+      {{- else -}}
+        {{- $_ := set $headers $key $val -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end }}
+  {{- $_ := set $inout "headers" $headers }}
+  {{- $_ := set $inout "method" $method }}
+  {{- $_ := set $inout "authType" $authType }}
+  {{- $_ := set $inout "tokenCheck" $tokenCheck }}
+{{- end }}
+
+
 {{- define "process_routing_validation" -}}
   {{- $routing := .routing -}}
   {{- $clusters := .clusters -}}
@@ -177,10 +480,8 @@
   {{- $path := "" -}}
   {{- $cmd := "" -}}
   {{- $method := "GET" -}}
-  {{- $headers := dict -}}
   {{- $matchAllRoutes := false }}
   {{- if hasKey $routing "match" -}}
-    {{- $supported := true }}
     {{- $tokenCheck = ternary $routing.tokenCheck $tokenCheck (hasKey $routing "tokenCheck") }}
     {{- $authType := "Bearer" }}
     {{- $rbac := $routing.rbac }}
@@ -199,325 +500,193 @@
     {{- else if hasKey $match "regex" -}}
       {{- $path = randFromUrlRegex $match.regex }}
     {{- end -}}
-    {{- if $supported }}
-      {{- if hasKey $match "headers" -}}
-        {{- range $match.headers -}}
-          {{- $key := .key -}}
-          {{- $val := "" -}}
-          {{- $pre := ternary "/" "" (eq $key ":path") }}
-          {{- if eq $key "Authorization" -}}
-            {{- if hasPrefix "Basic" .sw -}}
-              {{- $authType = "Basic" }}
-              {{/* {{- $val = printf "Basic %s" (b64enc "test:test") -}} */}}
-            {{- end -}}
-            {{- $tokenCheck = true }}
-          {{- else if hasKey . "eq" -}}
-            {{- $val = .eq -}}
-          {{- else if hasKey . "sw" -}}
-            {{- $val = printf "%s%s" .sw (randAlpha 5) -}}          
-          {{- else if hasKey . "ew" -}}
-            {{- $val = printf "%s%s%s" $pre (randAlpha 5) .ew -}}             
-          {{- else if hasKey . "co" -}}
-            {{- $val = printf "%s%s%s%s" $pre (randAlpha 5) .co (randAlpha 5) -}}              
-          {{- else if hasKey . "lk" -}}
-            {{- $val = randFromUrlRegex .lk }}
-          {{- else if hasKey . "pr" -}}
-            {{- if .pr -}}
-              {{- $val = "def" -}}          
-            {{- end }}
-          {{- else if hasKey . "neq" -}}
-            {{- $val = printf "%s%s" .neq (randAlpha 5) -}}          
-          {{- else if hasKey . "nsw" -}}
-            {{- $val = printf "%s%s%s" $pre (randAlpha 5) .nsw -}}          
-          {{- else if hasKey . "new" -}}
-            {{- $val = printf "%s%s" .new (randAlpha 5) -}} 
-          {{- else if hasKey . "nco" -}}
-            {{- $val = printf "%s%s" $pre (randAlpha 5) -}} 
-          {{- else if hasKey . "nlk" -}}
-            {{- $val = printf "%s%s" $pre (randAlpha 5) -}} 
-          {{- end -}}
-          {{- if ne $val "" -}}
-            {{- if eq $key ":path" -}}
-              {{- $path = $val -}}
-            {{- else if eq $key ":method" -}}
-              {{- if .eq }}
-                {{- $method = upper .eq -}}
-              {{- else if .neq -}}
-                {{- $neq := upper .neq -}}
-                {{- if ne "GET" $neq -}}
-                  {{- $method = $neq -}}
-                {{- else if ne "POST" $neq -}}
-                  {{- $method = $neq -}}
-                {{- else if ne "PUT" $neq -}}
-                  {{- $method = $neq -}}
-                {{- else if ne "DELETE" $neq -}}
-                  {{- $method = $neq -}}
-                {{- else if ne "PATCH" $neq -}}
-                  {{- $method = $neq -}}
-                {{- end -}}
-              {{- end }}
-            {{- else if eq $key ":authority" -}}
-              {{- $_ := set $headers "Host" $val -}}
-            {{- else -}}
-              {{- $_ := set $headers $key $val -}}
-            {{- end -}}
-          {{- end -}}
-        {{- end }}
-      {{- end }}
-      {{- $hdrStr := "" }}
-      {{- range $k, $v := $headers -}}
-        {{- if eq  $hdrStr "" -}}
-          {{- $hdrStr = printf "-H %s:%s" $k $v -}}
-        {{- else -}}
-          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
-        {{- end -}}
+    {{- $inout := dict "headers" dict "method" $method "authType" $authType "tokenCheck" $tokenCheck }}
+    {{- if hasKey $match "headers" -}}
+      {{- template "process_match_headers" (dict "match_headers" $match.headers "inout" $inout) }}
+      {{- $method = $inout.method }}
+      {{- $authType = $inout.authType }}
+      {{- $tokenCheck = $inout.tokenCheck }}
+    {{- end }}
+    {{- $headers := $inout.headers -}}
+    {{- $hdrStr := "" }}
+    {{- range $k, $v := $headers -}}
+      {{- if eq  $hdrStr "" -}}
+        {{- $hdrStr = printf "-H %s:%s" $k $v -}}
+      {{- else -}}
+        {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
       {{- end -}}
-      {{- $usePreviousTokenCall := false }}
-      {{- $callMade := false }}
-      {{- if or $rbac $enrich }}
-        {{- $policies := $rbac.policies }}
-        {{- range $policies }}
-          {{- $rbacHdrStr := $hdrStr }}
-          {{- $rbacPath := $path }}
-          {{- $name := .name }}
-          {{- $privs := "" }}
-          {{- $scope := "" }}            
-          {{- $roles := "" }}            
-          {{- $cid := "" }}
-          {{- $did := "" }}
-          {{- $uri := "" }}
-          {{- $clid := "" }}
-          {{- $rules := .rules }}
-          {{- $bodyJson := dict }} 
-          {{- $bodyStr := "" }}   
-          {{- $requestToken := false }}
-          {{- range $rules }}
-            {{- $lop := .lop | default "" }}
-            {{- $rop := .rop | default "" }}
-            {{- $val := .val | default "" }}
-            {{- $inv := .inv | default false }}
-            {{- $hasVal := false }}
-            {{- if .val }}
-              {{- $hasVal = true }}
-            {{- end }}
-            {{- if or (hasPrefix "request.token" $lop) (hasPrefix "request.token" $rop) }}
-              {{- $hdrOprand := ternary $lop (ternary $rop "" (hasPrefix "request.headers" $rop)) (hasPrefix "request.headers" $lop) }}
-              {{- $hdrName := ternary (trimPrefix "request.headers[" $hdrOprand | trimSuffix "]") "" (ne $hdrOprand "") }}
-              {{- $queryOprand := ternary $lop (ternary $rop "" (hasPrefix "request.query" $rop)) (hasPrefix "request.query" $lop) }}
-              {{- $queryParam := ternary (trimPrefix "request.query[" $queryOprand | trimSuffix "]") "" (ne $queryOprand "") }}
-              {{- $bodyOprand := ternary $lop (ternary $rop "" (hasPrefix "request.body" $rop)) (hasPrefix "request.body" $lop) }}
-              {{- $bodyAttrib := ternary (trimPrefix "request.body[" $bodyOprand | trimSuffix "]") "" (ne $bodyOprand "")  }}
-              {{- if not $hasVal }}
-                {{- if ne $hdrName "" }}
-                  {{- $val = ternary (get $headers $hdrName) (randAlpha 5) (hasKey $headers $hdrName) }}
-                  {{- if eq $rbacHdrStr "" -}}
-                    {{- $rbacHdrStr = printf "-H %s:%s" $hdrName $val -}}
-                  {{- else -}}
-                    {{- $rbacHdrStr = printf "%s -H %s:%s"  $rbacHdrStr $hdrName $val -}}
-                  {{- end -}}
-                {{- else if ne $queryParam "" }}
-                  {{- $val = randAlpha 5 }}
-                  {{- if contains "?" $rbacPath }}
-                    {{- $rbacPath = "printf %s&%s=%s" $rbacPath $queryParam $val }}
-                  {{- else }}
-                    {{- $rbacPath = "printf %s?%s=%s" $rbacPath $queryParam $val }}
-                  {{- end }}
-                {{- else if ne $bodyAttrib "" }}
-                  {{- $val = randAlpha 5 }}
-                  {{- $_ := set $bodyJson $bodyAttrib $val }}
-                {{- end }}
-              {{- end }}
-              {{- if $inv }}
+    {{- end -}}
+    {{- $usePreviousTokenCall := false }}
+    {{- $callMade := false }}
+    {{- if or $rbac $enrich }}
+      {{- $policies := $rbac.policies }}
+      {{- range $policies }}
+        {{- $rbacHdrStr := $hdrStr }}
+        {{- $rbacPath := $path }}
+        {{- $name := .name }}
+        {{- $privs := "" }}
+        {{- $scope := "" }}            
+        {{- $roles := "" }}            
+        {{- $cid := "" }}
+        {{- $did := "" }}
+        {{- $uri := "" }}
+        {{- $clid := "" }}
+        {{- $rules := .rules }}
+        {{- $bodyJson := dict }} 
+        {{- $bodyStr := "" }}   
+        {{- $requestToken := false }}
+        {{- range $rules }}
+          {{- $lop := .lop | default "" }}
+          {{- $rop := .rop | default "" }}
+          {{- $val := .val | default "" }}
+          {{- $inv := .inv | default false }}
+          {{- $hasVal := false }}
+          {{- if .val }}
+            {{- $hasVal = true }}
+          {{- end }}
+          {{- if or (hasPrefix "request.token" $lop) (hasPrefix "request.token" $rop) }}
+            {{- $hdrOprand := ternary $lop (ternary $rop "" (hasPrefix "request.headers" $rop)) (hasPrefix "request.headers" $lop) }}
+            {{- $hdrName := ternary (trimPrefix "request.headers[" $hdrOprand | trimSuffix "]") "" (ne $hdrOprand "") }}
+            {{- $queryOprand := ternary $lop (ternary $rop "" (hasPrefix "request.query" $rop)) (hasPrefix "request.query" $lop) }}
+            {{- $queryParam := ternary (trimPrefix "request.query[" $queryOprand | trimSuffix "]") "" (ne $queryOprand "") }}
+            {{- $bodyOprand := ternary $lop (ternary $rop "" (hasPrefix "request.body" $rop)) (hasPrefix "request.body" $lop) }}
+            {{- $bodyAttrib := ternary (trimPrefix "request.body[" $bodyOprand | trimSuffix "]") "" (ne $bodyOprand "")  }}
+            {{- if not $hasVal }}
+              {{- if ne $hdrName "" }}
+                {{- $val = ternary (get $headers $hdrName) (randAlpha 5) (hasKey $headers $hdrName) }}
+                {{- if eq $rbacHdrStr "" -}}
+                  {{- $rbacHdrStr = printf "-H %s:%s" $hdrName $val -}}
+                {{- else -}}
+                  {{- $rbacHdrStr = printf "%s -H %s:%s"  $rbacHdrStr $hdrName $val -}}
+                {{- end -}}
+              {{- else if ne $queryParam "" }}
                 {{- $val = randAlpha 5 }}
-              {{- end }}
-              {{- $tokenOprand := ternary $lop $rop (hasPrefix "request.token" $lop) }}
-              {{- $claim := trimPrefix "request.token[" $tokenOprand | trimSuffix "]" }}
-              {{- if eq $claim "scope" }}
-                {{- if eq .op "co" }}
-                  {{- $scope = ternary $val (printf "%s %s" $privs $val) (eq $scope "")  }}
-                  {{- $requestToken = true }}
+                {{- if contains "?" $rbacPath }}
+                  {{- $rbacPath = "printf %s&%s=%s" $rbacPath $queryParam $val }}
+                {{- else }}
+                  {{- $rbacPath = "printf %s?%s=%s" $rbacPath $queryParam $val }}
                 {{- end }}
-              {{- else if eq $claim "privs" }}
-                {{- if eq .op "co" }}
-                  {{- $privs = ternary $val (printf "%s %s" $privs $val) (eq $privs "") }}
-                  {{- $requestToken = true }}
-                {{- end }}
-              {{- else if eq $claim "roles" }}
-                {{- if eq .op "co" }}
-                  {{- $roles = ternary $val (printf "%s<%s>" $roles $val) (eq $roles "") }}
-                  {{- $requestToken = true }}
-                {{- end }}
-              {{- else if eq $claim "customer_id" }}
-                {{- if eq .op "eq" }}
-                  {{- $cid = $val }}
-                  {{- $requestToken = true }}
-                {{- else if eq .op "ne" }}
-                  {{- $cid = randAlpha 8 }}
-                  {{- $requestToken = true }}
-                {{- end }}
-              {{- else if eq $claim "domain_id" }}
-                {{- if eq .op "eq" }}
-                  {{- $did = $val }}
-                  {{- $requestToken = true }}
-                {{- else if eq .op "ne" }}
-                  {{- $did = randAlpha 8 }}
-                  {{- $requestToken = true }}
-                {{- end }}
-              {{- else if eq $claim "uri" }}
-                {{- if eq .op "eq" }}
-                  {{- $uri = $val }}
-                  {{- $requestToken = true }}
-                {{- else if eq .op "prefix" }}
-                  {{- $uri = printf "%s%s" $val (randAlpha 3) }}
-                  {{- $requestToken = true }}
-                {{- end }}
-              {{- else if eq $claim "client_id" }}
-                {{- if eq .op "eq" }}
-                  {{- $did = $val }}
-                  {{- $requestToken = true }}
-                {{- else if eq .op "ne" }}
-                  {{- $requestToken = true }}
-                {{- end }}
+              {{- else if ne $bodyAttrib "" }}
+                {{- $val = randAlpha 5 }}
+                {{- $_ := set $bodyJson $bodyAttrib $val }}
               {{- end }}
             {{- end }}
-          {{- end }}
-          {{- if $requestToken }}
-            {{- if $bodyJson }}
-              {{- $bodyStr = $bodyJson | toJson }}
+            {{- if $inv }}
+              {{- $val = randAlpha 5 }}
             {{- end }}
-            {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
-            {{- printf "http_call %s %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $rbacPath $matchAllRoutes) | quote) (printf "%s" $rbacHdrStr | squote) (printf "%s" "Bearer" | quote) ($bodyStr | quote) -}}
-            {{- printf "check_test_call\n" -}}
-            {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:%s:positive] result[$test_result]: call %s %s%s" $name $method $scheme $rbacPath | quote) $reportfile }}
-            {{- $usePreviousTokenCall = true }}
-            {{- $callMade = true }}
-          {{- end }}
-        {{- end }}
-        {{/* {{- $actions := $enrich.actions }}
-        {{- range $actions }}
-          {{- $action := .action }}
-          {{- if eq $action "extract" }}
-            {{- $privs := "" }}
-            {{- $scope := "" }}            
-            {{- $roles := "" }}            
-            {{- $cid := "" }}
-            {{- $did := "" }}
-            {{- $uri := "" }}
-            {{- $clid := "" }}         
-            {{- $value := "" }}
-            {{- $requestToken := false }}
-            {{- if ne (.if_contain | default "") "" }}
-              {{- $value = .if_contain }}
-            {{- else if ne (.if_start_with | default "") "" }}
-              {{- $value = printf "%sabc" .if_start_with }}
-            {{- else if ne (.if_eq | default "") "" }}
-              {{- $value = printf "%s" .if_eq }}
-            {{- else }}
-              {{- $value = "some_value" }}
-            {{- end }}
-            {{- if hasPrefix "token." (.from | default "") }}            
-              {{- $claim := trimPrefix "token." (.from | default "") }}
-              {{- if ne $value "" }}
-                {{- if eq $claim "scope" }}
-                  {{- $scope = $value }}
-                {{- else if eq $claim "privs" }}
-                  {{- $privs = $value }}
-                {{- else if eq $claim "roles" }}
-                  {{- $roles = $value }}
-                {{- else if eq $claim "customer_id" }}
-                  {{- $cid = $value }}
-                {{- else if eq $claim "domain_id" }}
-                  {{- $did = $value }}
-                {{- else if eq $claim "uri" }}
-                  {{- $uri = $value }}
-                {{- else if eq $claim "client_id" }}
-                  {{- $clid = $value }}
-                {{- end }}
+            {{- $tokenOprand := ternary $lop $rop (hasPrefix "request.token" $lop) }}
+            {{- $claim := trimPrefix "request.token[" $tokenOprand | trimSuffix "]" }}
+            {{- if eq $claim "scope" }}
+              {{- if eq .op "co" }}
+                {{- $scope = ternary $val (printf "%s %s" $privs $val) (eq $scope "")  }}
                 {{- $requestToken = true }}
               {{- end }}
-            {{- else if and .to (or (hasPrefix "header." (.from | default "")) (hasPrefix "query." (.from | default ""))) }}
-              {{- $from := ternary (trimPrefix "header." .from) (trimPrefix "query." .from) (hasPrefix "header." (.from | default "")) }}                
-              {{- if .transforms }}
-                {{- range (reverse .transforms) }}
-                  
-                {{- end }}
+            {{- else if eq $claim "privs" }}
+              {{- if eq .op "co" }}
+                {{- $privs = ternary $val (printf "%s %s" $privs $val) (eq $privs "") }}
+                {{- $requestToken = true }}
               {{- end }}
-              {{- if hasPrefix "header." (.from | default "") }}
-                {{- if eq  $hdrStr "" -}}
-                  {{- $hdrStr = printf "-H %s:%s" $from $value -}}
-                {{- else -}}
-                  {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $from $value -}}
-                {{- end -}}
-              {{- else }}
-                {{- if contains "?" $path }}
-                  {{- $path = "printf %s&%s=%s" $path $from $value }}
-                {{- else }}
-                  {{- $path = "printf %s?%s=%s" $path $from $value }}
-                {{- end }}
+            {{- else if eq $claim "roles" }}
+              {{- if eq .op "co" }}
+                {{- $roles = ternary $val (printf "%s<%s>" $roles $val) (eq $roles "") }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "customer_id" }}
+              {{- if eq .op "eq" }}
+                {{- $cid = $val }}
+                {{- $requestToken = true }}
+              {{- else if eq .op "ne" }}
+                {{- $cid = randAlpha 8 }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "domain_id" }}
+              {{- if eq .op "eq" }}
+                {{- $did = $val }}
+                {{- $requestToken = true }}
+              {{- else if eq .op "ne" }}
+                {{- $did = randAlpha 8 }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "uri" }}
+              {{- if eq .op "eq" }}
+                {{- $uri = $val }}
+                {{- $requestToken = true }}
+              {{- else if eq .op "prefix" }}
+                {{- $uri = printf "%s%s" $val (randAlpha 3) }}
+                {{- $requestToken = true }}
+              {{- end }}
+            {{- else if eq $claim "client_id" }}
+              {{- if eq .op "eq" }}
+                {{- $did = $val }}
+                {{- $requestToken = true }}
+              {{- else if eq .op "ne" }}
+                {{- $requestToken = true }}
               {{- end }}
             {{- end }}
-            {{- $authType := "" }}
-            {{- if $requestToken }}
-              {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
-              {{- $authType = "Bearer" }}
-              {{- $usePreviousTokenCall = true }}
-            {{- end }}
-            {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $path $matchAllRoutes) | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
-            {{- printf "check_test_call\n" -}}
-            {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .to)) }}
-            {{- printf "test_check %s %s\n" ((ternary .with "" (hasKey . "with")) | quote) ((ternary "eq" "pr" (hasKey . "with")) | quote) }}
-            {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
-            {{- $callMade = true }}
           {{- end }}
-        {{- end }} */}}
-      {{- else }}
-        {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (ternary (printf "%s" "Bearer" | quote) (printf "" | quote) $tokenCheck) -}}
-        {{- $callMade = true }}
+        {{- end }}
+        {{- if $requestToken }}
+          {{- printf "get_token %s %s %s %s %s %s %s\n" ($privs | quote) ($scope | quote) ($roles | quote) ($cid | quote) ($did | quote) ($uri | quote) ($clid | quote) }}
+          {{- if $bodyJson }}
+            {{- $bodyStr = $bodyJson | toJson }}
+          {{- end }}
+          {{- printf "http_call %s %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $rbacPath $matchAllRoutes) | quote) (printf "%s" $rbacHdrStr | squote) (printf "%s" "Bearer" | quote) ($bodyStr | quote) -}}
+          {{- printf "check_test_call\n" -}}
+          {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:%s:positive] result[$test_result]: call %s %s%s" $name $method $scheme $rbacPath | quote) $reportfile }}
+          {{- $usePreviousTokenCall = true }}
+          {{- $callMade = true }}
+        {{- end }}
       {{- end }}
-      {{- if $callMade }}
-        {{- if hasKey $routing "redirect" -}}
-          {{- $redirect := $routing.redirect -}}
-          {{- printf "check_test_call %s\n" (($redirect.responseCode | default "301") | quote) }}
-          {{- printf "echo %s >> %s\n" (printf "Test case[auto][redirect] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
-        {{- else if hasKey $routing "directResponse" -}}
-          {{- $directResponse := $routing.directResponse -}}
-          {{- printf "check_test_call %s\n" ($directResponse.status | quote) }}
-          {{- printf "echo %s >> %s\n" (printf "Test case[auto][directResponse] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
-        {{- else if hasKey $routing "route" -}}
-          {{- $route := $routing.route -}}
-          {{- if not $usePreviousTokenCall }}
-            {{- printf "check_test_call\n" }}
-          {{- end }}
-          {{- if hasKey $route "prefixRewrite" -}}
-            {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
-            {{- printf "test_check %s %s\n" ($route.prefixRewrite | quote) ("prefix" | quote) }}
-          {{- else if hasKey $route "regexRewrite" }}
-            {{- $regexRewrite := $route.regexRewrite }}
-            {{- $regexSubstitution := $regexRewrite.substitution }}
-            {{- $subStrs := split "\\" $regexSubstitution }}
-            {{- $newPath := $regexSubstitution }}
-            {{- $count := 1 }}
-            {{- range $subStrs }}
-              {{- if lt $count (len $subStrs) }}
-                {{- $newPath = $newPath | replace (printf "\\%d" $count) "[^/]+" }}
-                {{- $count = add1 $count }}
-              {{- end }}
-            {{- end }}
-            {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
-            {{- printf "test_check %s %s\n" ($newPath | quote) ("regex" | quote) }}
-          {{- end -}}
-            {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
-            {{- printf "test_check %s\n" ($cluster | quote) }}
-          {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing - path rewrite]result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
-        {{- else -}}
+      {{/* {{- if $enrich }}
+        {{- template "process_routing_enrichment_validation" (dict "method" $method "scheme" $scheme "path" $path "enrich" $enrich "hdrStr" $hdrStr "cluster" $cluster "direction" $direction "respfile" $respfile "reportfile" $reportfile) -}}
+      {{- end }} */}}
+    {{- else }}
+      {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (ternary (printf "%s" "Bearer" | quote) (printf "" | quote) $tokenCheck) -}}
+      {{- $callMade = true }}
+    {{- end }}
+    {{- if $callMade }}
+      {{- if hasKey $routing "redirect" -}}
+        {{- $redirect := $routing.redirect -}}
+        {{- printf "check_test_call %s\n" (($redirect.responseCode | default "301") | quote) }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[auto][redirect] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+      {{- else if hasKey $routing "directResponse" -}}
+        {{- $directResponse := $routing.directResponse -}}
+        {{- printf "check_test_call %s\n" ($directResponse.status | quote) }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[auto][directResponse] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+      {{- else if hasKey $routing "route" -}}
+        {{- $route := $routing.route -}}
+        {{- if not $usePreviousTokenCall }}
           {{- printf "check_test_call\n" }}
-          {{- if ne $cluster "proxy" }}
-            {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
-            {{- printf "test_check %s\n" ($cluster | quote) }}
+        {{- end }}
+        {{- if hasKey $route "prefixRewrite" -}}
+          {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
+          {{- printf "test_check %s %s\n" ($route.prefixRewrite | quote) ("prefix" | quote) }}
+        {{- else if hasKey $route "regexRewrite" }}
+          {{- $regexRewrite := $route.regexRewrite }}
+          {{- $regexSubstitution := $regexRewrite.substitution }}
+          {{- $subStrs := split "\\" $regexSubstitution }}
+          {{- $newPath := $regexSubstitution }}
+          {{- $count := 1 }}
+          {{- range $subStrs }}
+            {{- if lt $count (len $subStrs) }}
+              {{- $newPath = $newPath | replace (printf "\\%d" $count) "[^/]+" }}
+              {{- $count = add1 $count }}
+            {{- end }}
           {{- end }}
-          {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+          {{- template "build_execute_jq_cmd" (dict "path" ".http.originalUrl") }}
+          {{- printf "test_check %s %s\n" ($newPath | quote) ("regex" | quote) }}
         {{- end -}}
-      {{- end }}
+          {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
+          {{- printf "test_check %s\n" ($cluster | quote) }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing - path rewrite]result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+      {{- else -}}
+        {{- printf "check_test_call\n" }}
+        {{- if ne $cluster "proxy" }}
+          {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
+          {{- printf "test_check %s\n" ($cluster | quote) }}
+        {{- end }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+      {{- end -}}
     {{- end }}
   {{- end -}}
 {{- end -}}

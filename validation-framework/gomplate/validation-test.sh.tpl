@@ -59,6 +59,14 @@ echo "" >> /tests/logs/report.txt
 
     {{ if hasKey $ingress "routes" }}
       {{- printf "# Process ingress routes\n" }}
+      {{/* {{- if hasKey $ingress "enrichment" }}
+        {{- $ingressEnrichment := $ingress.enrichment }}
+        {{- if hasKey $ingressEnrichment "actions" }}
+          {{- printf "# Ingress -> enrichment on all ingress API calls - path: /any\n" }}
+          {{- template "process_routing_enrichment" (dict "enrichment" $ingressEnrichment "cluster" "proxy" "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+          {{- $counter = add1 $counter -}}
+        {{- end }}
+      {{- end }} */}}
       {{- range $ingress.routes }}
         {{- $cluster := "proxy" }}
         {{- $route := .route }}
@@ -80,6 +88,14 @@ echo "" >> /tests/logs/report.txt
 
     {{ if hasKey $egress "routes" }}
 # Process egress routes
+      {{/* {{- if hasKey  $egress "enrichment" }}
+        {{- $egressEnrichment := $egress.enrichment }}
+        {{- if hasKey $egressEnrichment "actions" }}
+          {{- printf "# Egress -> enrichment on all egress API calls\n" }}
+          {{- template "process_routing_enrichment" (dict "enrichment" $egressEnrichment "cluster" "proxy" "direction" "egress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+          {{- $counter = add1 $counter -}}
+        {{- end }}
+      {{- end }} */}}
       {{- range $egress.routes }}
         {{- $cluster := "proxy" }}
         {{- $route := .route }}
