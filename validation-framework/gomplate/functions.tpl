@@ -63,14 +63,14 @@
           {{- $tokenCheck = $inout.tokenCheck }}
         {{- end }}
         {{- $headers := $inout.headers -}}
-        {{- $hdrStr := "" }}
+        {{/* {{- $hdrStr := "" }}
         {{- range $k, $v := $headers -}}
           {{- if eq  $hdrStr "" -}}
             {{- $hdrStr = printf "-H %s:%s" $k $v -}}
           {{- else -}}
             {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
           {{- end -}}
-        {{- end -}}
+        {{- end -}} */}}
         {{- $act := dict }}
         {{- $_ := set $act "action" .action }}
         {{- $_ := set $act "to" .to }}
@@ -79,7 +79,7 @@
           {{- $_ := set $act "transforms" .transforms }}
         {{- end }}
         {{- $acts := list $act }}
-        {{- template "process_routing_enrichment_validation" (dict "method" "GET" "scheme" $scheme "path" "/" "hdrStr" $hdrStr "direction" $direction "cluster" $cluster "enrich" (dict "actions" $acts) "respfile" $respfile "reportfile" $reportfile) -}}
+        {{- template "process_routing_enrichment_validation" (dict "method" "GET" "scheme" $scheme "path" "/" "headers" $headers "direction" $direction "cluster" $cluster "enrich" (dict "actions" $acts) "respfile" $respfile "reportfile" $reportfile) -}}
       {{- end }}
     {{- end }}
   {{- end }}
@@ -89,7 +89,7 @@
   {{- $method := .method -}}  
   {{- $scheme := .scheme -}}
   {{- $path := .path }}
-  {{- $hdrStr := .hdrStr }}
+  {{- $headers := .headers }}
   {{- $cluster := .cluster -}}
   {{- $direction := .direction -}}
   {{- $enrich := .enrich }}
@@ -127,32 +127,37 @@
     {{- range $calls }}
       {{- printf "#call=%s\n" . }}
       {{- printf "#call.from=%s .val=%s\n" .from .val }}
+      {{- $callPath := $path }}
       {{- $authType := "" }}
       {{- if and (hasPrefix "header.Authorization" .from) (hasPrefix "Basic " .val) }}
         {{- $authType = "Basic" }}
         {{- printf "credential=%s\n" (trimPrefix "Basic " .val | quote) }}
       {{- else if hasPrefix "header." .from  }}
-        {{- if eq  $hdrStr "" -}}
-          {{- $hdrStr = printf "-H %s:%s" (trimPrefix "header." .from) .val -}}
-        {{- else -}}
-          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr (trimPrefix "header." .from) .val -}}
-        {{- end -}}
+        {{- $_ := set $headers (trimPrefix "header." .from) .val }}
       {{- else if hasPrefix "token." .from }}
         {{- template "request_token" (dict "from" .from  "value" .val) -}}
         {{- $authType = "Bearer" }}
       {{- else if hasPrefix "query." .from }}
-        {{- if contains "?" $path }}
-          {{- $path = printf "%s&%s=%s" $path (trimPrefix "query." .from) .val }}
+        {{- if contains "?" $callPath }}
+          {{- $callPath = printf "%s&%s=%s" $callPath (trimPrefix "query." .from) .val }}
         {{- else }}
-          {{- $path = printf "%s?%s=%s" $path (trimPrefix "query." .from) .val }}
+          {{- $callPath = printf "%s?%s=%s" $callPath (trimPrefix "query." .from) .val }}
         {{- end }}
       {{- end }}
-      {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
+      {{- $hdrStr := "" }}
+      {{- range $k, $v := $headers -}}
+        {{- if eq  $hdrStr "" -}}
+          {{- $hdrStr = printf "-H %s:%s" $k $v -}}
+        {{- else -}}
+          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
+        {{- end -}}
+      {{- end -}}
+      {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $callPath | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
       {{- printf "check_test_call\n" -}}
       {{- range .checks }}
         {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .header)) }}
         {{- printf "test_check %s\n" (.val | quote) }}
-        {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:advance:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:advance:positive] result[$test_result]: call %s %s%s" $method $scheme $callPath | quote) $reportfile }}
       {{- end }}
     {{- end }}
   {{- end }}
@@ -676,7 +681,7 @@
         {{- end }}
       {{- end }}
       {{- if $enrich }}
-        {{- template "process_routing_enrichment_validation" (dict "method" $method "scheme" $scheme "path" $path "enrich" $enrich "hdrStr" $hdrStr "cluster" $cluster "direction" $direction "respfile" $respfile "reportfile" $reportfile) -}}
+        {{- template "process_routing_enrichment_validation" (dict "method" $method "scheme" $scheme "path" $path "enrich" $enrich "headers" $headers "cluster" $cluster "direction" $direction "respfile" $respfile "reportfile" $reportfile) -}}
       {{- end }}
     {{- else }}
       {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (ternary (printf "%s" "Bearer" | quote) (printf "" | quote) $tokenCheck) -}}
