@@ -1,6 +1,5 @@
 {{- define "process_routing_enrichment" -}}
   {{- $enrichment := .enrichment }}
-  {{- $path := .path | default "/" }}
   {{- $cluster := .cluster -}}
   {{- $scheme := .scheme -}}
   {{- $respfile := .respfile -}}
@@ -56,23 +55,22 @@
           {{- end }}
           {{- $match_headers = append $match_headers $header }}
         {{- end }}
-        {{- $inout := dict "headers" dict "method" $method "path" $path "authType" $authType "tokenCheck" $tokenCheck }}
+        {{- $inout := dict "headers" dict "method" $method "authType" $authType "tokenCheck" $tokenCheck }}
         {{- if gt (len $match_headers) 0 -}}
           {{- template "process_match_headers" (dict "match_headers" $match_headers "inout" $inout) }}
-          {{- $path = $inout.path }}
           {{- $method = $inout.method }}
           {{- $authType = $inout.authType }}
           {{- $tokenCheck = $inout.tokenCheck }}
         {{- end }}
         {{- $headers := $inout.headers -}}
-        {{/* {{- $hdrStr := "" }}
+        {{- $hdrStr := "" }}
         {{- range $k, $v := $headers -}}
           {{- if eq  $hdrStr "" -}}
             {{- $hdrStr = printf "-H %s:%s" $k $v -}}
           {{- else -}}
             {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
           {{- end -}}
-        {{- end -}} */}}
+        {{- end -}}
         {{- $act := dict }}
         {{- $_ := set $act "action" .action }}
         {{- $_ := set $act "to" .to }}
@@ -81,7 +79,7 @@
           {{- $_ := set $act "transforms" .transforms }}
         {{- end }}
         {{- $acts := list $act }}
-        {{- template "process_routing_enrichment_validation" (dict "method" "GET" "scheme" $scheme "path" "/" "headers" $headers "direction" $direction "cluster" $cluster "enrich" (dict "actions" $acts) "respfile" $respfile "reportfile" $reportfile) -}}
+        {{- template "process_routing_enrichment_validation" (dict "method" "GET" "scheme" $scheme "path" "/" "hdrStr" $hdrStr "direction" $direction "cluster" $cluster "enrich" (dict "actions" $acts) "respfile" $respfile "reportfile" $reportfile) -}}
       {{- end }}
     {{- end }}
   {{- end }}
@@ -91,7 +89,7 @@
   {{- $method := .method -}}  
   {{- $scheme := .scheme -}}
   {{- $path := .path }}
-  {{- $headers := .headers }}
+  {{- $hdrStr := .hdrStr }}
   {{- $cluster := .cluster -}}
   {{- $direction := .direction -}}
   {{- $enrich := .enrich }}
@@ -109,57 +107,74 @@
         {{- $toStr := printf "%s%s" (ternary "" "header." (contains "." $to)) $to }}
         {{- $_ := set $tos $toStr . }}
       {{- end }}
+      {{- $previousActionFrom := "" }}
       {{- $checks := list }}
-        {{- $inout := dict "skipping" dict }}
-        {{- range (reverse $actions) }}
-          {{- if eq .action "extract" }}
-            {{- $skipping := $inout.skipping }}
-            {{- if not (hasKey $skipping .from) }}
-              {{- $_ := set $inout "skipping" $skipping }}
-              {{- $_ := set $inout "inValue" "" }}
-              {{- $_ := set $inout "outValue" (randAlpha 5) }}
-              {{- $checks = list }}
-              {{- template "process_action_recursive" (dict "tos" $tos "action" . "recursive" false "inout" $inout) }}
-              {{- $checks = append $checks (dict "header" (printf "%s" $inout.to) "val" $inout.outValue) }}
-              {{- $calls = append $calls (dict "from" (printf "%s" $inout.from) "val" $inout.inValue "checks" $checks) }}
+      {{- $value := "" }}
+      {{- $args := dict "inValue" "" "outValue" $value "expectValue" $value }}
+      {{- range (reverse $actions) }}
+        {{- if eq .action "extract" }}
+          {{- $toStr := printf "%s%s" (ternary "" "header." (contains "." .to)) .to }}
+          {{- if eq $previousActionFrom $toStr }}
+            {{- $to := get $tos $toStr | default dict }}
+            {{- $_ := set $args "outValue" $args.inValue }}
+            {{- template "process_transforms" (dict "transforms" .transforms  "args" $args) -}}
+            {{- if $to }}
+              {{- if (get $tos $to.from) }}
+              {{- else }}
+                {{- $checks = append $checks (dict "header" (printf "%s" .to) "val" $args.outValue) }}
+                {{- $calls = append $calls (dict "from" (printf "%s" .from) "val" $args.inValue "checks" $checks) }}
+              {{- end }}
             {{- end }}
+          {{- else }}
+            {{- if ne (.if_contain | default "") "" }}
+              {{- $value = .if_contain }}
+            {{- else if ne (.if_start_with | default "") "" }}
+              {{- $value = printf "%sabc" .if_start_with }}
+            {{- else if ne (.if_eq | default "") "" }}
+              {{- $value = printf "%s" .if_eq }}
+            {{- else }}
+              {{- $value = "test" }}
+            {{- end }}
+            {{- $args = dict "inValue" "" "outValue" $value "expectValue" $value }}
+            {{- $checks = list }}
+            {{- template "process_transforms" (dict "transforms" .transforms  "args" $args) -}}
+            {{- $checks = append $checks (dict "header" (printf "%s" .to) "val" $args.outValue) }}
+            {{- $calls = append $calls (dict "from" (printf "%s" .from) "val" $args.inValue "checks" $checks) }}
+            {{- $previousActionFrom = "" }}
           {{- end }}
+          {{- $previousActionFrom = .from }}
+        {{- end }}
       {{- end }}
     {{- end }}
     {{- range $calls }}
       {{- printf "#call=%s\n" . }}
       {{- printf "#call.from=%s .val=%s\n" .from .val }}
-      {{- $callPath := $path }}
       {{- $authType := "" }}
       {{- if and (hasPrefix "header.Authorization" .from) (hasPrefix "Basic " .val) }}
         {{- $authType = "Basic" }}
         {{- printf "credential=%s\n" (trimPrefix "Basic " .val | quote) }}
       {{- else if hasPrefix "header." .from  }}
-        {{- $_ := set $headers (trimPrefix "header." .from) .val }}
+        {{- if eq  $hdrStr "" -}}
+          {{- $hdrStr = printf "-H %s:%s" (trimPrefix "header." .from) .val -}}
+        {{- else -}}
+          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr (trimPrefix "header." .from) .val -}}
+        {{- end -}}
       {{- else if hasPrefix "token." .from }}
         {{- template "request_token" (dict "from" .from  "value" .val) -}}
         {{- $authType = "Bearer" }}
       {{- else if hasPrefix "query." .from }}
-        {{- if contains "?" $callPath }}
-          {{- $callPath = printf "%s&%s=%s" $callPath (trimPrefix "query." .from) .val }}
+        {{- if contains "?" $path }}
+          {{- $path = printf "%s&%s=%s" $path (trimPrefix "query." .from) .val }}
         {{- else }}
-          {{- $callPath = printf "%s?%s=%s" $callPath (trimPrefix "query." .from) .val }}
+          {{- $path = printf "%s?%s=%s" $path (trimPrefix "query." .from) .val }}
         {{- end }}
       {{- end }}
-      {{- $hdrStr := "" }}
-      {{- range $k, $v := $headers -}}
-        {{- if eq  $hdrStr "" -}}
-          {{- $hdrStr = printf "-H %s:%s" $k $v -}}
-        {{- else -}}
-          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
-        {{- end -}}
-      {{- end -}}
-      {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $callPath | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
+      {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
       {{- printf "check_test_call\n" -}}
       {{- range .checks }}
         {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .header)) }}
         {{- printf "test_check %s\n" (.val | quote) }}
-        {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:advance:positive] result[$test_result]: call %s %s%s" $method $scheme $callPath | quote) $reportfile }}
+        {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:advance:positive] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
       {{- end }}
     {{- end }}
   {{- end }}
@@ -270,7 +285,6 @@
 {{- define "process_match_headers" -}}
   {{- $match_headers := .match_headers }}
   {{- $inout := .inout }}
-  {{- $path := $inout.path }}
   {{- $method := $inout.method }}
   {{- $authType := $inout.authType }}
   {{- $tokenCheck := $inout.tokenCheck }}
@@ -318,16 +332,16 @@
           {{- $method = upper .eq -}}
         {{- else if .neq -}}
           {{- $neq := upper .neq -}}
-          {{- if eq "GET" $neq -}}
-            {{- $method = "DELETE" -}}
-          {{- else if eq "POST" $neq -}}
-            {{- $method = "PUT" -}}
-          {{- else if eq "PUT" $neq -}}
-            {{- $method = "POST" -}}
-          {{- else if eq "DELETE" $neq -}}
-            {{- $method = "PATCH" -}}
-          {{- else if eq "PATCH" $neq -}}
-            {{- $method = "DELETE" -}}
+          {{- if ne "GET" $neq -}}
+            {{- $method = $neq -}}
+          {{- else if ne "POST" $neq -}}
+            {{- $method = $neq -}}
+          {{- else if ne "PUT" $neq -}}
+            {{- $method = $neq -}}
+          {{- else if ne "DELETE" $neq -}}
+            {{- $method = $neq -}}
+          {{- else if ne "PATCH" $neq -}}
+            {{- $method = $neq -}}
           {{- end -}}
         {{- end }}
       {{- else if eq $key ":authority" -}}
@@ -339,7 +353,6 @@
   {{- end }}
   {{- $_ := set $inout "headers" $headers }}
   {{- $_ := set $inout "method" $method }}
-  {{- $_ := set $inout "path" $path }}
   {{- $_ := set $inout "authType" $authType }}
   {{- $_ := set $inout "tokenCheck" $tokenCheck }}
 {{- end }}
@@ -545,15 +558,12 @@
     {{- else if hasKey $match "regex" -}}
       {{- $path = randFromUrlRegex $match.regex }}
     {{- end -}}
-    {{- $inout := dict "headers" dict "method" $method "path" $path "authType" $authType "tokenCheck" $tokenCheck }}
+    {{- $inout := dict "headers" dict "method" $method "authType" $authType "tokenCheck" $tokenCheck }}
     {{- if hasKey $match "headers" -}}
-      {{- printf "# before process_match_headers=%s\n"  $inout }}
       {{- template "process_match_headers" (dict "match_headers" $match.headers "inout" $inout) }}
       {{- $method = $inout.method }}
-      {{- $path = $inout.path }}
       {{- $authType = $inout.authType }}
       {{- $tokenCheck = $inout.tokenCheck }}
-      {{- printf "# after process_match_headers=%s\n"  $inout }}
     {{- end }}
     {{- $headers := $inout.headers -}}
     {{- $hdrStr := "" }}
@@ -686,7 +696,7 @@
         {{- end }}
       {{- end }}
       {{- if $enrich }}
-        {{- template "process_routing_enrichment_validation" (dict "method" $method "scheme" $scheme "path" $path "enrich" $enrich "headers" $headers "cluster" $cluster "direction" $direction "respfile" $respfile "reportfile" $reportfile) -}}
+        {{- template "process_routing_enrichment_validation" (dict "method" $method "scheme" $scheme "path" $path "enrich" $enrich "hdrStr" $hdrStr "cluster" $cluster "direction" $direction "respfile" $respfile "reportfile" $reportfile) -}}
       {{- end }}
     {{- else }}
       {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (ternary (printf "%s" "Bearer" | quote) (printf "" | quote) $tokenCheck) -}}
