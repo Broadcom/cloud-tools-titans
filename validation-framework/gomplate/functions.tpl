@@ -126,40 +126,43 @@
           {{- end }}
       {{- end }}
     {{- end }}
+    {{- $unsupportedCalls := dict "token.jti" true }}
     {{- range $calls }}
       {{- printf "#call=%s\n" . }}
       {{- printf "#call.from=%s .val=%s\n" .from .val }}
-      {{- $callPath := $path }}
-      {{- $authType := "" }}
-      {{- if and (hasPrefix "header.Authorization" .from) (hasPrefix "Basic " .val) }}
-        {{- $authType = "Basic" }}
-        {{- printf "credential=%s\n" (trimPrefix "Basic " .val | quote) }}
-      {{- else if hasPrefix "header." .from  }}
-        {{- $_ := set $headers (trimPrefix "header." .from) .val }}
-      {{- else if hasPrefix "token." .from }}
-        {{- template "request_token" (dict "from" .from  "value" .val) -}}
-        {{- $authType = "Bearer" }}
-      {{- else if hasPrefix "query." .from }}
-        {{- if contains "?" $callPath }}
-          {{- $callPath = printf "%s&%s=%s" $callPath (trimPrefix "query." .from) .val }}
-        {{- else }}
-          {{- $callPath = printf "%s?%s=%s" $callPath (trimPrefix "query." .from) .val }}
+      {{- if not (hasKey $unsupportedCalls .from) }}
+        {{- $callPath := $path }}
+        {{- $authType := "" }}
+        {{- if and (hasPrefix "header.Authorization" .from) (hasPrefix "Basic " .val) }}
+          {{- $authType = "Basic" }}
+          {{- printf "credential=%s\n" (trimPrefix "Basic " .val | quote) }}
+        {{- else if hasPrefix "header." .from  }}
+          {{- $_ := set $headers (trimPrefix "header." .from) .val }}
+        {{- else if hasPrefix "token." .from }}
+          {{- template "request_token" (dict "from" .from  "value" .val) -}}
+          {{- $authType = "Bearer" }}
+        {{- else if hasPrefix "query." .from }}
+          {{- if contains "?" $callPath }}
+            {{- $callPath = printf "%s&%s=%s" $callPath (trimPrefix "query." .from) .val }}
+          {{- else }}
+            {{- $callPath = printf "%s?%s=%s" $callPath (trimPrefix "query." .from) .val }}
+          {{- end }}
         {{- end }}
-      {{- end }}
-      {{- $hdrStr := "" }}
-      {{- range $k, $v := $headers -}}
-        {{- if eq  $hdrStr "" -}}
-          {{- $hdrStr = printf "-H %s:%s" $k $v -}}
-        {{- else -}}
-          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
+        {{- $hdrStr := "" }}
+        {{- range $k, $v := $headers -}}
+          {{- if eq  $hdrStr "" -}}
+            {{- $hdrStr = printf "-H %s:%s" $k $v -}}
+          {{- else -}}
+            {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
+          {{- end -}}
         {{- end -}}
-      {{- end -}}
-      {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $callPath | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
-      {{- printf "check_test_call\n" -}}
-      {{- range .checks }}
-        {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .header)) }}
-        {{- printf "test_check %s\n" (.val | quote) }}
-        {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:advance:positive] result[$test_result]: call %s %s%s" $method $scheme $callPath | quote) $reportfile }}
+        {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $callPath | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
+        {{- printf "check_test_call\n" -}}
+        {{- range .checks }}
+          {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .header)) }}
+          {{- printf "test_check %s\n" (.val | quote) }}
+          {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:advance:positive] result[$test_result]: call %s %s%s" $method $scheme $callPath | quote) $reportfile }}
+        {{- end }}
       {{- end }}
     {{- end }}
   {{- end }}
