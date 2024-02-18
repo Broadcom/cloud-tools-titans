@@ -133,9 +133,13 @@
       {{- if not (hasKey $unsupportedCalls .from) }}
         {{- $callPath := $path }}
         {{- $authType := "" }}
+        {{- $cookie := "" }}
+        {{- $body := "" }}
         {{- if and (hasPrefix "header.Authorization" .from) (hasPrefix "Basic " .val) }}
           {{- $authType = "Basic" }}
           {{- printf "credential=%s\n" (trimPrefix "Basic " .val | quote) }}
+        {{- else if hasPrefix "header.Cookie" .from  }}
+          {{- $cookie = printf "%s" .val }}
         {{- else if hasPrefix "header." .from  }}
           {{- $_ := set $headers (trimPrefix "header." .from) .val }}
         {{- else if hasPrefix "token." .from }}
@@ -156,7 +160,7 @@
             {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
           {{- end -}}
         {{- end -}}
-        {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $callPath | quote) (printf "%s" $hdrStr | squote) ($authType | quote) -}}
+        {{- printf "http_call %s %s %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $callPath | quote) (printf "%s" $hdrStr | squote) ($authType | quote) ($body | quote) ($cookie | quote) -}}
         {{- printf "check_test_call\n" -}}
         {{- range .checks }}
           {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .header)) }}
@@ -183,7 +187,7 @@
     {{- $inValue := $inout.outValue }}
     {{- if $to }}
       {{- $args := dict "outValue" $outValue "inValue" $inValue }}
-      {{- template "process_transforms" (dict "transforms" $action.transforms "args" $args) }}
+      {{- template "process_transforms" (dict "transforms" $action.transforms "args" $args "from" $action.from) }}
       {{- if $recursive }}
         {{- $skipping := $inout.skipping | default dict }}
         {{- $_ := set $skipping $action.from true }}
@@ -197,7 +201,7 @@
       {{- template "process_action_recursive" (dict "tos" $tos "action" $to "recursive" true "inout" $inout) }}
     {{- else }}
       {{- $args := dict "outValue" $outValue "inValue" $inValue }}
-      {{- template "process_transforms" (dict "transforms" $action.transforms "args" $args) }}
+      {{- template "process_transforms" (dict "transforms" $action.transforms "args" $args "from" $action.from) }}
       {{- $_ := set $inout "from" $action.from }}
       {{- if $recursive }}
         {{- $skipping := $inout.skipping | default dict }}
@@ -214,24 +218,44 @@
 
 {{- define "process_transforms" -}}
   {{- $transforms := .transforms -}}
+  {{- $from := .from }}
   {{- $args := .args -}}
   {{- $outValue := $args.outValue }}
-  {{- $inValue := $args.inValue }}
+  {{- $inValue := $outValue }}
+  {{- $marker := "xxxxxx" }}
   {{- if $transforms }}
     {{- range (reverse $transforms) }}
       {{- if eq .func "scanf" }}
         {{- $param := first .parameters }}
-        {{- $inValue = $param | replace "%_" (randAlpha 5) }}
-        {{- $inValue = $inValue | replace "%s" $outValue }}
+        {{- $param = $param | replace "%_" (ternary $marker (randAlpha 5) (hasPrefix "header.Cookie" $from)) }}
+        {{- $inValue = $param | replace "%s" $inValue }}
       {{- else if eq .func "base64_decode" }}
         {{- $inValue = b64enc $inValue }}
       {{- else if eq .func "trim_prefix" }}
         {{- $inValue = printf "%s%s" (first .parameters) $inValue }}
       {{- else if eq .func "split" }}
+        {{- $delimiter := index .parameters 0 }}
+        {{- $op := index .parameters 1 }}
+        {{- $pattern := index .parameters 2 }}
+        {{- if hasPrefix "header.Cookie" $from }}
+          {{- $inValue = $inValue | replace $marker $pattern }}
+        {{- end }}
+        {{- if eq $op "index" }}
+          {{/* {{- $index := index .parameters 2 }}
+          {{- range $i, $e := until $index }}
+            {{- $inValue = printf "%s%s" (randAlpha 3) $op }}
+          {{- end }} */}}
+        {{- else }}
+          {{- if eq $op "findFirstPrefix" }}
+            {{- $inValue = printf "%s%s%s" (ternary (printf "%s=%s" (randAlpha 3) (randAlpha 3)) (randAlpha 3) (hasPrefix "header.Cookie" $from)) $delimiter (printf "%s" $inValue) }}
+          {{- else if eq $op "findFirstContain" }}
+            {{- $inValue = printf "%s%s%s" (ternary (printf "%s=%s" (randAlpha 3) (randAlpha 3)) (randAlpha 3) (hasPrefix "header.Cookie" $from)) $delimiter (printf "%s%s%s" (randAlpha 2) $inValue (randAlpha 2)) }}
+          {{- else if eq $op "findFirst" }}
+            {{- $inValue = printf "%s%s%s" (ternary (printf "%s=%s" (randAlpha 3) (randAlpha 3)) (randAlpha 3) (hasPrefix "header.Cookie" $from)) $delimiter $inValue }}
+          {{- end }}
+        {{- end }}
       {{- end }}
     {{- end }}
-  {{- else }}
-    {{- $inValue = $outValue }}
   {{- end }}
   {{- $_ := set $args "inValue" $inValue }}
 {{- end -}}
