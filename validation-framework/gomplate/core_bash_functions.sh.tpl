@@ -14,7 +14,8 @@ function http_call() {
   local headers=$3
   local authtype=$4
   local data=$5
-  local tokencall=$6
+  local cookie=$6
+  local tokencall=$7
   local insecure=""
   
   code=0
@@ -32,12 +33,22 @@ function http_call() {
     then
       # echo "No auth and no data"
       set -x
-      code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method "$url");
+      if [ -z "$cookie" ]
+      then
+        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method "$url");
+      else
+        code=$(curl $insecure -i --cookie "$cookie" --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method "$url");
+      fi
       set +x
     else
       # echo "No auth and has data"
       set -x
-      code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+      if [ -z "$cookie" ]
+      then
+        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+      else
+        code=$(curl $insecure -i --cookie "$cookie" --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+      fi
       set +x
     fi
   else
@@ -47,23 +58,43 @@ function http_call() {
       then
         # echo "Bearer auth and no data"
         set -x
-        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method "$url");
+        if [ -z "$cookie" ]
+        then
+          code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method "$url");
+        else
+          code=$(curl $insecure -i --cookie "$cookie" --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method "$url");
+        fi
         set +x
       else
+        if [ -z "$cookie" ]
+        then
+          code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method -d "$data" "$url");
+        else
+          code=$(curl $insecure -i --cookie "$cookie" --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method -d "$data" "$url");
+        fi
         # echo "Bearer auth and has data"
-        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Bearer $jwt" -X $method -d "$data" "$url");
       fi
     else
       if [ -z "$data" ]
       then
         # echo "Basic auth and no data"
         set -x  
-        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Basic $credential" -X $method "$url");
+        if [ -z "$cookie" ]
+        then
+          code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Basic $credential" -X $method "$url");
+        else
+          code=$(curl $insecure -i --cookie "$cookie" --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -H "Authorization: Basic $credential" -X $method "$url");
+        fi
         set +x  
       else
         # echo "Basic auth and has data"   
         set -x  
-        code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+        if [ -z "$cookie" ]
+        then
+          code=$(curl $insecure -i --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+        else
+          code=$(curl $insecure -i --cookie "$cookie" --write-out '%{http_code}' --silent --output /tests/data/resp -H Accept:application/json -H Content-Type:application/json $headers -X $method -d "$data" "$url");
+        fi
         set +x  
       fi
     fi
@@ -132,7 +163,7 @@ function get_token() {
   local JSON_FMT='{"privs":"%s","scope":"%s","roles":"%s","customer_id":"%s","domain_id":"%s","uri":"%s","client_id":"%s"}'
   local body=$(printf "$JSON_FMT" "$privs" "$scope" "$roles" "$cid" "$did" "$uri" "$clid")
   jwt=""
-  http_call "POST" "$tokenServiceUrl" "" "" "$body" "true"
+  http_call "POST" "$tokenServiceUrl" "" "" "$body" "" "true"
   set -x
   if [ "$code" == "200" ];
   then
@@ -153,7 +184,7 @@ function authenticate() {
   if [[ ! -z $body ]] && [[ ! -z $headers ]];
   then
     jwt=""
-    http_call "POST" "$tokenServiceUrl" "$headers" "" "$body" "true"
+    http_call "POST" "$tokenServiceUrl" "$headers" "" "$body" "" "true"
     if [ "$code" == "200" ];
     then
       jwt=$(echo $resp| jq -r '.access_token')
