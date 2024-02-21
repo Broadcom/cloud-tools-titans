@@ -77,22 +77,21 @@
       {{- else }}
         {{- $tokenCheck = ternary .tokenCheck true (hasKey . "tokenCheck") }}
       {{- end }}
-      {{- if .match }}
-        {{- if or .match.prefix  .match.regex }}
-          {{- if or (and $allBypass $tokenCheck) (and (not $allBypass) (not $tokenCheck)) }}
+      {{- $match := .match -}}
+      {{- if $match }}
+        {{- if or (and $allBypass $tokenCheck) (and (not $allBypass) (not $tokenCheck)) }}
     - match:
-            {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
-            {{- if $tokenCheck }}
+          {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
+          {{- if $tokenCheck }}
       requires:
-              {{- if eq (len $providers) 1 }}
+            {{- if eq (len $providers) 1 }}
         provider_name: {{ first $providers }}
-              {{- else }}
+            {{- else }}
         requires_any:
           requirements:
-                {{- range $providers }}
+              {{- range $providers }}
           - provider_name: {{ . }}
-                {{- end }}              
-              {{- end }}
+              {{- end }}              
             {{- end }}
           {{- end }}
         {{- end }}
