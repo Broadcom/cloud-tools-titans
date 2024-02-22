@@ -14,7 +14,7 @@ titanSideCars:
         address: token-generator
         port: 8080
   tracing:
-    enabled: true
+    enabled: false
     
   validation:
     environment:
