@@ -460,5 +460,6 @@
                   address: {{ $provider.address | default $cluster }}
                   port_value: {{ $provider.port | default "4317" }}
             health_check_config:
-              port_value: {{ provider.healthCheckPort | default "13133" }}
+              port_value: {{ $provider.healthCheckPort | default "13133" }}
+  {{- end }}
 {{- end }}

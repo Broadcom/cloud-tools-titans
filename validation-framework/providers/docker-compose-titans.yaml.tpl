@@ -39,6 +39,9 @@ services:
   {{- if $tokenGenerator }}
       - token-generator
   {{- end }}
+  {{- if $tracingEnabled }}
+      - otelcol
+  {{- end }}
     networks:
       - envoymesh
     expose:
@@ -142,8 +145,14 @@ services:
       retries: 120
       start_period: 5s
     command: ["--config=/etc/otel-collector-config.yaml"]
+    expose:
+     - "4317"
+     - "13133"
+     - "55679"
     ports:
     - "${PORT_UI:-55679}:55679"
+    networks:
+      - envoymesh
   {{- end }}
 volumes:
   redis:

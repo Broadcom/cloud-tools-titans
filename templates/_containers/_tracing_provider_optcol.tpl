@@ -10,8 +10,10 @@
     {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
     {{- if $tracingEnabled }}
       {{- $provider := $tracing.provider }}
-      {{- $deployAsSidecar := $provide.deployAsSidecar | default false -}}
+      {{- $deployAsSidecar := $provider.deployAsSidecar | default false -}}
       {{- if $deployAsSidecar }}
+        {{- $imageRegistry := $tracing.imageRegistry | default $titanSideCars.imageRegistry -}}
+        {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
         {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
         {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}
         {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled" )}}
@@ -26,7 +28,7 @@
   image: {{ printf "%s%s:%s" $imageRegistry  ($provider.imageName | default "opentelemetry-collector") ($provider.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
   command:
-    - {{ printf "--config=%s/%s" $providerConfigPath $providerConfigVolumeMountPath }}
+    - {{ printf "--config=%s/%s" $providerConfigPath $providertConfigFileName }}
   env:
     - name: NAMESPACE
       valueFrom:
@@ -82,9 +84,9 @@
       subPath: {{ $providertConfigFileName }}
           {{- end }}
         {{- else }}
-    - mountPath: {{ printf "%s/%s" $ratelimitConfigPath $ratelimitConfigFileName }}
+    - mountPath: {{ printf "%s/%s" $providerConfigPath $providertConfigFileName }}
       name: titan-configs
-      subPath: {{ $ratelimitConfigFileName }}
+      subPath: {{ $providertConfigFileName }}
         {{- end }}
     - mountPath: /logs/
       name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}

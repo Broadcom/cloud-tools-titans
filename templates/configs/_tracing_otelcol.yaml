@@ -5,7 +5,7 @@
   {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
   {{- if $tracingEnabled }}
     {{- $provider := $tracing.provider -}}
-    {{- $deployAsSidecar := $provide.deployAsSidecar | default false -}}
+    {{- $deployAsSidecar := $provider.deployAsSidecar | default false -}}
     {{- if $deployAsSidecar }}
       {{- $resource := $provider.resource -}}
       {{- $cpu := $resource.cpu -}}

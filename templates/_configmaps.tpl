@@ -60,7 +60,7 @@ data:
             {{- end }}
             {{- if $tracingEnabled }}
               {{- $provider := $tracing.provider }}
-              {{- $deployAsSidecar := $provide.deployAsSidecar | default false -}}
+              {{- $deployAsSidecar := $provider.deployAsSidecar | default false -}}
               {{- if $deployAsSidecar }}
 {{ include "titan-mesh-helm-lib-chart.configs.opentelemetry" . | indent 2 }}              
               {{- end }}
@@ -106,7 +106,7 @@ data:
             {{- end }}
             {{- if $tracingEnabled }}
               {{- $provider := $tracing.provider }}
-              {{- $deployAsSidecar := $provide.deployAsSidecar | default false -}}
+              {{- $deployAsSidecar := $provider.deployAsSidecar | default false -}}
               {{- if $deployAsSidecar }}
 {{ include "titan-mesh-helm-lib-chart.configs.opentelemetry" . | indent 2 }}              
               {{- end }}
@@ -140,7 +140,7 @@ data:
           {{- end }}
             {{- if $tracingEnabled }}
               {{- $provider := $tracing.provider }}
-              {{- $deployAsSidecar := $provide.deployAsSidecar | default false -}}
+              {{- $deployAsSidecar := $provider.deployAsSidecar | default false -}}
               {{- if $deployAsSidecar }}
 {{ include "titan-mesh-helm-lib-chart.configs.opentelemetry" . | indent 2 }}              
               {{- end }}
