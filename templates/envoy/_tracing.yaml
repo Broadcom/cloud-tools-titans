@@ -1,0 +1,23 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.tracing.opentelemetry" }}
+  {{- $titanSideCars := .titanSideCars }}
+  {{- $service := .service | default "" }}
+  {{- $tracing := $titanSideCars.tracing }}
+  {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
+  {{- if and $tracingEnabled (ne $service "")}}
+    {{- $provider := $tracing.provider -}}
+    {{- $name := $provider.name | default "envoy.tracers.opentelemetry" -}}
+    {{- $type := $provider.type | default "type.googleapis.com/envoy.config.trace.v3.OpenTelemetryConfig" -}}
+    {{- $cluster := $provider.cluster | default "otelcol" -}}
+    {{- $timeout := $provider.timeout | default "0.25s" }}
+tracing:
+  provider:
+    name: {{ $name }}
+    typed_config:
+      "@type": {{ $type }}
+      grpc_service:
+        envoy_grpc:
+          cluster_name: {{ $cluster }}
+        timeout: {{ $timeout }}
+      service_name: {{ $service }}
+  {{- end }}
+{{- end }}
