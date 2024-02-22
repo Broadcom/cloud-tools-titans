@@ -59,6 +59,14 @@ echo "" >> /tests/logs/report.txt
 
     {{ if hasKey $ingress "routes" }}
       {{- printf "# Process ingress routes\n" }}
+      {{/* {{- if hasKey $ingress "enrichment" }}
+        {{- $ingressEnrichment := $ingress.enrichment }}
+        {{- if hasKey $ingressEnrichment "actions" }}
+          {{- printf "# Ingress -> enrichment on all ingress API calls - path: /any\n" }}
+          {{- template "process_routing_enrichment" (dict "enrichment" $ingressEnrichment "cluster" "proxy" "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+          {{- $counter = add1 $counter -}}
+        {{- end }}
+      {{- end }} */}}
       {{- range $ingress.routes }}
         {{- $cluster := "proxy" }}
         {{- $route := .route }}
@@ -68,6 +76,9 @@ echo "" >> /tests/logs/report.txt
           {{- end }}
         {{- end }}
         {{- if or (eq $cluster "proxy") (and (ne $cluster "proxy") (hasKey $clusters $cluster)) }}
+          {{- if eq $cluster "local-myapp" }}
+            {{- $cluster = "proxy" }}
+          {{- end }}
           {{- printf "# Ingress -> host:%s - path: %s\n" $cluster . }}
             {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck "false" (hasKey $ingress "tokenCheck"))) }}
           {{- $counter = add1 $counter -}}
@@ -77,6 +88,14 @@ echo "" >> /tests/logs/report.txt
 
     {{ if hasKey $egress "routes" }}
 # Process egress routes
+      {{/* {{- if hasKey  $egress "enrichment" }}
+        {{- $egressEnrichment := $egress.enrichment }}
+        {{- if hasKey $egressEnrichment "actions" }}
+          {{- printf "# Egress -> enrichment on all egress API calls\n" }}
+          {{- template "process_routing_enrichment" (dict "enrichment" $egressEnrichment "cluster" "proxy" "direction" "egress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+          {{- $counter = add1 $counter -}}
+        {{- end }}
+      {{- end }} */}}
       {{- range $egress.routes }}
         {{- $cluster := "proxy" }}
         {{- $route := .route }}
@@ -92,31 +111,30 @@ echo "" >> /tests/logs/report.txt
         {{- end }}
       {{- end }}
     {{- end }}
-  {{- end }}
 
-  {{- if $gatewayEnabled }}
+    {{- if $gatewayEnabled }}
     # Process gateway routings
-    {{- range $cluster, $clusterValue := $clusters }}
-      {{- if and (ne $cluster "remote-myapp") (not (hasPrefix "local-" $cluster)) }}
-        {{- $routes := $clusterValue.routes }}
-        {{- range $routes }}
-          {{- printf "# Gateway routing -> host:%s - routing: %s\n" $cluster . }}
-          {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "gateway" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
-          {{- $counter = add1 $counter -}}
+      {{- range $cluster, $clusterValue := $clusters }}
+        {{- if and (ne $cluster "remote-myapp") (not (hasPrefix "local-" $cluster)) }}
+          {{- $routes := $clusterValue.routes }}
+          {{- range $routes }}
+            {{- printf "# Gateway routing -> host:%s - routing: %s\n" $cluster . }}
+            {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "gateway" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+            {{- $counter = add1 $counter -}}
+          {{- end }}
         {{- end }}
       {{- end }}
     {{- end }}
-  {{- end }}
 
-  {{- printf "echo %s >> %s\n" ("Summary:" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("  Completed $testCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Failed $failedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("  Completed $testChecks tests" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Succeed $succeedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Failed $failedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    $badTestChecks bad tests" | quote) ("/tests/logs/report.txt" | quote) }}
-  {{- printf "echo %s >> %s\n" ("    Skipped $skippedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("Summary:" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("  Completed $testCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Succeed $succeedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Failed $failedCalls test calls" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("  Completed $testChecks tests" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Succeed $succeedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Failed $failedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    $badTestChecks bad tests" | quote) ("/tests/logs/report.txt" | quote) }}
+    {{- printf "echo %s >> %s\n" ("    Skipped $skippedTestChecks test checks" | quote) ("/tests/logs/report.txt" | quote) }}
 
   if [ "$failedCalls" == "$expectedFailedCalls" ] && [ "$failedTestChecks" == "$expectedfailedTestChecks" ]
   then
@@ -124,4 +142,5 @@ echo "" >> /tests/logs/report.txt
   else
     exit 1
   fi
+  {{- end }}
 {{- end }}
