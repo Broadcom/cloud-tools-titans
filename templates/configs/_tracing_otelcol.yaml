@@ -1,0 +1,57 @@
+{{- define "titan-mesh-helm-lib-chart.configs.opentelemetry" }}
+  {{- $global := $.Values.global -}}
+  {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
+  {{- $tracing := $titanSideCars.tracing }}
+  {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
+  {{- if $tracingEnabled }}
+    {{- $provider := $tracing.provider -}}
+    {{- $deployAsSidecar := $provide.deployAsSidecar | default false -}}
+    {{- if $deployAsSidecar }}
+      {{- $resource := $provider.resource -}}
+      {{- $cpu := $resource.cpu -}}
+      {{- $memory := $resource.memory -}}
+      {{- $storage := $resource.memory }}
+      {{- $console := $provider.console -}}
+otel-collector-config.yaml: |
+  extensions:
+    memory_ballast:
+      size_mib: {{ ternary ($memory.request | trimSuffix "Mi") "512" (hasKey $memory "request") }}
+    zpages:
+      endpoint: {{ printf "0.0.0.0:%s" ($console.port | default "55679") }}
+    health_check:
+
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+  processors:
+    batch:
+    memory_limiter:
+      # 75% of maximum memory up to 4G
+      limit_mib: {{ ternary ($memory.limit | trimSuffix "Mi") "1536" (hasKey $memory "limit") }}
+      # 25% of limit up to 2G
+      spike_limit_mib: {{ ternary ($memory.request | trimSuffix "Mi") "512" (hasKey $memory "request") }}
+      check_interval: {{ $provider.healthCheckInterval |  default "5s" }}
+
+  exporters:
+    logging:
+      loglevel: {{ $provider.logLevel |  default "debug" }}
+
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [logging]
+      metrics:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [logging]
+
+    extensions: [memory_ballast, zpages, health_check]
+
+    {{- end }}
+  {{- end }}
+{{- end }}

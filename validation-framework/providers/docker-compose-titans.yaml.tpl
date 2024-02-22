@@ -8,10 +8,13 @@
   {{- $proxy := $containers.proxy | default (dict "image" "envoyproxy/envoy:latest") }}
   {{- $myapp := $containers.myapp | default (dict "image" "ealen/echo-server:latest") }}
   {{- $ratelimit := $containers.ratelimit | default (dict "image" "envoyproxy/ratelimit:latest") }}
+  {{- $otelcol :=  $containers.otelcol | default (dict "image" "otel/opentelemetry-collector:latest")}}
   {{- $redis := $containers.redis |default  (dict "image" "redislabs/redistimeseries:latest") }}
   {{- $engine := $containers.engine | default (dict "image" "cfmanteiga/alpine-bash-curl-jq:latest") }}
   {{- $tokenGenerator := index $containers "token-generator" }}
   {{- $ratelimitEnabled := false -}}
+  {{- $tracing := $titanSideCars.tracing }}
+  {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
   {{- range $ingress.routes -}}
     {{- if .ratelimit -}}
       {{- $ratelimitEnabled = true -}}
@@ -128,6 +131,20 @@ services:
     volumes:
       - ./tests:/tests
       - ./secrets:/secrets
+  {{- if $tracingEnabled }}
+  otelcol:
+    image: {{ $otelcol.image }}
+    platform: linux/amd64
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:13133 || exit 1"]
+      interval: 1s
+      timeout: 120s
+      retries: 120
+      start_period: 5s
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    ports:
+    - "${PORT_UI:-55679}:55679"
+  {{- end }}
 volumes:
   redis:
     driver: local

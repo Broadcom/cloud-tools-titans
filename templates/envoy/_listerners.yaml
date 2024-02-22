@@ -42,6 +42,7 @@
         - name: envoy.filters.network.http_connection_manager
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+    {{- include "titan-mesh-helm-lib-chart.envoy.tracing.opentelemetry" (dict "titanSideCars" $titanSideCars "service" $appName) | nindent 12 }}
             access_log:
               name: envoy.access_loggers.file
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "inbound-downstream") | nindent 14 }}
@@ -171,6 +172,8 @@
         - name: envoy.filters.network.http_connection_manager
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+    {{- include "titan-mesh-helm-lib-chart.envoy.tracing.opentelemetry" (dict "titanSideCars" $titanSideCars "service" $appName) | nindent 12 }}
+
             stat_prefix: egress-proxy
             server_name: {{ $connectionMgr.serverName | default (printf "%s-egress" $appName) | quote }}
             preserve_external_request_id: {{ $egress.preserveExternalRequestId | default "false" }}

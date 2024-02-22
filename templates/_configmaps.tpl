@@ -28,6 +28,8 @@
     {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
     {{- $opaEnabled := eq (include "static.titan-mesh-helm-lib-chart.opaEnabled" $titanSideCars) "true" -}}
     {{- $ratelimitEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
+    {{- $tracing := $titanSideCars.tracing }}
+    {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
     {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
     {{- if $envoyEnabled }}
       {{- if $useDynamicConfiguration }}
@@ -55,6 +57,13 @@ data:
             {{- end }}
             {{- if $ratelimitEnabled }}
 {{ include "titan-mesh-helm-lib-chart.configs.ratelimit" . | indent 2 }}
+            {{- end }}
+            {{- if $tracingEnabled }}
+              {{- $provider := $tracing.provider }}
+              {{- $deployAsSidecar := $provide.deployAsSidecar | default false -}}
+              {{- if $deployAsSidecar }}
+{{ include "titan-mesh-helm-lib-chart.configs.opentelemetry" . | indent 2 }}              
+              {{- end }}
             {{- end }}
 ---
 apiVersion: v1
@@ -95,6 +104,13 @@ data:
             {{- if $ratelimitEnabled }}
 {{ include "titan-mesh-helm-lib-chart.configs.ratelimit" . | indent 2 }}
             {{- end }}
+            {{- if $tracingEnabled }}
+              {{- $provider := $tracing.provider }}
+              {{- $deployAsSidecar := $provide.deployAsSidecar | default false -}}
+              {{- if $deployAsSidecar }}
+{{ include "titan-mesh-helm-lib-chart.configs.opentelemetry" . | indent 2 }}              
+              {{- end }}
+            {{- end }}
 {{ include "titan-mesh-helm-lib-chart.configs.envoy.cds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.envoy.lds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
           {{- end }}
@@ -122,6 +138,13 @@ data:
           {{- if $ratelimitEnabled }}
 {{ include "titan-mesh-helm-lib-chart.configs.ratelimit" . | indent 2 }}
           {{- end }}
+            {{- if $tracingEnabled }}
+              {{- $provider := $tracing.provider }}
+              {{- $deployAsSidecar := $provide.deployAsSidecar | default false -}}
+              {{- if $deployAsSidecar }}
+{{ include "titan-mesh-helm-lib-chart.configs.opentelemetry" . | indent 2 }}              
+              {{- end }}
+            {{- end }}
         {{- end }}
       {{- end }}
     {{- end }}
