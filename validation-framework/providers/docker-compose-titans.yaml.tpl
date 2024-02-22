@@ -151,6 +151,11 @@ services:
      - "55679"
     networks:
       - envoymesh
+    {{- $mapConsolePort := $tracing.mapConsolePort | default false }}
+    {{- if $mapConsolePort }}
+    ports:
+    - "${PORT_UI:-55679}:55679"
+    {{- end }}
   {{- end }}
 volumes:
   redis:

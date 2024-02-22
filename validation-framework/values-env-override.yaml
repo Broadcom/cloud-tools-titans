@@ -15,6 +15,7 @@ titanSideCars:
         port: 8080
   tracing:
     enabled: false
+    mapConsolePort: false
     
   validation:
     environment:
