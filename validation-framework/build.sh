@@ -202,18 +202,38 @@ function prepareEnvoyConfigurations {
     exit 1
   fi
   mkdir -p envoy/config/cds
-  gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-cds.yaml --set select="cds.yaml" > envoy/config/cds/cds.yaml
-  if [[ $? -ne 0 ]]
+  if [ -f "tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-cds.yaml" ]
   then
-    echo "Failed at prepareEnvoyConfigurations - build cds.yaml step"
-    exit 1
+    gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-cds.yaml --set select="cds.yaml" > envoy/config/cds/cds.yaml
+    if [[ $? -ne 0 ]]
+    then
+      echo "Failed at prepareEnvoyConfigurations - build cds.yaml step"
+      exit 1
+    fi
+  else
+    gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-dmc.yaml --set select="cds.yaml" > envoy/config/cds/cds.yaml
+    if [[ $? -ne 0 ]]
+    then
+      echo "Failed at prepareEnvoyConfigurations - build cds.yaml from dmc-yaml step"
+      exit 1
+    fi
   fi
   mkdir -p envoy/config/lds
-  gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-lds.yaml --set select="lds.yaml" > envoy/config/lds/lds.yaml
-  if [[ $? -ne 0 ]]
+  if [ -f "tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-lds.yaml" ]
   then
-    echo "Failed at prepareEnvoyConfigurations - build lds.yaml step"
-    exit 1
+    gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-lds.yaml --set select="lds.yaml" > envoy/config/lds/lds.yaml
+    if [[ $? -ne 0 ]]
+    then
+      echo "Failed at prepareEnvoyConfigurations - build lds.yaml step"
+      exit 1
+    fi
+  else
+    gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-dmc.yaml --set select="lds.yaml" > envoy/config/lds/lds.yaml
+    if [[ $? -ne 0 ]]
+    then
+      echo "Failed at prepareEnvoyConfigurations - build lds.yaml from dmc.yaml step"
+      exit 1
+    fi
   fi
 }
 
