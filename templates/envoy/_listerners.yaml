@@ -37,6 +37,7 @@
         socket_address:
           address: 0.0.0.0
           port_value: {{ $envoyIngressPort }}
+      traffic_direction: INBOUND
       filter_chains:
       - filters:
         - name: envoy.filters.network.http_connection_manager
@@ -167,6 +168,7 @@
         socket_address:
           address: 0.0.0.0
           port_value: {{ $envoyEgressPort }}
+      traffic_direction: OUTBOUND
       filter_chains:
       - filters:
         - name: envoy.filters.network.http_connection_manager

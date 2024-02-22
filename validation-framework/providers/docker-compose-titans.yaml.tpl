@@ -149,8 +149,6 @@ services:
      - "4317"
      - "13133"
      - "55679"
-    ports:
-    - "${PORT_UI:-55679}:55679"
     networks:
       - envoymesh
   {{- end }}
