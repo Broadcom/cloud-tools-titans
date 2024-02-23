@@ -53,6 +53,7 @@
   {{- end }}
   {{- range $routes }}
     {{- $route := .route }}
+    {{- $decorator := .decorator }}
     {{- if or .route .redirect .directResponse $ingressRoutesFromLocalMyapp }}
       {{- $clusterName := $route.cluster }}
       {{- if not $clusterName }}
@@ -99,6 +100,10 @@
                   {{- print "disabled: true" | nindent 22 }}
                 {{- end }}
               {{- end -}}
+            {{- end }}
+            {{- if $decorator }}
+                  decorator:
+                    operation: {{ $decorator.operation }}
             {{- end }}
                   route:
             {{- if $clusterRoute.prefixRewrite }}
@@ -155,6 +160,10 @@
                   {{- print "disabled: true" | nindent 22 }}
                 {{- end }}
               {{- end -}}
+            {{- end }}
+            {{- if $decorator }}
+                  decorator:
+                    operation: {{ $decorator.operation }}
             {{- end }}
                   route:
                     cluster: {{ $clusterName }} 
