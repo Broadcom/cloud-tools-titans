@@ -1,0 +1,18 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.decorator.operation" }}
+  {{- $operation := .operation -}}
+  {{- $match := .match -}}
+  {{- if $operation -}}
+    {{- printf "%s" $operation -}}
+  {{- else -}}
+    {{- if hasKey $match "method" -}}
+      {{- printf "%s:" $match.method -}}
+    {{- end -}}
+    {{- if hasKey $match "prefix" -}}
+      {{- printf "prefix:%s" $match.prefix -}}
+    {{- else if hasKey $match "path" -}}
+      {{- printf "path:%s" $match.path -}}
+    {{- else if hasKey $match "regex" -}}
+      {{- printf "regex:%s" $match.regex -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
