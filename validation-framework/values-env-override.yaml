@@ -39,4 +39,4 @@ titanSideCars:
         otelcol:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/opentelemetry-collector:0.95
         jaeger:
-          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/jaeger/jaeger:1.5.4
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/jaeger/jaeger:1.6

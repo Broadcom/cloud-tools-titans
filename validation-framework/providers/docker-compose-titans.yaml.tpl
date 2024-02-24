@@ -140,7 +140,7 @@ services:
     image: {{ $otelcol.image }}
     platform: linux/amd64
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:13133 || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://otelcol:13133 || exit 1"]
       interval: 1s
       timeout: 120s
       retries: 120
@@ -164,6 +164,13 @@ services:
     expose:
      - "9411"
      - "16686"
+     - "14269"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://jaeger:14269/health || exit 1"]
+      interval: 1s
+      timeout: 120s
+      retries: 120
+      start_period: 5s
     networks:
       - envoymesh
     {{- $enableConsole := $tracing.enableConsole | default false }}
