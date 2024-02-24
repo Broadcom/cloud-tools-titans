@@ -9,26 +9,26 @@
     {{- $tracing := $titanSideCars.tracing }}
     {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
     {{- if $tracingEnabled }}
-      {{- $provider := $tracing.provider }}
-      {{- $deployAsSidecar := $provider.deployAsSidecar | default false -}}
+      {{- $collector := $tracing.collector }}
+      {{- $deployAsSidecar := $collector.deployAsSidecar | default false -}}
       {{- if $deployAsSidecar }}
         {{- $imageRegistry := $tracing.imageRegistry | default $titanSideCars.imageRegistry -}}
         {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
         {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
         {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}
         {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled" )}}
-        {{- $providerConfigPath := $provider.ConfigPath | default "/tracing" -}}
-        {{- $providertConfigFileName := $provider.ConfigFileName | default "otel-collector-config.yaml" -}}
-        {{- $monitorByEnvoy := $provider.monitorByEnvoy | default false -}}
-        {{- $resource := $provider.resource -}}
+        {{- $collectorConfigPath := $collector.ConfigPath | default "/tracing" -}}
+        {{- $collectortConfigFileName := $collector.ConfigFileName | default "otel-collector-config.yaml" -}}
+        {{- $monitorByEnvoy := $collector.monitorByEnvoy | default false -}}
+        {{- $resource := $collector.resource -}}
         {{- $cpu := $resource.cpu -}}
         {{- $memory := $resource.memory -}}
         {{- $storage := $resource.memory }}
 - name: {{ include "titan-mesh-helm-lib-chart.containers.opentelmetry.name" . }}
-  image: {{ printf "%s%s:%s" $imageRegistry  ($provider.imageName | default "opentelemetry-collector") ($provider.imageTag | default "latest") }}
+  image: {{ printf "%s%s:%s" $imageRegistry  ($collector.imageName | default "opentelemetry-collector") ($collector.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent
   command:
-    - {{ printf "--config=%s/%s" $providerConfigPath $providertConfigFileName }}
+    - {{ printf "--config=%s/%s" $collectorConfigPath $collectortConfigFileName }}
   env:
     - name: NAMESPACE
       valueFrom:
@@ -48,19 +48,19 @@
         {{- if not $monitorByEnvoy }}
   livenessProbe:
     httpGet:
-      path: {{ $provider.healthCheckPath | default "/" }}
-      port: {{ $provider.healthCheckPort | default "13133" }}
-      scheme: {{ $provider.healthCheckScheme | default "HTTP" }}
+      path: {{ $collector.healthCheckPath | default "/" }}
+      port: {{ $collector.healthCheckPort | default "13133" }}
+      scheme: {{ $collector.healthCheckScheme | default "HTTP" }}
     initialDelaySeconds: 5
-    failureThreshold: {{ $provider.livenessFailureThreshold | default "50" }}
+    failureThreshold: {{ $collector.livenessFailureThreshold | default "50" }}
     periodSeconds: 5
   readinessProbe:
     httpGet:
-      path: {{ $provider.healthCheckPath | default "/" }}
-      port: {{ $provider.healthCheckPort | default "13133" }}
-      scheme: {{ $provider.healthCheckScheme | default "HTTP" }}
+      path: {{ $collector.healthCheckPath | default "/" }}
+      port: {{ $collector.healthCheckPort | default "13133" }}
+      scheme: {{ $collector.healthCheckScheme | default "HTTP" }}
     initialDelaySeconds: 5
-    failureThreshold: {{ $provider.readinessFailureThreshold | default "100" }}
+    failureThreshold: {{ $collector.readinessFailureThreshold | default "100" }}
     periodSeconds: 5
   resources:
     limits:
@@ -74,20 +74,9 @@
         {{- end }}
   terminationMessagePath: /dev/termination-log
   volumeMounts:
-        {{- if $useDynamicConfiguration }}
-          {{- if $loadDynamicConfigurationFromGcsEnabled }}
-    - mountPath: {{ $providerConfigPath }}
-      name: titan-configs-envoy-data      
-          {{- else }}
-    - mountPath: {{ printf "%s/%s" $providerConfigPath $providertConfigFileName }}
-      name: titan-configs-envoy-dmc
-      subPath: {{ $providertConfigFileName }}
-          {{- end }}
-        {{- else }}
-    - mountPath: {{ printf "%s/%s" $providerConfigPath $providertConfigFileName }}
-      name: titan-configs
-      subPath: {{ $providertConfigFileName }}
-        {{- end }}
+    - mountPath: {{ printf "%s/%s" $collectorConfigPath $collectortConfigFileName }}
+      name: titan-configs-tracing-otpl
+      subPath: {{ $collectortConfigFileName }}
     - mountPath: /logs/
       name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $titanSideCars }}
       {{- end }}

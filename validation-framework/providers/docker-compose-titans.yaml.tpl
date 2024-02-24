@@ -8,7 +8,8 @@
   {{- $proxy := $containers.proxy | default (dict "image" "envoyproxy/envoy:latest") }}
   {{- $myapp := $containers.myapp | default (dict "image" "ealen/echo-server:latest") }}
   {{- $ratelimit := $containers.ratelimit | default (dict "image" "envoyproxy/ratelimit:latest") }}
-  {{- $otelcol :=  $containers.otelcol | default (dict "image" "otel/opentelemetry-collector:latest")}}
+  {{- $otelcol :=  $containers.otelcol | default (dict "image" "otel/opentelemetry-collector:latest") }}
+  {{- $jaeger :=  $containers.jaeger | default (dict "image" "jaegertracing/all-in-one:1.54") }}
   {{- $redis := $containers.redis |default  (dict "image" "redislabs/redistimeseries:latest") }}
   {{- $engine := $containers.engine | default (dict "image" "cfmanteiga/alpine-bash-curl-jq:latest") }}
   {{- $tokenGenerator := index $containers "token-generator" }}
@@ -144,17 +145,31 @@ services:
       timeout: 120s
       retries: 120
       start_period: 5s
-    command: ["--config=/etc/otel-collector-config.yaml"]
+    command: ["--config=/envoy/otel-collector-config.yaml"]
+    volumes:
+      - ./envoy:/envoy
     expose:
      - "4317"
      - "13133"
-     - "55679"
+     {{/* - "55679" */}}
     networks:
       - envoymesh
-    {{- $mapConsolePort := $tracing.mapConsolePort | default false }}
-    {{- if $mapConsolePort }}
+    {{/* ports:
+    - "${PORT_UI:-55679}:55679" */}}
+
+  jaeger:
+    image: {{ $jaeger.image }}
+    environment:
+    - COLLECTOR_ZIPKIN_HOST_PORT=9411
+    expose:
+     - "9411"
+     - "16686"
+    networks:
+      - envoymesh
+    {{- $enableConsole := $tracing.enableConsole | default false }}
+    {{- if $enableConsole }}
     ports:
-    - "${PORT_UI:-55679}:55679"
+    - "${PORT_UI:-16686}:16686"
     {{- end }}
   {{- end }}
 volumes:

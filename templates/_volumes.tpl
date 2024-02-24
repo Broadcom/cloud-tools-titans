@@ -11,6 +11,8 @@
   {{- $_ := set $ "titanSideCars" $titanSideCars }}
   {{- if $titanSideCars }}
     {{- $envoy := $titanSideCars.envoy -}}
+    {{- $tracing := $titanSideCars.tracing }}
+    {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
     {{- $useSeparateConfigMaps := $envoy.useSeparateConfigMaps | default false }}
     {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
@@ -29,6 +31,16 @@
 - name: titan-secrets-tls-int
   secret:
     secretName: {{ $envoy.intTlsCert }}
+      {{- end }}
+      {{- if $tracingEnabled }}
+        {{- $collector := $tracing.collector }}
+        {{- $deployAsSidecar := $collector.deployAsSidecar | default false -}}
+        {{- if $deployAsSidecar }}
+- name: titan-configs-tracing-otpl
+  configMap:
+    name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-tracing-otpl" $appName }}
+    defaultMode: 420
+        {{- end }}
       {{- end }}
       {{- if $useDynamicConfiguration }}
         {{- if $loadDynamicConfigurationFromGcsEnabled }}

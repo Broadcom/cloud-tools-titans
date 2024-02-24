@@ -14,8 +14,10 @@ titanSideCars:
         address: token-generator
         port: 8080
   tracing:
-    enabled: false
-    mapConsolePort: false
+    enabled: true
+    enableConsole: true
+    collector:
+      deployAsSidecar: true
     
   validation:
     environment:
@@ -36,3 +38,5 @@ titanSideCars:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/alpine-bash-curl-jq:latest
         otelcol:
           image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/opentelemetry-collector:0.95
+        jaeger:
+          image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/jaeger/jaeger:1.5.4

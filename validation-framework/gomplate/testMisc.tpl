@@ -1,6 +1,4 @@
-{{- define "titan-mesh-helm-lib-chart.configs.opentelemetry" }}
-  {{- $global := $.Values.global -}}
-  {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
+{{- $titanSideCars := .titanSideCars }}
   {{- $tracing := $titanSideCars.tracing }}
   {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
   {{- if $tracingEnabled }}
@@ -16,6 +14,14 @@
       {{- $memory := $resource.memory | default dict -}}
       {{- $storage := $resource.memory | default dict -}}
       {{- $console := $collector.console | default dict -}}
+      {{- if hasKey $memory "request" }}
+        {{- printf "$memory=%v\n" $memory }}
+      {{- else }}
+        {{- printf "$memory=%s\n" "512" }}
+        size_mib: {{ ternary (trimSuffix "Mi" (printf "%s" $memory.request)) "512" (hasKey $memory "request") }}
+      {{- end }}
+
+
 otel-collector-config.yaml: |
   extensions:
     memory_ballast:
@@ -60,5 +66,5 @@ otel-collector-config.yaml: |
     extensions: [memory_ballast, zpages, health_check]
 
     {{- end }}
+
   {{- end }}
-{{- end }}
