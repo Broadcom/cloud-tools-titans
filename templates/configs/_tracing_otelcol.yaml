@@ -43,15 +43,15 @@ otel-collector-config.yaml: |
   exporters:
     logging:
       loglevel: {{ $collector.logLevel |  default "debug" }}
-    otlp/jaeger:
+    jaeger:
       endpoint: {{ printf "%s:%s" ($jaeger.address | default "jaeger") ($jaeger.port | default "4317") }}
 
   service:
     pipelines:
       traces:
         receivers: [otlp]
-        processors: [memory_limiter, batch]
-        exporters: [logging]
+        processors: [memory_limiter,batch,span]
+        exporters: [logging,jaeger]
       metrics:
         receivers: [otlp]
         processors: [memory_limiter, batch]

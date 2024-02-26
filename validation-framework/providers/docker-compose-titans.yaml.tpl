@@ -9,7 +9,7 @@
   {{- $myapp := $containers.myapp | default (dict "image" "ealen/echo-server:latest") }}
   {{- $ratelimit := $containers.ratelimit | default (dict "image" "envoyproxy/ratelimit:latest") }}
   {{- $otelcol :=  $containers.otelcol | default (dict "image" "otel/opentelemetry-collector:latest") }}
-  {{- $jaeger :=  $containers.jaeger | default (dict "image" "jaegertracing/all-in-one:1.54") }}
+  {{- $jaeger :=  $containers.jaeger | default (dict "image" "jaegertracing/all-in-one:latest") }}
   {{- $redis := $containers.redis |default  (dict "image" "redislabs/redistimeseries:latest") }}
   {{- $engine := $containers.engine | default (dict "image" "cfmanteiga/alpine-bash-curl-jq:latest") }}
   {{- $tokenGenerator := index $containers "token-generator" }}
@@ -165,6 +165,7 @@ services:
      - "9411"
      - "16686"
      - "14269"
+     - "4317"
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://jaeger:14269/health || exit 1"]
       interval: 1s
