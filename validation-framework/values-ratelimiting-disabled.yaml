@@ -1,0 +1,6 @@
+titanSideCars:
+  ratelimit:
+    enabled: false
+  ingress:
+    ratelimit:
+      enabled: false

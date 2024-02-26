@@ -48,7 +48,6 @@ do
   fi
 done
 
-containerDelim="-"
 function preCheck {
   if ! command -v helm &> /dev/null
   then

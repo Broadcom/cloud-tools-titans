@@ -1,4 +1,9 @@
 {{- $titanSideCars := .titanSideCars -}}
+{{- $globalRateLimit := $titanSideCars.ratelimit }}
+{{- $globalRateLimitEnabled := true }}
+{{- if hasKey $globalRateLimit "enabled" }}
+  {{- $globalRateLimitEnabled = $globalRateLimit.enabled }}
+{{- end }}
 {{- $ingress := $titanSideCars.ingress -}}
 {{- $validation := $titanSideCars.validation | default dict -}}
 {{- $validationEnabled := ternary $validation.enabled true (hasKey $validation "enabled") -}}
@@ -12,11 +17,13 @@
   {{- $engine := $containers.engine | default (dict "image" "cfmanteiga/alpine-bash-curl-jq:latest") }}
   {{- $tokenGenerator := index $containers "token-generator" }}
   {{- $ratelimitEnabled := false -}}
-  {{- range $ingress.routes -}}
-    {{- if .ratelimit -}}
-      {{- $ratelimitEnabled = true -}}
+  {{- if $globalRateLimitEnabled }}
+    {{- range $ingress.routes -}}
+      {{- if .ratelimit -}}
+        {{- $ratelimitEnabled = true -}}
+      {{- end -}}
     {{- end -}}
-  {{- end -}}
+  {{- end }}
 version: '3.7'
 services:
   proxy:
