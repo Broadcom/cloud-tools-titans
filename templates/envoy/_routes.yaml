@@ -53,6 +53,7 @@
   {{- end }}
   {{- range $routes }}
     {{- $route := .route }}
+    {{- $decorator := .decorator }}
     {{- if or .route .redirect .directResponse $ingressRoutesFromLocalMyapp }}
       {{- $clusterName := $route.cluster }}
       {{- if not $clusterName }}
@@ -100,6 +101,8 @@
                 {{- end }}
               {{- end -}}
             {{- end }}
+                  decorator:
+                    operation: {{ include "titan-mesh-helm-lib-chart.envoy.decorator.operation" (dict "match" $match "operation" $decorator.operation) | quote }}
                   route:
             {{- if $clusterRoute.prefixRewrite }}
                     prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
@@ -156,6 +159,8 @@
                 {{- end }}
               {{- end -}}
             {{- end }}
+                  decorator:
+                    operation: {{ include "titan-mesh-helm-lib-chart.envoy.decorator.operation" (dict "match" $match "operation" $decorator.operation) | quote }}
                   route:
                     cluster: {{ $clusterName }} 
             {{- if $route.prefixRewrite }}

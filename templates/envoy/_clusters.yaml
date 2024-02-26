@@ -5,6 +5,8 @@
   {{- if $validation -}}
     {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") -}}
   {{- end }}
+  {{- $tracing := $titanSideCars.tracing }}
+  {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
   {{- $releaseNamespace := .releaseNamespace }}
   {{- $chartName := .chartName }}
   {{- $useDynamicConfiguration := .useDynamicConfiguration }}
@@ -420,5 +422,44 @@
                 socket_address:
                   address: 127.0.0.1
                   port_value: {{ $opa.healthCheckPort | default "8282" }}
+  {{- end }}
+  {{- if $tracingEnabled }}
+    {{- $collector := $tracing.collector -}}
+    {{- $cluster := $collector.cluster | default "otelcol" }}
+    - name: {{ $cluster }}
+    {{- if $useDynamicConfiguration }}
+      "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+    {{- end }}
+      type: {{ $collector.dnsType | default "STRICT_DNS" }}
+      dns_lookup_family: V4_ONLY
+      lb_policy: LEAST_REQUEST     
+      connect_timeout: {{ $collector.connectTimeout | default "0.25s" }}
+      common_lb_config:
+        healthy_panic_threshold:
+          value: 25
+      health_checks:
+      - http_health_check:
+          path: {{ $collector.healthCheckPath | default "/" }}
+        interval: {{ $collector.healthCheckInterval |  default "3s" }}
+        timeout: {{ $collector.healthCheckTimeout |  default "2s" }}
+        healthy_threshold: {{ $collector.healthThreshold |  default "1" }}
+        unhealthy_threshold: {{ $collector.unhealthThreshold |  default "1" }}
+        no_traffic_interval: {{ $collector.noTrafficInterval | default "3s" }}
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: {{ $cluster }}
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address:
+                  address: {{ $collector.address | default $cluster }}
+                  port_value: {{ $collector.port | default "4317" }}
+            health_check_config:
+              port_value: {{ $collector.healthCheckPort | default "13133" }}
   {{- end }}
 {{- end }}

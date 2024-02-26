@@ -128,8 +128,8 @@
     {{- end }}
     {{- $unsupportedCalls := dict "token.jti" true }}
     {{- range $calls }}
-      {{- printf "#call=%s\n" . }}
-      {{- printf "#call.from=%s .val=%s\n" .from .val }}
+      {{/* {{- printf "#call=%s\n" . }}
+      {{- printf "#call.from=%s .val=%s checks:%v\n" .from .val .checks }} */}}
       {{- if not (hasKey $unsupportedCalls .from) }}
         {{- $callPath := $path }}
         {{- $authType := "" }}
@@ -160,10 +160,21 @@
             {{- $hdrStr = printf "%s -H %s:%s" $hdrStr $k $v -}}
           {{- end -}}
         {{- end -}}
+        {{- if not (contains "x-client-trace-id" $hdrStr) }}
+          {{- if eq  $hdrStr "" -}}
+            {{- $hdrStr = printf "-H %s:%s" "x-client-trace-id" (printf "validation-%s" (randAlpha 5)) -}}
+          {{- else -}}
+            {{- $hdrStr = printf "%s -H %s:%s" $hdrStr "x-client-trace-id" (printf "validation-%s" (randAlpha 5)) -}}
+          {{- end -}}
+        {{- end }}
         {{- printf "http_call %s %s %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $callPath | quote) (printf "%s" $hdrStr | squote) ($authType | quote) ($body | quote) ($cookie | quote) -}}
         {{- printf "check_test_call\n" -}}
         {{- range .checks }}
-          {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" .header)) }}
+          {{- if hasPrefix "response.header." .header }}
+            {{- template "build_execute_jq_cmd" (dict "path" (printf ".%s" (.header | trimPrefix "response.header" | lower)) "from" "headers") }}
+          {{- else }}
+            {{- template "build_execute_jq_cmd" (dict "path" (printf ".request.headers.%s" (.header | trimPrefix "request." | trimPrefix "header."))) }}
+          {{- end }}
           {{- printf "test_check %s\n" (.val | quote) }}
           {{- printf "echo %s >> %s\n" (printf "Test case[auto][enrich:advance:positive] result[$test_result]: call %s %s%s" $method $scheme $callPath | quote) $reportfile }}
         {{- end }}
@@ -224,11 +235,34 @@
   {{- $inValue := $outValue }}
   {{- $marker := "xxxxxx" }}
   {{- if $transforms }}
+    {{- $values := list }}
     {{- range (reverse $transforms) }}
       {{- if eq .func "scanf" }}
         {{- $param := first .parameters }}
         {{- $param = $param | replace "%_" (ternary $marker (randAlpha 5) (hasPrefix "header.Cookie" $from)) }}
-        {{- $inValue = $param | replace "%s" $inValue }}
+        {{- if and (eq $inValue "") (gt (len $values) 0) }}
+          {{- $tmpParts := split "%" $param }}
+          {{- $tmpSparts := split "%s" $param }}
+          {{- $parts := list }}
+          {{- range $k, $v := $tmpParts }}
+            {{- $parts = append $parts $v }}
+          {{- end }}
+          {{- $sparts := list }}
+          {{- range $k, $v := $tmpSparts }}
+            {{- $sparts = append $sparts $v }}
+          {{- end }}
+          {{- range $parts }}
+            {{- if eq . (first $sparts) }}
+              {{- $inValue = printf "%s%s" $inValue . }}
+            {{- else if hasPrefix "s" . }}
+              {{- $inValue = printf "%s%s%s" $inValue (first $values) (trimPrefix "s" .) }}
+              {{- $values = rest $values }}
+            {{- end }}
+            {{- $sparts = rest $sparts }}
+          {{- end }}
+        {{- else }}
+          {{- $inValue = $param | replace "%s" $inValue }}
+        {{- end }}
       {{- else if eq .func "base64_decode" }}
         {{- $inValue = b64enc $inValue }}
       {{- else if eq .func "trim_prefix" }}
@@ -254,6 +288,51 @@
             {{- $inValue = printf "%s%s%s" (ternary (printf "%s=%s" (randAlpha 3) (randAlpha 3)) (randAlpha 3) (hasPrefix "header.Cookie" $from)) $delimiter $inValue }}
           {{- end }}
         {{- end }}
+      {{- else if eq .func "printf" }}
+        {{- $param := first .parameters }}
+        {{- $parts := split "\\" $param }}
+        {{- range $parts }}
+          {{- if hasPrefix "1" . }}
+            {{- $tmpVal := randAlpha 5 }}
+            {{- $values = append $values $tmpVal }}
+            {{- $param = $param | replace "\\1" $tmpVal }}
+          {{- else if hasPrefix "2" . }}
+            {{- $tmpVal := randAlpha 5 }}
+            {{- $values = append $values $tmpVal }}
+            {{- $param = $param | replace "\\2" $tmpVal }}
+          {{- else if hasPrefix "3" . }}
+            {{- $tmpVal := randAlpha 5 }}
+            {{- $values = append $values $tmpVal }}
+            {{- $param = $param | replace "\\3" $tmpVal }}
+          {{- else if hasPrefix "4" . }}
+            {{- $tmpVal := randAlpha 5 }}
+            {{- $values = append $values $tmpVal }}
+            {{- $param = $param | replace "\\4" $tmpVal }}
+          {{- else if hasPrefix "5" . }}
+            {{- $tmpVal := randAlpha 5 }}
+            {{- $values = append $values $tmpVal }}
+            {{- $param = $param | replace "\\5" $tmpVal }}
+          {{- else if hasPrefix "6" . }}
+            {{- $tmpVal := randAlpha 5 }}
+            {{- $values = append $values $tmpVal }}
+            {{- $param = $param | replace "\\6" $tmpVal }}
+          {{- else if hasPrefix "7" . }}
+            {{- $tmpVal := randAlpha 5 }}
+            {{- $values = append $values $tmpVal }}
+            {{- $param = $param | replace "\\7" $tmpVal }}
+          {{- else if hasPrefix "8" . }}
+            {{- $tmpVal := randAlpha 5 }}
+            {{- $values = append $values $tmpVal }}
+            {{- $param = $param | replace "\\8" $tmpVal }}
+          {{- else if hasPrefix "9" . }}
+            {{- $tmpVal := randAlpha 5 }}
+            {{- $values = append $values $tmpVal }}
+            {{- $param = $param | replace "\\9" $tmpVal }}
+          {{- end }}
+        {{- end }}
+        {{- $outValue = $param }}
+        {{- $inValue = "" }}
+        {{- $_ := set $args "outValue" $outValue }}
       {{- end }}
     {{- end }}
   {{- end }}
@@ -705,6 +784,13 @@
           {{- if $bodyJson }}
             {{- $bodyStr = $bodyJson | toJson }}
           {{- end }}
+          {{- if not (contains "x-client-trace-id" $rbacHdrStr) }}
+            {{- if eq  $rbacHdrStr "" -}}
+              {{- $rbacHdrStr = printf "-H %s:%s" "x-client-trace-id" (printf "validation-%s" (randAlpha 5)) -}}
+            {{- else -}}
+              {{- $rbacHdrStr = printf "%s -H %s:%s" $rbacHdrStr "x-client-trace-id" (printf "validation-%s" (randAlpha 5)) -}}
+            {{- end -}}
+          {{- end }}
           {{- printf "http_call %s %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme (ternary "/validate_any_route" $rbacPath $matchAllRoutes) | quote) (printf "%s" $rbacHdrStr | squote) (printf "%s" "Bearer" | quote) ($bodyStr | quote) -}}
           {{- printf "check_test_call\n" -}}
           {{- printf "echo %s >> %s\n" (printf "Test case[auto][rbac:%s:positive] result[$test_result]: call %s %s%s" $name $method $scheme $rbacPath | quote) $reportfile }}
@@ -716,6 +802,13 @@
         {{- template "process_routing_enrichment_validation" (dict "method" $method "scheme" $scheme "path" $path "enrich" $enrich "headers" $headers "cluster" $cluster "direction" $direction "respfile" $respfile "reportfile" $reportfile) -}}
       {{- end }}
     {{- else }}
+      {{- if not (contains "x-client-trace-id" $hdrStr) }}
+        {{- if eq  $hdrStr "" -}}
+          {{- $hdrStr = printf "-H %s:%s" "x-client-trace-id" (printf "validation-%s" (randAlpha 5)) -}}
+        {{- else -}}
+          {{- $hdrStr = printf "%s -H %s:%s" $hdrStr "x-client-trace-id" (printf "validation-%s" (randAlpha 5)) -}}
+        {{- end -}}
+      {{- end }}   
       {{- printf "http_call %s %s %s %s\n" ($method | quote) (printf "%s%s" $scheme $path | quote) (printf "%s" $hdrStr | squote) (ternary (printf "%s" "Bearer" | quote) (printf "" | quote) $tokenCheck) -}}
       {{- $callMade = true }}
     {{- end }}

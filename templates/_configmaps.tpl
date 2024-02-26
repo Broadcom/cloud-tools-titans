@@ -28,8 +28,23 @@
     {{- $envoyEnabled := eq (include "static.titan-mesh-helm-lib-chart.envoyEnabled" $titanSideCars) "true" -}}
     {{- $opaEnabled := eq (include "static.titan-mesh-helm-lib-chart.opaEnabled" $titanSideCars) "true" -}}
     {{- $ratelimitEnabled := eq (include "static.titan-mesh-helm-lib-chart.ratelimitEnabled" $titanSideCars) "true" -}}
+    {{- $tracing := $titanSideCars.tracing }}
+    {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
     {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
     {{- if $envoyEnabled }}
+      {{- if $tracingEnabled }}
+        {{- $collector := $tracing.collector }}
+        {{- $deployAsSidecar := $collector.deployAsSidecar | default false -}}
+        {{- if $deployAsSidecar }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-tracing-otpl" $appName }}
+data:
+{{ include "titan-mesh-helm-lib-chart.configs.opentelemetry" . | indent 2 }}
+        {{- end }}
+      {{- end }}
       {{- if $useDynamicConfiguration }}
         {{- if $generateConfigMap }}
           {{- if $useSeparateConfigMaps }}

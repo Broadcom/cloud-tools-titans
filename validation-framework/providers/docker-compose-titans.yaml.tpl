@@ -8,10 +8,14 @@
   {{- $proxy := $containers.proxy | default (dict "image" "envoyproxy/envoy:latest") }}
   {{- $myapp := $containers.myapp | default (dict "image" "ealen/echo-server:latest") }}
   {{- $ratelimit := $containers.ratelimit | default (dict "image" "envoyproxy/ratelimit:latest") }}
+  {{- $otelcol :=  $containers.otelcol | default (dict "image" "otel/opentelemetry-collector:latest") }}
+  {{- $jaeger :=  $containers.jaeger | default (dict "image" "jaegertracing/all-in-one:latest") }}
   {{- $redis := $containers.redis |default  (dict "image" "redislabs/redistimeseries:latest") }}
   {{- $engine := $containers.engine | default (dict "image" "cfmanteiga/alpine-bash-curl-jq:latest") }}
   {{- $tokenGenerator := index $containers "token-generator" }}
   {{- $ratelimitEnabled := false -}}
+  {{- $tracing := $titanSideCars.tracing }}
+  {{- $tracingEnabled := ternary $tracing.enabled false (hasKey $tracing "enabled") }}
   {{- range $ingress.routes -}}
     {{- if .ratelimit -}}
       {{- $ratelimitEnabled = true -}}
@@ -35,6 +39,9 @@ services:
   {{- end }}
   {{- if $tokenGenerator }}
       - token-generator
+  {{- end }}
+  {{- if $tracingEnabled }}
+      - otelcol
   {{- end }}
     networks:
       - envoymesh
@@ -128,6 +135,51 @@ services:
     volumes:
       - ./tests:/tests
       - ./secrets:/secrets
+  {{- if $tracingEnabled }}
+  otelcol:
+    image: {{ $otelcol.image }}
+    platform: linux/amd64
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://otelcol:13133 || exit 1"]
+      interval: 1s
+      timeout: 120s
+      retries: 120
+      start_period: 5s
+    command: ["--config=/envoy/otel-collector-config.yaml"]
+    volumes:
+      - ./envoy:/envoy
+    expose:
+     - "4317"
+     - "13133"
+     {{/* - "55679" */}}
+    networks:
+      - envoymesh
+    {{/* ports:
+    - "${PORT_UI:-55679}:55679" */}}
+
+  jaeger:
+    image: {{ $jaeger.image }}
+    environment:
+    - COLLECTOR_ZIPKIN_HOST_PORT=9411
+    expose:
+     - "9411"
+     - "16686"
+     - "14269"
+     - "4317"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://jaeger:14269/health || exit 1"]
+      interval: 1s
+      timeout: 120s
+      retries: 120
+      start_period: 5s
+    networks:
+      - envoymesh
+    {{- $enableConsole := $tracing.enableConsole | default false }}
+    {{- if $enableConsole }}
+    ports:
+    - "${PORT_UI:-16686}:16686"
+    {{- end }}
+  {{- end }}
 volumes:
   redis:
     driver: local

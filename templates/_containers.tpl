@@ -15,5 +15,6 @@
   {{- include "titan-mesh-helm-lib-chart.containers.envoy" (dict "titanSideCars" $titanSideCars "appName" $appName "namespace" $namespace) -}}
   {{- include "titan-mesh-helm-lib-chart.containers.opa" $titanSideCars -}}
   {{- include "titan-mesh-helm-lib-chart.containers.ratelimit" $titanSideCars -}}
+  {{- include "titan-mesh-helm-lib-chart.containers.opentelmetry" $titanSideCars -}}
 {{- end }}
 {{- end }}

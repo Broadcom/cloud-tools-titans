@@ -201,6 +201,17 @@ function prepareEnvoyConfigurations {
     echo "Failed at prepareEnvoyConfigurations - build ratelimit_config.yaml step"
     exit 1
   fi
+
+  if [ -f "tmp/myapp/templates/configmap-validation-myapp-titan-configs-tracing-otpl.yaml" ]
+  then
+    gotpl gomplate/extract_envoy.tpl -f tmp/myapp/templates/configmap-validation-myapp-titan-configs-tracing-otpl.yaml --set select="otel-collector-config.yaml" > envoy/otel-collector-config.yaml
+    if [[ $? -ne 0 ]]
+    then
+      echo "Failed at prepareEnvoyConfigurations - build otel-collector-config.yaml step"
+      exit 1
+    fi
+  fi
+
   mkdir -p envoy/config/cds
   if [ -f "tmp/myapp/templates/configmap-validation-myapp-titan-configs-envoy-cds.yaml" ]
   then
