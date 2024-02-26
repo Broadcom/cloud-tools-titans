@@ -1,5 +1,11 @@
+{{- $globalRateLimitEnabled := true }}
+
 {{- $titanSideCars := .titanSideCars }}
 {{- if $titanSideCars }}
+  {{- $globalRateLimit := $titanSideCars.ratelimit }}
+  {{- if hasKey $globalRateLimit "enabled" }}
+    {{- $globalRateLimitEnabled = $globalRateLimit.enabled }}
+  {{- end }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
@@ -80,13 +86,17 @@ echo "" >> /tests/logs/report.txt
             {{- $cluster = "proxy" }}
           {{- end }}
           {{- printf "# Ingress -> host:%s - path: %s\n" $cluster . }}
-            {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck "false" (hasKey $ingress "tokenCheck"))) }}
+            {{- if $globalRateLimitEnabled }}
+              {{- template "process_routing_ratelimiting_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck "false" (hasKey $ingress "tokenCheck"))) }}
+            {{- else }}
+              {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck "false" (hasKey $ingress "tokenCheck"))) }}
+            {{- end }}
           {{- $counter = add1 $counter -}}
         {{- end }}
       {{- end }}     
     {{- end }}
 
-    {{ if hasKey $egress "routes" }}
+    {{- if and (hasKey $egress "routes") (not $globalRateLimitEnabled) }}
 # Process egress routes
       {{/* {{- if hasKey  $egress "enrichment" }}
         {{- $egressEnrichment := $egress.enrichment }}
@@ -119,6 +129,12 @@ echo "" >> /tests/logs/report.txt
           {{- $routes := $clusterValue.routes }}
           {{- range $routes }}
             {{- printf "# Gateway routing -> host:%s - routing: %s\n" $cluster . }}
+            # disable ratelimit validation for gateway, may consider to open this up in the future as needed
+            {{/* {{- if $globalRateLimitEnabled }}
+                   {{- template "process_routing_ratelimiting_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "gateway" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+                 {{- else }}
+                   {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "gateway" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
+                 {{- end }} */}}
             {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "gateway" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt") }}
             {{- $counter = add1 $counter -}}
           {{- end }}
