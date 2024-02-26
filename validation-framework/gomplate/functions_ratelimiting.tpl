@@ -68,7 +68,7 @@
       {{- printf "# get a duplicated path in case of no key specified for ratelimit\n" }}
       {{- printf "# before process_match_headers, inout=%s\n" $inoutDup }}
       {{- template "process_match_headers" (dict "match_headers" $match.headers "inout" $inoutDup) }}
-      {{- $pathDup = $inout.path }}
+      {{- $pathDup = $inoutDup.path }}
       {{- printf "# after process_match_headers, inout=%s\n" $inoutDup }}
     {{- end }}
 
