@@ -232,7 +232,7 @@
                   {{- template "build_execute_jq_cmd" (dict "path" ".host.hostname") }}
                   {{- printf "test_check %s\n" ($cluster | quote) }}
                 {{- end }}
-                {{- printf "echo %s >> %s\n" (printf "Test case[auto][routing] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
+                {{- printf "echo %s >> %s\n" (printf "Test case[auto][ratelimit] result[$test_result]: call %s %s%s" $method $scheme $path | quote) $reportfile }}
               {{- end }}
             {{- end }}
           {{- end }}
