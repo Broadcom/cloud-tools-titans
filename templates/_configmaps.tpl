@@ -98,7 +98,8 @@ data:
 {{ include "titan-mesh-helm-lib-chart.configs.envoy.cds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.envoy.lds" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
           {{- end }}
-        {{- else }}
+        {{- end }}
+      {{- else }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -107,21 +108,20 @@ metadata:
 data:
 {{ include "titan-mesh-helm-lib-chart.configs.envoy" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.envoy-sds" . | indent 2 }}
-          {{- if $opaEnabled }}
+        {{- if $opaEnabled }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa" . | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa-policy" . | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa-policy-tokenspec" . | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.opa-policy-ingress" . | indent 2 }}
-            {{- range $k, $v := $opa.customPolicies }}
-              {{- if ne $k "tokenSpec" }}
+          {{- range $k, $v := $opa.customPolicies }}
+            {{- if ne $k "tokenSpec" }}
   {{ printf "policy-%s.rego: |" $k }}
 {{ $v | indent 4 }}
-              {{- end }}
             {{- end }}
           {{- end }}
-          {{- if $ratelimitEnabled }}
+        {{- end }}
+        {{- if $ratelimitEnabled }}
 {{ include "titan-mesh-helm-lib-chart.configs.ratelimit" . | indent 2 }}
-          {{- end }}
         {{- end }}
       {{- end }}
     {{- end }}
