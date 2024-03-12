@@ -67,7 +67,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs-envoy" $appName }}
+  name: {{ $.Release.Name }}-{{ printf "%s-titan-configs" $appName }}
 data:
 {{ include "titan-mesh-helm-lib-chart.configs.envoy" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | indent 2 }}
 {{ include "titan-mesh-helm-lib-chart.configs.envoy-sds" . | indent 2 }}
