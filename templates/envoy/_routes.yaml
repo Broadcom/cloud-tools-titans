@@ -31,7 +31,7 @@
         {{- range $cv.routes }}
           {{- $route := .route | default dict -}}
           {{- $_ := set $route "cluster" $cn -}}
-          {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
+          {{- $routes = append $routes (dict "match" .match "route" $route "ratelimit" .ratelimit) }}
         {{- end }}
       {{- end }}
     {{- end }}
