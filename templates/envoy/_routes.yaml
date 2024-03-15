@@ -29,7 +29,8 @@
     {{- range $cn, $cv := $clusters }}
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
         {{- range $cv.routes }}
-          {{- $newcluster := dict "cluster" $cn }}
+          {{- $route := .route | default dict -}}
+          {{- $_ := set $route "cluster" $cn -}}
           {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
         {{- end }}
       {{- end }}
@@ -101,8 +102,8 @@
               {{- end -}}
             {{- end }}
                   route:
-            {{- if $clusterRoute.prefixRewrite }}
-                    prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
+            {{- if hasKey $clusterRoute "prefixRewrite" }}
+                    prefix_rewrite: {{ $clusterRoute.prefixRewrite | quote }}
             {{- else if $clusterRoute.regexRewrite }}
                     regex_rewrite:
                       pattern:
@@ -158,8 +159,8 @@
             {{- end }}
                   route:
                     cluster: {{ $clusterName }} 
-            {{- if $route.prefixRewrite }}
-                    prefix_rewrite: {{ $route.prefixRewrite }}
+            {{- if hasKey $route "prefixRewrite" }}
+                    prefix_rewrite: {{ $route.prefixRewrite | quote }}
             {{- else if $route.regexRewrite }}
                     regex_rewrite:
                       pattern:
