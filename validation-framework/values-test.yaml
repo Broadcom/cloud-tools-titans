@@ -13,6 +13,7 @@ titanSideCars:
       local-myapp:
         type: STRICT_DNS
         address: myapp
+        port: 8080
       default_validator:
         type: STRICT_DNS
         scheme: HTTP
