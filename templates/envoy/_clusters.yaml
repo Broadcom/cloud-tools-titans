@@ -31,6 +31,7 @@
   {{- $myClusters := dict }}
   {{- range $cluster, $value := $clusters }}
     {{- $setupCanary := false -}}
+    {{- $clusterCanaryNamespace := $value.canaryNamespace | default $canaryNamespace -}}
     {{- if eq $cluster "local-myapp" }}
       {{- if eq $defaultBackend "local-myapp" }}
     - name: local-myapp
@@ -264,7 +265,7 @@
       {{- end }}
       {{- if and $setupCanary (ternary $value.supportCanary true (hasKey $value "supportCanary")) }}
         {{- if or (not $gatewayEnable) (and $gatewayEnable (ne $cluster "remote-myapp")) }}
-          {{- $canaryCluster := printf "%s-%s" $cluster $canaryNamespace -}}
+          {{- $canaryCluster := printf "%s-%s" $cluster $clusterCanaryNamespace -}}
           {{- $_ := set $myClusters $canaryCluster "created"  }}
     - name: {{ $canaryCluster }}
           {{- if $useDynamicConfiguration }}
@@ -285,7 +286,7 @@
           {{- if $clusterValue.external }}
             {{- $serviceName = $clusterValue.alias | default $cluster }}
           {{- end }}
-          {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName $canaryNamespace) }}
+          {{- $clusterAddress := $clusterValue.address | default (printf "%s.%s.svc.cluster.local" $serviceName $clusterCanaryNamespace) }}
           {{- $clusterIpAddress := printf "%s." $clusterAddress }}
           {{- $clusterHostname := $clusterValue.hostname | default $clusterAddress }}
           {{- $clusterType := $clusterValue.type | default "STRICT_DNS" }}
