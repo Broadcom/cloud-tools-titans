@@ -25,13 +25,43 @@
   {{- end }}
                 routes:
   {{- $routes := list }}
+  {{- $weightedClustersRoutes := dict -}}
   {{- if $gatewayEnable }}
     {{- range $cn, $cv := $clusters }}
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
         {{- range $cv.routes }}
-          {{- $newcluster := dict "cluster" $cn }}
-          {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
+          {{- $route := .route | default dict -}}
+          {{- $_ := set $route "cluster" $cn -}}
+          {{- if hasKey $cv "fixedSiteDomainName" -}}
+            {{- $match := .match | deepCopy }}
+            {{- $headers := $match.headers | default list -}}
+            {{- $headers = append $headers (dict "key" ":authority" "ew" $cv.fixedSiteDomainName) }}
+            {{- $_ := set $match "headers" $headers }}
+            {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) }}
+          {{- else }}
+            {{- $match := .match }}
+            {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) }}
+          {{- end }}
         {{- end }}
+        {{- if hasKey $cv "weightedClusterId" }}
+          {{- if hasKey $weightedClustersRoutes $cv.weightedClusterId -}}
+            {{- $wr := get $weightedClustersRoutes $cv.weightedClusterId }}
+            {{- $wrList := $wr.weightedClusters }}
+            {{- $wrList = append $wrList (dict "name" $cn "weight" $cv.weight) }}
+            {{- $_ := set $wr "weightedClusters" $wrList }}
+            {{- $_ := set $weightedClustersRoutes $cv.weightedClusterId $wr }}
+          {{- else }}
+            {{- $_ := set $weightedClustersRoutes $cv.weightedClusterId (dict "routes" $cv.routes "weightedClusters" (list (dict "name" $cn "weight" $cv.weight))) }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- range $weightedClusterId, $weightClusterRoutesValue := $weightedClustersRoutes }}
+      {{- $weightedRoutes := $weightClusterRoutesValue.routes }}
+      {{- $weightedClusters := $weightClusterRoutesValue.weightedClusters }}
+      {{- range $weightedRoutes }}
+        {{- $_ := set . "route" (dict "weightedClusters" $weightedClusters) }}
+        {{- $routes = append $routes . }}
       {{- end }}
     {{- end }}
   {{- else }}
@@ -53,9 +83,9 @@
   {{- end }}
   {{- range $routes }}
     {{- $route := .route }}
-    {{- if or .route .redirect .directResponse $ingressRoutesFromLocalMyapp }}
-      {{- $clusterName := $route.cluster }}
-      {{- if not $clusterName }}
+    {{- if or $route .redirect .directResponse $ingressRoutesFromLocalMyapp }}
+      {{- $clusterName := $route.cluster | default "" }}
+      {{- if and (not (hasKey $route "weightedClusters")) (eq $clusterName "") }}
         {{- if eq $direction "ingress" }}
           {{- if $route }}
             {{- $clusterName = "local-myapp" }}
@@ -70,7 +100,7 @@
       {{- end }}
       {{- $cluster := ternary (index $clusters $clusterName) .empty (ne $clusterName "") }}
       {{- $retryPolicy := mergeOverwrite ($cluster.retryPolicy | default $remoteMyApp.retryPolicy | default dict) ($route.retryPolicy | default dict) }}
-      {{- if or $cluster .directResponse .redirect }}
+      {{- if or $cluster .directResponse .redirect (hasKey $route "weightedClusters") }}
         {{- if not .match }}
           {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}   
           {{- range $cluster.routes }}
@@ -101,8 +131,48 @@
               {{- end -}}
             {{- end }}
                   route:
-            {{- if $clusterRoute.prefixRewrite }}
-                    prefix_rewrite: {{ $clusterRoute.prefixRewrite }}
+            {{- if .addRequestHeaders }}
+                    request_headers_to_add:
+              {{- range .addRequestHeaders }}
+                    - header:
+                        key: {{ .name }}
+                  {{- if .value }}
+                        value: {{ .value }}
+                  {{- else if .rawValue }}
+                        raw_value: {{ .rawValue }}
+                  {{- end }}
+                      append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                      keep_empty_value: {{ .keepEmptyValue | default "false" }}
+              {{- end }}
+            {{- end }}
+            {{- if .removeRequestHeaders }}
+                    request_headers_to_remove:
+              {{- range .removeRequestHeaders }}
+                    - {{ . }}
+              {{- end }}
+            {{- end }}
+            {{- if .addResponseHeaders }}
+                    response_headers_to_add:
+              {{- range .addResponseHeaders }}
+                    - header:
+                        key: {{ .name }}
+                  {{- if .value }}
+                        value: {{ .value }}
+                  {{- else if .rawValue }}
+                        raw_value: {{ .rawValue }}
+                  {{- end }}
+                      append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                      keep_empty_value: {{ .keepEmptyValue | default "false" }}
+              {{- end }}
+            {{- end }}
+            {{- if .removeResponseHeaders }}
+                    response_headers_to_remove:
+              {{- range .removeResponseHeaders }}
+                    - {{ . }}
+              {{- end }}
+            {{- end }}
+            {{- if hasKey $clusterRoute "prefixRewrite" }}
+                    prefix_rewrite: {{ $clusterRoute.prefixRewrite | quote }}
             {{- else if $clusterRoute.regexRewrite }}
                     regex_rewrite:
                       pattern:
@@ -132,7 +202,7 @@
           {{- $match := .match }}
                 - match:
           {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route"  $match "routing" true) | nindent 18 }}
-          {{- if ne $clusterName "" }}
+          {{- if or (ne $clusterName "") (hasKey $route "weightedClusters") }}
             {{- $retryOn := ternary "reset,connect-failure,refused-stream,retriable-status-codes" "reset,connect-failure,refused-stream,gateway-error,retriable-status-codes" (hasPrefix "local-" $clusterName) }}
             {{- $queryParameters := $match.queryParameters | default $match.query_parameters }}
             {{- if $queryParameters }}
@@ -157,9 +227,59 @@
               {{- end -}}
             {{- end }}
                   route:
-                    cluster: {{ $clusterName }} 
-            {{- if $route.prefixRewrite }}
-                    prefix_rewrite: {{ $route.prefixRewrite }}
+            {{- if .addRequestHeaders }}
+                    request_headers_to_add:
+              {{- range .addRequestHeaders }}
+                    - header:
+                        key: {{ .name }}
+                  {{- if .value }}
+                        value: {{ .value }}
+                  {{- else if .rawValue }}
+                        raw_value: {{ .rawValue }}
+                  {{- end }}
+                      append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                      keep_empty_value: {{ .keepEmptyValue | default "false" }}
+              {{- end }}
+            {{- end }}
+            {{- if .removeRequestHeaders }}
+                    request_headers_to_remove:
+              {{- range .removeRequestHeaders }}
+                    - {{ . }}
+              {{- end }}
+            {{- end }}
+            {{- if .addResponseHeaders }}
+                    response_headers_to_add:
+              {{- range .addResponseHeaders }}
+                    - header:
+                        key: {{ .name }}
+                  {{- if .value }}
+                        value: {{ .value }}
+                  {{- else if .rawValue }}
+                        raw_value: {{ .rawValue }}
+                  {{- end }}
+                      append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                      keep_empty_value: {{ .keepEmptyValue | default "false" }}
+              {{- end }}
+            {{- end }}
+            {{- if .removeResponseHeaders }}
+                    response_headers_to_remove:
+              {{- range .removeResponseHeaders }}
+                    - {{ . }}
+              {{- end }}
+            {{- end }}
+            {{- if ne $clusterName "" }}
+                    cluster: {{ $clusterName }}
+            {{- else if hasKey $route "weightedClusters" }}
+              {{- $weightedClusters := $route.weightedClusters }}
+                    weighted_clusters:
+                      clusters:
+              {{- range $weightedClusters }}
+                      - name: {{ .name }}
+                        weight: {{ .weight }}
+              {{- end }}
+            {{- end }}
+            {{- if hasKey $route "prefixRewrite" }}
+                    prefix_rewrite: {{ $route.prefixRewrite | quote }}
             {{- else if $route.regexRewrite }}
                     regex_rewrite:
                       pattern:
@@ -225,6 +345,46 @@
                       inline_string: {{ ($cluster.directResponseMessage | default (printf "%s:No matching route" $appName)) | squote }}
     {{- else }}
                   route:
+            {{- if $cluster.addRequestHeaders }}
+                    request_headers_to_add:
+              {{- range $cluster.addRequestHeaders }}
+                    - header:
+                        key: {{ .name }}
+                  {{- if .value }}
+                        value: {{ .value }}
+                  {{- else if .rawValue }}
+                        raw_value: {{ .rawValue }}
+                  {{- end }}
+                      append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                      keep_empty_value: {{ .keepEmptyValue | default "false" }}
+              {{- end }}
+            {{- end }}
+            {{- if $cluster.removeRequestHeaders }}
+                    request_headers_to_remove:
+              {{- range $cluster.removeRequestHeaders }}
+                    - {{ . }}
+              {{- end }}
+            {{- end }}
+            {{- if $cluster.addResponseHeaders }}
+                    response_headers_to_add:
+              {{- range $cluster.addResponseHeaders }}
+                    - header:
+                        key: {{ .name }}
+                  {{- if .value }}
+                        value: {{ .value }}
+                  {{- else if .rawValue }}
+                        raw_value: {{ .rawValue }}
+                  {{- end }}
+                      append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                      keep_empty_value: {{ .keepEmptyValue | default "false" }}
+              {{- end }}
+            {{- end }}
+            {{- if $cluster.removeResponseHeaders }}
+                    response_headers_to_remove:
+              {{- range $cluster.removeResponseHeaders }}
+                    - {{ . }}
+              {{- end }}
+            {{- end }}
                     cluster: {{ $defaultBackend }}
                     retry_policy:
                       num_retries: {{ coalesce $retryPolicy.numRetries "1" }}

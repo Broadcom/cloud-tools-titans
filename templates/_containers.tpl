@@ -15,5 +15,11 @@
   {{- include "titan-mesh-helm-lib-chart.containers.envoy" (dict "titanSideCars" $titanSideCars "appName" $appName "namespace" $namespace) -}}
   {{- include "titan-mesh-helm-lib-chart.containers.opa" $titanSideCars -}}
   {{- include "titan-mesh-helm-lib-chart.containers.ratelimit" $titanSideCars -}}
+  {{- $customTpls := $titanSideCars.customTpls }}
+  {{- $sideCars := $customTpls.sideCars }}
+  {{- printf "\n" -}}
+  {{- range $sideCars }}
+    {{- include "titan-mesh-helm-lib-chart.containers.sidecar" (dict "titanSideCars" $titanSideCars "config" (.config | default dict) "name" (.name | default (printf "sidecar-%s" (randAscii 3)))) }}
+  {{- end }}
 {{- end }}
 {{- end }}

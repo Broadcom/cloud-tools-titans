@@ -87,9 +87,9 @@ echo "" >> /tests/logs/report.txt
           {{- end }}
           {{- printf "# Ingress -> host:%s - path: %s\n" $cluster . }}
             {{- if $globalRateLimitEnabled }}
-              {{- template "process_routing_ratelimiting_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck "false" (hasKey $ingress "tokenCheck"))) }}
+              {{- template "process_routing_ratelimiting_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck false (hasKey $ingress "tokenCheck"))) }}
             {{- else }}
-              {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck "false" (hasKey $ingress "tokenCheck"))) }}
+              {{- template "process_routing_validation" (dict "routing" . "cluster" $cluster "clusters" $clusters "direction" "ingress" "scheme" "https://proxy:9443" "respfile" "/tests/logs/resp.txt" "reportfile" "/tests/logs/report.txt" "tokenCheck" (ternary $ingress.tokenCheck false (hasKey $ingress "tokenCheck"))) }}
             {{- end }}
           {{- $counter = add1 $counter -}}
         {{- end }}

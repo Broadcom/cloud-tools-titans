@@ -2,9 +2,14 @@
   {{- $requests := .requests  }}
   {{- $issuers := .issuers  }}
   {{- $localMyApp := .localMyApp  }}
+  {{- $clusters := .clusters }}
   {{- $providers := list  }}
   {{- $tokenValidation := false  }}
   {{- $tokenValidationBypass := false  }}
+  {{- $gatewayEnable := false }}
+  {{- if $localMyApp.gateway  -}}
+    {{- $gatewayEnable = ternary $localMyApp.gateway.enabled true (hasKey $localMyApp.gateway "enabled") }}
+  {{- end }}
   {{- $routes := $requests.routes }}
   {{- if and $localMyApp (not $routes) }}
     {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
@@ -18,7 +23,35 @@
     {{- else }}
       {{- $routes = $additionalRoutes }}
     {{- end }}
-  {{- end }} 
+  {{- end }}
+  {{- if $gatewayEnable }}
+    {{- if not $routes }}
+      {{- $routes = list }}
+    {{- end }}
+    {{- range $cn, $cv := $clusters }}
+      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
+        {{- range $cv.routes }}
+          {{- $route := dict -}}
+          {{- if .match }}
+            {{- $_ := set $route "match" .match }}
+          {{- end }}
+          {{- if .route }}
+            {{- $routeValue := .route }}
+            {{- $_ := set $routeValue "cluster" $cn }}
+            {{- $_ := set $route "route" $routeValue }}
+          {{- else }}
+            {{- $_ := set $route "route" (dict "cluster" $cn) }}
+          {{- end }}
+          {{- if .tokenCheck }}
+            {{- $_ := set $route "tokenCheck" .tokenCheck }}
+          {{- end }}
+          {{- if $route }}
+            {{- $routes = append $routes $route }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
   {{- range $routes  }}
     {{- $tokenCheck := ternary .tokenCheck (default ($requests.tokenCheck | default false)) (hasKey . "tokenCheck")  }}
     {{- $tokenBypass := ternary (not .tokenCheck) (ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck")) (hasKey . "tokenCheck")  }}

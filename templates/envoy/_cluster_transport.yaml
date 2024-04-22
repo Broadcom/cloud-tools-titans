@@ -9,28 +9,6 @@ transport_socket:
     "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
     common_tls_context:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert" (dict "envoy" $envoy) | nindent 6 }}
-    {{- if $envoy.validateServerCertificate }}
-      validation_context:
-        trusted_ca:
-      {{- if hasSuffix "svc.cluster.local" $sni }}
-        {{- if $envoy.intTlsCert }}
-          filename: {{ printf "%s/ca.crt" ( $envoy.intSecretsFolder | default "/secrets/int" ) }}
-        {{- else }}
-          filename: {{ printf "%s/ca.crt" ( $envoy.secretsFolder | default "/secrets" ) }}
-        {{- end }}
-      {{- else }}
-          filename: {{ $envoy.trustCAcert | default "/etc/ssl/certs/ca-bundle.trust.crt" }}
-      {{- end }}
-      {{- if and (ne $sni "") $envoy.validateSubjectAltName }}
-        match_typed_subject_alt_names:
-          - san_type: DNS
-            matcher:
-              exact: {{ $sni | quote }}
-      {{- end }}
-      {{- $useSni := $envoy.useSni | default false -}}
-      {{- if and $useSni (ne $sni "" )}}
-    sni: {{ $sni }}
-      {{- end }}
-    {{- end }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert-validation" (dict "envoy" $envoy "sni" $sni) | nindent 6 }}
   {{- end }}
 {{- end }}

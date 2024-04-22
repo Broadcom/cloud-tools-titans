@@ -18,6 +18,8 @@
     {{- if $envoyEnabled }}
       {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}
       {{- $loadDynamicConfigurationFromGcsEnabled := ternary $loadDynamicConfigurationFromGcs.enabled false (hasKey $loadDynamicConfigurationFromGcs "enabled") }}
+      {{- $customTpls := $titanSideCars.customTpls }}
+      {{- $sideCars := $customTpls.sideCars }}
       {{- if eq (include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $ ) "titan-logs" }}
 - name: {{ include "titan-mesh-helm-lib-chart.volumes.logsVolumeName" $ }}
   emptyDir: {}
@@ -65,6 +67,20 @@
     name: {{ $.Release.Name }}-{{ printf "%s-titan-configs" $appName }}
     defaultMode: 420
       {{- end }}
+      {{- if $sideCars }}
+        {{- $hasConfigTpl := false -}}
+        {{- range $sideCars -}}
+          {{- if .configTpl -}}
+            {{- $hasConfigTpl = true -}}
+          {{- end -}}
+        {{- end -}}
+        {{- if $hasConfigTpl }}
+- name: titan-sidecar-configs
+  configMap:
+    name: {{ $.Release.Name }}-{{ printf "%s-titan-sidecar-configs" $appName }}
+    defaultMode: 420
+        {{- end }}
+      {{- end }}    
     {{- end }}
   {{- end }}
 {{- end }}

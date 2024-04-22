@@ -1,54 +1,47 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.matcher-headers" }}
-  {{- if .headers }}
-  headers:
-  {{- end }}
-  {{- range .headers }}
-  - name: {{ .key }}
+  {{- $headers := .headers }}
+  {{- $envoyHeaders := list -}}
+  {{- range $headers }}
     {{- if or .eq .sw .ew .co .lk }}
       {{- if .eq }}
-    exact_match: {{ .eq | squote }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "exact_match" .eq) -}}
       {{- else if .sw }}
-    prefix_match: {{ .sw | squote  }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "prefix_match" .sw) -}}
       {{- else if .ew }}
-    suffix_match: {{ .ew | squote  }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "suffix_match" .ew) -}}
       {{- else if .co }}
-    contains_match: {{ .co | squote  }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "contains_match" .co) -}}
       {{- else if .lk }}
-    safe_regex_match:
-      google_re2: {}
-      regex: {{ .lk | squote }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "safe_regex_match" (dict "google_re2" (dict) "regex" .lk)) -}}
       {{- end }}
     {{- else if or .neq .nsw .new .nco .nlk }}
       {{- if .neq }}
-    exact_match: {{ .neq | squote  }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "invert_match" true "exact_match" .neq) -}}
       {{- else if .nsw }}
-    prefix_match: {{ .nsw | squote  }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "invert_match" true "prefix_match" .nsw) -}}
       {{- else if .new }}
-    suffix_match: {{ .new | squote  }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "invert_match" true "suffix_match" .new) -}}
       {{- else if .nco }}
-    contains_match: {{ .nco | squote }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "invert_match" true "contains_match" .nco) -}}
       {{- else if .nlk }}
-    safe_regex_match:
-      google_re2: {}
-      regex: {{ .nlk | squote }}
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "invert_match" true "safe_regex_match" (dict "google_re2" (dict) "regex" .nlk)) -}}
       {{- end }}
-    invert_match: true
     {{- else if .pr }}
       {{- if hasPrefix "x-tint-" .key }}
-    exact_match: "nil"
-    invert_match: true
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "exact_match" "nil") -}}
       {{- else }}
-    present_match: true
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "present_match" true) -}}
       {{- end }}
     {{- else if .npr }}
       {{- if hasPrefix "x-tint-" .key }}
-    exact_match: "nil"
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "invert_match" true "exact_match" "nil") -}}
       {{- else }}
-    present_match: true
-    invert_match: true
+        {{- $envoyHeaders = append $envoyHeaders (dict "name" .key "invert_match" true "present_match" true) -}}
       {{- end }}
-    {{- else }}
-      {{- fail "invalid header match definition - oneof operators [eq, neq, co, nco, sw, nsw, ew, new, lk, nlk, pr, npr] is required" }}
     {{- end }}
+  {{- end }}
+  {{- if $envoyHeaders }}
+  headers: 
+    {{- $envoyHeaders | toYaml| nindent 2 }}
   {{- end }}
 {{- end }}

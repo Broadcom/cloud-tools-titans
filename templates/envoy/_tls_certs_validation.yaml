@@ -1,0 +1,15 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.tls-cert-validation" }}
+  {{- $envoy := .envoy -}}
+  {{- $sni := .sni | default "" -}}
+  {{- $envoyConfigFolder := $envoy.configFolder | default "/envoy/config" }}
+  {{- if $envoy.validateServerCertificate }}
+validation_context_sds_secret_config:
+  name: {{ ternary "validation_context_sds" "validation_context_sds_pub" (hasSuffix "svc.cluster.local" $sni) }}
+  sds_config:
+    {{- if hasSuffix "svc.cluster.local" $sni }}
+    path: {{ printf "%s/envoy-sds-validation.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+    {{- else }}
+    path: {{ printf "%s/envoy-sds-validation-pub.yaml" (trimSuffix "/" $envoyConfigFolder) }}
+    {{- end }}
+  {{- end }}
+{{- end }}

@@ -85,7 +85,7 @@
         {{- include .name (dict "config" (.config | default dict)) | nindent 12 }}
       {{- end }}
     {{- end }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.ingress "issuers" $titanSideCars.issuers "localMyApp" $localMyApp "appName" $appName) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.ingress "issuers" $titanSideCars.issuers "localMyApp" $localMyApp "appName" $appName "clusters" $clusters) | nindent 12 }}
     {{- range $customEnvoyTpls.filters }}
       {{- $before := .before | default "" }}
       {{- if eq $before "EnrichmentAndAccessCheck" }}
@@ -117,10 +117,49 @@
               name: {{ $appName }}-ingress
               internal_only_headers:
               - x-envoy-original-path
-              request_headers_to_add: []
               virtual_hosts:
               - domains: '*'
                 name: {{ $appName }}-ingress
+    {{- if $ingress.addRequestHeaders }}
+                request_headers_to_add:
+      {{- range $ingress.addRequestHeaders }}
+                - header:
+                    key: {{ .name }}
+          {{- if .value }}
+                    value: {{ .value }}
+          {{- else if .rawValue }}
+                    raw_value: {{ .rawValue }}
+          {{- end }}
+                  append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                  keep_empty_value: {{ .keepEmptyValue | default "false" }}
+      {{- end }}
+    {{- end }}
+    {{- if $ingress.removeRequestHeaders }}
+                request_headers_to_remove:
+      {{- range $ingress.removeRequestHeaders }}
+                - {{ . }}
+      {{- end }}
+    {{- end }}
+    {{- if $ingress.addResponseHeaders }}
+                response_headers_to_add:
+      {{- range $ingress.addResponseHeaders }}
+                - header:
+                    key: {{ .name }}
+          {{- if .value }}
+                    value: {{ .value }}
+          {{- else if .rawValue }}
+                    raw_value: {{ .rawValue }}
+          {{- end }}
+                  append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                  keep_empty_value: {{ .keepEmptyValue | default "false" }}
+      {{- end }}
+    {{- end }}
+    {{- if $ingress.removeResponseHeaders }}
+                response_headers_to_remove:
+      {{- range $ingress.removeResponseHeaders }}
+                - {{ . }}
+      {{- end }}
+    {{- end }}
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $ingress "clusters" $clusters "direction" "ingress") | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "ingress" $ingress "clusters" $clusters ) | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress" "appName" $appName) }}
@@ -131,24 +170,7 @@
             common_tls_context:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert" (dict "envoy" $envoy) | nindent 14 }}
     {{- if $envoy.mTLSenabled }}
-              validation_context:
-                trusted_ca:
-                  filename: {{ printf "%s" ($envoy.trustCACertBundlePath | default "/secrets/ca.crt") | quote }}
-      {{- if $ingress.allowableClients }}
-                match_typed_subject_alt_names:
-        {{- range $ingress.allowableClients }}
-          {{- $matchMethod := .match | default "exact" }}
-                - san_type: {{ .sanType | default "DNS" }}
-                  matcher:
-          {{- if eq $matchMethod "regex" }}
-                    safe_regex:
-                      google_re2: {}
-                      regex: {{ .value | quote }}
-          {{- else }}
-                {{ $matchMethod }}: {{ .value | quote }}
-          {{- end }}
-        {{- end }}
-      {{- end }}
+      {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert-validation" (dict "envoy" $envoy) | nindent 14 }}
     {{- else }}
               validation_context: {}
     {{- end }}
@@ -180,7 +202,7 @@
     {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" "HTTP2" "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
             http_filters:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.custome.response" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy) | nindent 12 }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers "appName" $appName) | nindent 12 }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers "appName" $appName "clusters" $clusters) | nindent 12 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy "appName" $appName) | nindent 12 }}
             - name: envoy.filters.http.router
               typed_config:
@@ -193,9 +215,49 @@
               internal_only_headers:
               - x-envoy-original-path
               - x-forwarded-for
-              request_headers_to_add: []
               virtual_hosts:
               - name: {{ $appName }}-egress
+    {{- if $egress.addRequestHeaders }}
+                request_headers_to_add:
+      {{- range $egress.addRequestHeaders }}
+                - header:
+                    key: {{ .name }}
+          {{- if .value }}
+                    value: {{ .value }}
+          {{- else if .rawValue }}
+                    raw_value: {{ .rawValue }}
+          {{- end }}
+                  append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                  keep_empty_value: {{ .keepEmptyValue | default "false" }}
+      {{- end }}
+    {{- end }}
+    {{- if $egress.removeRequestHeaders }}
+                request_headers_to_remove:
+      {{- range $egress.removeRequestHeaders }}
+                - {{ . }}
+      {{- end }}
+    {{- end }}
+    {{- if $egress.addResponseHeaders }}
+                response_headers_to_add:
+      {{- range $egress.addResponseHeaders }}
+                - header:
+                    key: {{ .name }}
+          {{- if .value }}
+                    value: {{ .value }}
+          {{- else if .rawValue }}
+                    raw_value: {{ .rawValue }}
+          {{- end }}
+                  append_action: {{ .appendAction | default "ADD_IF_ABSENT" }}
+                  keep_empty_value: {{ .keepEmptyValue | default "false" }}
+      {{- end }}
+    {{- end }}
+    {{- if $egress.removeResponseHeaders }}
+                response_headers_to_remove:
+      {{- range $egress.removeResponseHeaders }}
+                - {{ . }}
+      {{- end }}
+    {{- end }}
+
                 domains: '*'
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $egress "clusters" $clusters "direction" "egress") | nindent 14 }}
                 rate_limits: []
