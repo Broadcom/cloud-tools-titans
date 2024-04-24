@@ -1,0 +1,164 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "ratelimit_titanSideCars.json",
+    "description": "titanSideCars.ratelimit",
+    "type": "object",
+    "properties": {
+        "enabled": {
+            "type": "boolean"
+        },
+        "monitorByEnvoy": {
+            "type": "boolean"
+        },
+        "cpu": {
+            "type": "object"
+        },
+        "memory": {
+            "type": "object"
+        },
+        "ephemeralStorage": {
+            "type": "object"
+        },
+        "imageRegistry": {
+            "type": "string"
+        },
+        "configPath": {
+            "type": "string"
+        },
+        "configFileName": {
+            "type": "string"
+        },
+        "configVolumeMountPath": {
+            "type": "string"
+        },
+        "imageName": {
+            "type": "string"
+        },
+        "imageTag": {
+            "type": "string"
+        },
+        "runTimeRoot": {
+            "type": "string"
+        },
+        "runTimeSubDirectory": {
+            "type": "string"
+        },
+        "log": {
+            "type": "string"
+        },
+        "logLevel": {
+            "type": "string"
+        },
+        "redisPoolSize": {
+            "oneOf": [
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
+        "redisUrl": {
+            "type": "string"
+        },
+        "redisUseTls": {
+            "oneOf": [
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
+        "redisSocketType": {
+            "type": "string"
+        },
+        "redisAuth": {
+            "type": "string"
+        },
+        "userStatsD": {
+            "oneOf": [
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
+        "statsdPort": {
+            "oneOf": [
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
+        "statsdProtocol": {
+            "type": "string"
+        },
+        "statsdHost": {
+            "type": "string"
+        },
+        "nearLimitRatio": {
+            "oneOf": [
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
+        "detailedMetricsMode": {
+            "oneOf": [
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
+        "shadowMode": {
+            "oneOf": [
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
+        "port": {
+            "oneOf": [
+                {
+                    "type": "number"
+                },
+                {
+                    "type": "string"
+                }
+            ]
+        },
+        "healthCheckPath": {
+            "type": "string"
+        },
+        "healthCheckPort": {
+            "type": "string"
+        },
+        "healthCheckScheme": {
+            "type": "string"
+        },
+        "livenessFailureThreshold": {
+            "type": "string"
+        },
+        "readinessFailureThreshold": {
+            "type": "string"
+        }
+    },
+    "additionalProperties": false
+}

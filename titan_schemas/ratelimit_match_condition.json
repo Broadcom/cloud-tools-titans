@@ -1,0 +1,83 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "ratelimit_match_condition.json",
+    "description": "ratelimit match condition",
+    "type": "object",
+    "properties": {
+        "key": {
+            "type": "string"
+        },
+        "eq": {
+            "type": "string"
+        },
+        "neq": {
+            "type": "string"
+        },
+        "sw": {
+            "type": "string"
+        },
+        "nsw": {
+            "type": "string"
+        },
+        "ew": {
+            "type": "string"
+        },
+        "new": {
+            "type": "string"
+        },
+        "co": {
+            "type": "string"
+        },
+        "nco": {
+            "type": "string"
+        },
+        "lk": {
+            "type": "string"
+        },
+        "nlk": {
+            "type": "string"
+        },
+        "pr": {
+            "type": "string"
+        },
+        "npr": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "key"
+    ],
+    "anyOf": [
+        { "required": ["eq"] },
+        { "required": ["neq"] },
+        { "required": ["sw"] },
+        { "required": ["nsw"] },
+        { "required": ["ew"] },
+        { "required": ["new"] },
+        { "required": ["co"] },
+        { "required": ["nco"] },
+        { "required": ["lk"] },
+        { "required": ["nlk"] },
+        { "required": ["pr"] },
+        { "required": ["npr"] },
+        {
+            "not": {
+                "anyOf": [
+                    { "required": ["eq"] },
+                    { "required": ["neq"] },
+                    { "required": ["sw"] },
+                    { "required": ["nsw"] },
+                    { "required": ["ew"] },
+                    { "required": ["new"] },
+                    { "required": ["co"] },
+                    { "required": ["nco"] },
+                    { "required": ["lk"] },
+                    { "required": ["nlk"] },
+                    { "required": ["pr"] },
+                    { "required": ["npr"] }
+                ]
+            }
+        }
+    ],
+    "additionalProperties": false
+}
