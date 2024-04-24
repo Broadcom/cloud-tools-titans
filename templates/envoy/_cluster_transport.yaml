@@ -10,5 +10,8 @@ transport_socket:
     common_tls_context:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert" (dict "envoy" $envoy) | nindent 6 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.tls-cert-validation" (dict "envoy" $envoy "sni" $sni) | nindent 6 }}
+    {{- if and ($envoy.useSni | default false) (ne $sni "" )}}
+    sni: {{ $sni }}
+    {{- end }}
   {{- end }}
 {{- end }}

@@ -35,10 +35,20 @@
           {{- if hasKey $cv "fixedSiteDomainName" -}}
             {{- $match := .match | deepCopy }}
             {{- $headers := $match.headers | default list -}}
-            {{- $headers = append $headers (dict "key" ":authority" "ew" $cv.fixedSiteDomainName) }}
-            {{- $_ := set $match "headers" $headers }}
-            {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) }}
-          {{- else }}
+            {{- $addFixedSiteRoute := true -}}
+            {{- range $headers -}}
+              {{- if and (eq .key ":authority") (hasKey . "eq") -}}
+                {{- if not (contains $cv.fixedSiteDomainName .eq) -}}
+                  {{- $addFixedSiteRoute = false -}}
+                {{- end -}}
+              {{- end }}
+            {{- end -}}
+            {{- if $addFixedSiteRoute -}}
+              {{- $headers = append $headers (dict "key" ":authority" "ew" $cv.fixedSiteDomainName) }}
+              {{- $_ := set $match "headers" $headers }}
+              {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) }}
+            {{- end -}}
+          {{- else if not (hasKey $cv "weightedClusterId") }}
             {{- $match := .match }}
             {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) }}
           {{- end }}

@@ -19,8 +19,8 @@
   {{- $imageRegistry = ternary "" (printf "%s/" $imageRegistry) (eq $imageRegistry "") -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $envoy := $titanSideCars.envoy }}
-  {{- $ratelimitConfigPath := $envoy.ratelimitConfigPath | default "/configs/ratelimit/config" -}}
-  {{- $ratelimitConfigFileName := $envoy.ratelimitConfigFileName | default "ratelimit_config.yaml" -}}
+  {{- $ratelimitConfigPath := $ratelimit.configPath | default "/configs/ratelimit/config" -}}
+  {{- $ratelimitConfigFileName := $ratelimit.configFileName | default "ratelimit_config.yaml" -}}
   {{- $ratelimitConfigVolumeMountPath := $ratelimit.configVolumeMountPath | default "/configs" -}}
   {{- $clusters := $envoy.clusters }}
   {{- $localApp := index $clusters "local-myapp" }}
