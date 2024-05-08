@@ -1,0 +1,14 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "ratelimit_titanSideCars_envoy_clusters.json",
+    "description": "titanSideCars.envoy.clusters.ratelimit",
+    "type": "object",
+    "properties": {
+        "enabled": {
+            "type": "boolean"
+        }
+    },
+    "required": [
+        "enabled"
+    ]
+}
