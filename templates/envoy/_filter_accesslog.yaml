@@ -7,9 +7,20 @@
   {{- $logs := $titanSideCars.logs  }}
   {{- $logsLevel := $logs.level | default "info" }}
   {{- $logType := $logs.type | default "file" -}}
+  {{- if eq $logType "file" -}}
+name: envoy.access_loggers.file
 typed_config:
   "@type": type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
-  path: {{ printf "%s" (ternary (printf "%s/envoy.log" ($envoy.logFolderPath | default "/logs")) "/dev/stdout" (eq $logType "file")) }}
+  path: {{ printf "%s/envoy.log" ($envoy.logFolderPath | default "/logs") }}
+  {{- else if eq $logType "stderr" }}
+name: envoy.access_loggers.stderr
+typed_config:
+  "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StderrAccessLog
+  {{- else }}
+name: envoy.access_loggers.stdout
+typed_config:
+  "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+  {{- end }}
   log_format:
   {{- if contains "downstream" $direction }}
     text_format: |

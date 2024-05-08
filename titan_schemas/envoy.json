@@ -2,5 +2,260 @@
     "$schema": "http://json-schema.org/draft-06/schema#",
     "$id": "envoy.json",
     "description": "titanSideCars.envoy",
-    "type": "object"
+    "type": "object",
+    "properties": {
+        "adminPort": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "cdsFolderPath": {
+            "type": "string"
+        },
+        "clusters": {
+            "$ref": "envoy_cluster.json"
+        },
+        "configFileFolder": {
+            "type": "string"
+        },
+        "configFolder": {
+            "type": "string"
+        },
+        "configVolumeMountPath": {
+            "type": "string"
+        },
+        "connectionDrainDuration": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "cpu": {
+            "type": "object"
+        },
+        "customResponsefilter": {
+            "type": "object"
+        },
+        "enrichfilter": {
+            "type": "object"
+        },
+        "env": {
+            "type": "object"
+        },
+        "ephemeralStorage": {
+            "type": "object"
+        },
+        "filtersFolder": {
+            "type": "string"
+        },
+        "generateConfigmpForGcs": {
+            "type": "boolean"
+        },
+        "healthCheckCriticalLocalSidecars": {
+            "type": "boolean"
+        },
+        "intSecretsFolder": {
+            "type": "string"
+        },
+        "intTlsCert": {
+            "type": "string"
+        },
+        "imageName": {
+            "type": "string"
+        },
+        "imageTag": {
+            "type": "string"
+        },
+        "imageRegistry": {
+            "type": "string"
+        },
+        "ldsFolderPath": {
+            "type": "string"
+        },
+        "livenessFailureThreshold": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "livenessPeriodSeconds": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "loadDynamicConfigurationFromGcs": {
+            "type": "object"
+        },
+        "localCircuitBreakers": {
+            "type": "object"
+        },
+        "logFolderPath": {
+            "type": "string"
+        },
+        "memory": {
+            "type": "object"
+        },
+        "mergeSlashes": {
+            "type": "string"
+        },
+        "mTLSenabled": {
+            "oneOf": [
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "string",
+                    "enum": ["true", "false"]
+                }
+            ]
+        },
+        "normalizePath": {
+            "type": "string"
+        },
+        "pathWithEscapedSlashesAction": {
+            "type": "string",
+            "_comment": "TODO: identify if this should be enum"
+        },
+        "perRouteFilters": {
+            "type": "object",
+            "_comment": "TODO: identify if this should be array"
+        },
+        "ratelimit": {
+            "type": "object",
+            "_comment": "This property should not be configured under envoy"
+        },
+        "ratelimitConfigPath": {
+            "type": "string"
+        },
+        "readinessFailureThreshold": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "readinessPeriodSeconds": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "remoteCircuitBreakers": {
+            "type": "object"
+        },
+        "secretsFolder": {
+            "type": "string"
+        },
+        "scriptsFolder": {
+            "type": "string"
+        },
+        "startupFailureThreshold": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "startupPeriodSeconds": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "startupTimeoutSeconds": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "statsConfigRaw": {
+            "type": "object"
+        },
+        "statsPort": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^\"[0-9]+\"$"
+                }
+            ]
+        },
+        "statsFlushInterval": {
+            "type": "string"
+        },
+        "supportPathConfigSource": {
+            "type": "boolean"
+        },
+        "tlsCert": {
+            "type": "string"
+        },
+        "trustCACertBundlePath": {
+            "type": "string"
+        },
+        "useDynamicConfiguration": {
+            "type": "boolean"
+        },
+        "useSeparateConfigMaps": {
+            "type": "boolean"
+        },
+        "useSni": {
+            "type": "boolean"
+        },
+        "validateServerCertificate": {
+            "type": "boolean"
+        }
+    },
+    "additionalProperties": false,
+    "not": {
+        "required": [
+            "ratelimit"
+        ]
+    }
 }

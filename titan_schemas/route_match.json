@@ -1,0 +1,6 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "route_match.json",
+    "description": "titanSideCars.ingress.route.match or titanSideCars.egress.route.match",
+    "type": "object"
+}

@@ -136,8 +136,8 @@ data:
     {{- end }}
     {{- if $sideCars }}
       {{- $hasConfigTpl := false -}}
-      {{- range $sideCars -}}
-        {{- if .configTpl -}}
+      {{- range $sideCarName, $sideCarValue := $sideCars -}}
+        {{- if $sideCarValue.configTpl -}}
           {{- $hasConfigTpl = true -}}
         {{- end -}}
       {{- end -}}
@@ -148,8 +148,8 @@ kind: ConfigMap
 metadata:
   name: {{ $.Release.Name }}-{{ printf "%s-titan-sidecar-configs" $appName }}
 data:
-        {{- range $sideCars -}}
-          {{- include .configTpl $ | nindent 2 }}
+        {{- range $sideCarName, $sideCarValue := $sideCars -}}
+          {{- include $sideCarValue.configTpl $ | nindent 2 }}
         {{- end -}}     
       {{- end }}
     {{- end }} 

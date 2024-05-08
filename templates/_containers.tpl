@@ -18,8 +18,8 @@
   {{- $customTpls := $titanSideCars.customTpls }}
   {{- $sideCars := $customTpls.sideCars }}
   {{- printf "\n" -}}
-  {{- range $sideCars }}
-    {{- include "titan-mesh-helm-lib-chart.containers.sidecar" (dict "titanSideCars" $titanSideCars "config" (.config | default dict) "name" (.name | default (printf "sidecar-%s" (randAscii 3)))) }}
+  {{- range $sideCarName, $sideCarValue := $sideCars }}
+    {{- include "titan-mesh-helm-lib-chart.containers.sidecar" (dict "titanSideCars" $titanSideCars "config" ($sideCarValue.config | default dict) "name" ($sideCarName | default (printf "sidecar-%s" (randAscii 3)))) }}
   {{- end }}
 {{- end }}
 {{- end }}

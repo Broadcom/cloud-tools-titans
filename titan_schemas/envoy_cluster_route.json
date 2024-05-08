@@ -1,0 +1,63 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "envoy_cluster_route.json",
+    "description": "titanSideCars.envoy.clusters.cluster.routes.route",
+    "type": "object",
+    "properties": {
+        "match": {
+            "type": "object",
+            "properties": {
+                "method": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string",
+                    "_comment": "Should not contain ?"
+                },
+                "prefix": {
+                    "type": "string",
+                    "pattern": "^/([a-zA-Z0-9_\\-.]+/?)*$",
+                    "_comment": "Should not contain ?"
+                },
+                "regex": {
+                    "type": "string"
+                },
+                "headers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "envoy_cluster_route_match_header.json"
+                    }
+                }
+            },
+            "additionalProperties": false,
+            "oneOf": [
+                {
+                    "required": [
+                        "path"
+                    ]
+                },
+                {
+                    "required": [
+                        "prefix"
+                    ]
+                },
+                {
+                    "required": [
+                        "regex"
+                    ] 
+                }
+            ]
+        },
+        "accessibility": {
+            "type": "string",
+            "enum": [
+                "enterprise",
+                "public",
+                "private"
+            ]
+        }
+    },
+    "required": [
+        "match"
+    ]
+}

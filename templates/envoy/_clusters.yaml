@@ -233,8 +233,10 @@
       common_lb_config:
         healthy_panic_threshold:
           value: {{  $clusterValue.healthyPanicThreshold | default "25" }}
-      health_checks:
           {{- $healthCheck :=  $clusterValue.healthChecks  }}
+          {{- $healthCheckEnabled := ternary $healthCheck.enabled true (hasKey $healthCheck "enabled") }}
+          {{- if $healthCheckEnabled }}
+      health_checks:
       - http_health_check: 
           path: {{ $healthCheck.path | default "/healthz" }}
         interval: {{ $healthCheck.interval | default "1s" }}
@@ -242,6 +244,7 @@
         healthy_threshold: {{ $healthCheck.healthyThreahold | default "1" }}
         unhealthy_threshold: {{ $healthCheck.unhealthyThreahold | default "1" }}
         no_traffic_interval: {{ $healthCheck.noTrafficInterval | default "3s" }}
+        {{- end }}
           {{- include "titan-mesh-helm-lib-chart.envoy.filter.cluster-transport" (dict "httpScheme" $scheme  "envoy" $envoy "sni" $clusterAddress) | nindent 6 }}
         {{- end }}
       {{- end }}

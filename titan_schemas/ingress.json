@@ -4,6 +4,9 @@
     "description": "titanSideCars.ingress",
     "type": "object",
     "properties": {
+        "enabled": {
+            "type": "boolean"
+        },
         "enrichment": {
             "type": "object"
         },
@@ -16,7 +19,13 @@
         "routes": {
             "type": "array",
             "items": {
-                "$ref": "route_ingress.json"
+                "$ref": "ingress_route.json"
+            }
+        },
+        "additionalRoutes": {
+            "type": "array",
+            "items": {
+                "$ref": "ingress_route.json"
             }
         }
     }

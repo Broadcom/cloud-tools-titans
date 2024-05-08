@@ -1,0 +1,32 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "ingress_route.json",
+    "description": "titanSideCars.ingress.route",
+    "type": "object",
+    "properties": {
+        "audit": {
+            "$ref": "route_audit.json",
+            "_comment": "TODO: check wasm-filter"
+        },
+        "enrich": {
+            "$ref": "route_enrich.json",
+            "_comment": "TODO: check wasm-filter"
+        },
+        "match": {
+            "$ref": "route_match.json"
+        },
+        "metrics": {
+            "$ref": "route_metrics.json"
+        },
+        "ratelimit": {
+            "$ref": "route_ratelimit.json"
+        },
+        "rbac": {
+            "$ref": "route_rbac.json"
+        },
+        "route": {
+            "type": "object",
+            "_comment": "TODO: complete here"
+        }
+    }
+}

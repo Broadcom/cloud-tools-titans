@@ -43,7 +43,6 @@
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
             access_log:
-              name: envoy.access_loggers.file
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "inbound-downstream") | nindent 14 }}
             use_remote_address: {{ $connectionMgr.useRemoteAddress | default "true" }}
             codec_type: {{ $connectionMgr.codeType | default "AUTO" }}
@@ -107,12 +106,12 @@
         {{- include .name (dict "config" (.config | default dict)) | nindent 12 }}
       {{- end }}
     {{- end }}
+    {{- $upstreamLog := include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "inbound-upstream") | fromYaml }}
             - name: envoy.filters.http.router
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
                 upstream_log:
-                - name: envoy.file_access_log
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "inbound-upstream") | nindent 18 }}
+    {{- (list $upstreamLog) | toYaml | nindent 16 }}
             route_config:
               name: {{ $appName }}-ingress
               internal_only_headers:
@@ -162,7 +161,9 @@
     {{- end }}
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $ingress "clusters" $clusters "direction" "ingress") | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.ratelimit-actions" (dict "ingress" $ingress "clusters" $clusters ) | nindent 14 }}
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress" "appName" $appName) }}
+                routes:
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress" "appName" $appName "routingType" "hostBasedRouting") }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "ingress" "appName" $appName "routingType" "pathBasedRouting") }}
         transport_socket:
           name: envoy.transport_sockets.tls
           typed_config:
@@ -197,19 +198,18 @@
             server_name: {{ $connectionMgr.serverName | default (printf "%s-egress" $appName) | quote }}
             preserve_external_request_id: {{ $egress.preserveExternalRequestId | default "false" }}
             access_log:
-              name: envoy.access_loggers.file
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-downstream") | nindent 14 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.httpoptions" (dict "httpScheme" "HTTP2" "cluster" (index $clusters "remote-myapp")) | nindent 12 }}
             http_filters:
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.custome.response" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy) | nindent 12 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.jwt" (dict "requests" $titanSideCars.egress "issuers" $titanSideCars.issuers "appName" $appName "clusters" $clusters) | nindent 12 }}
     {{- include "titan-mesh-helm-lib-chart.envoy.filter.enrichment" (dict "clusters" $clusters "requests" $titanSideCars.egress "envoy" $envoy "appName" $appName) | nindent 12 }}
+    {{- $upstreamLog := include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-upstream") | fromYaml }}
             - name: envoy.filters.http.router
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
                 upstream_log:
-                - name: envoy.access_loggers.file
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "outbound-upstream") | nindent 18 }}
+    {{- (list $upstreamLog) | toYaml | nindent 16 }}
             route_config:
               name: {{ $appName }}-egress
               internal_only_headers:
@@ -261,6 +261,8 @@
                 domains: '*'
     {{- include "titan-mesh-helm-lib-chart.envoy.metrics" (dict "requests" $egress "clusters" $clusters "direction" "egress") | nindent 14 }}
                 rate_limits: []
-    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress" "appName" $appName) }}
+                routes:
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress" "appName" $appName "routingType" "hostBasedRouting") }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes" (dict "titanSideCars" $titanSideCars "direction" "egress" "appName" $appName "routingType" "pathBasedRouting") }}
   {{- end }}
 {{- end }}

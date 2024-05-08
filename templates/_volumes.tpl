@@ -69,8 +69,8 @@
       {{- end }}
       {{- if $sideCars }}
         {{- $hasConfigTpl := false -}}
-        {{- range $sideCars -}}
-          {{- if .configTpl -}}
+        {{- range $sideCarName, $sideCarValue := $sideCars -}}
+          {{- if $sideCarValue.configTpl -}}
             {{- $hasConfigTpl = true -}}
           {{- end -}}
         {{- end -}}
