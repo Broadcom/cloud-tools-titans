@@ -169,12 +169,7 @@
                 }
             }
         },
-        "additionalProperties": false,
-        "not": {
-            "required": [
-                "ratelimit"
-            ]
-        }
+        "additionalProperties": false
     },
     "additionalProperties": false
 }

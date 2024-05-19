@@ -1,0 +1,29 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "ingress_egress_route_common.json",
+    "description": "titanSideCars.[ingress|egress].routes item common properties",
+    "ingressEgressCommonProperties": {
+        "type": "object",
+        "properties": {
+            "audit": {
+                "$ref": "route_audit.json",
+                "_comment": "wasm-filter"
+            },
+            "enrich": {
+                "$ref": "route_enrich.json"
+            },
+            "match": {
+                "$ref": "route_match.json"
+            },
+            "metrics": {
+                "$ref": "route_metrics.json"
+            },
+            "route": {
+                "$ref": "route_route.json"
+            },
+            "tokenCheck": {
+                "type": "boolean"
+            }
+        }
+    }
+}

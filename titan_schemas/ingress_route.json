@@ -1,76 +1,66 @@
 {
     "$schema": "http://json-schema.org/draft-06/schema#",
     "$id": "ingress_route.json",
-    "description": "titanSideCars.ingress.route",
+    "description": "titanSideCars.ingress.routes item",
     "type": "object",
-    "properties": {
-        "audit": {
-            "$ref": "route_audit.json",
-            "_comment": "TODO: check wasm-filter"
+    "allOf": [
+        {
+            "$ref": "ingress_egress_route_common.json#/ingressEgressCommonProperties"
         },
-        "customResponse": {
-            "type": "object",
+        {
             "properties": {
-                "enabled": {
-                    "type": "boolean"
-                },
-                "addHeaders": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string"
-                            },
-                            "value": {
-                                "type": "string"
+                "customResponse": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "addHeaders": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "value": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
                             }
-                        }
+                        },
+                        "additionalProperties": false
                     }
+                },
+                "directResponse": {
+                    "type": "object",
+                    "properties": {
+                        "body": {
+                            "type": "string"
+                        },
+                        "status": {
+                            "oneOf": [
+                                {
+                                    "type": "integer"
+                                },
+                                {
+                                    "type": "string",
+                                    "pattern": "^[0-9]+$"
+                                }
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "ratelimit": {
+                    "$ref": "route_ratelimit.json"
+                },
+                "rbac": {
+                    "$ref": "route_rbac.json"
                 }
             }
-        },
-        "directResponse": {
-            "type": "object",
-            "properties": {
-                "body": {
-                    "type": "string"
-                },
-                "status": {
-                    "oneOf": [
-                        {
-                            "type": "integer"
-                        },
-                        {
-                            "type": "string",
-                            "pattern": "^[0-9]+$"
-                        }
-                    ]
-                }
-            },
-            "additionalProperties": false
-        },
-        "enrich": {
-            "$ref": "route_enrich.json"
-        },
-        "match": {
-            "$ref": "route_match.json"
-        },
-        "metrics": {
-            "$ref": "route_metrics.json"
-        },
-        "ratelimit": {
-            "$ref": "route_ratelimit.json"
-        },
-        "rbac": {
-            "$ref": "route_rbac.json"
-        },
-        "route": {
-            "$ref": "route_route.json"
-        },
-        "tokenCheck": {
-            "type": "boolean"
         }
-    },
+    ],
     "additionalProperties": false
 }
