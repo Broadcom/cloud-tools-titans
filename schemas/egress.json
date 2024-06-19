@@ -1,0 +1,41 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "egress.json",
+    "description": "titanSideCars.egress",
+    "type": "object",
+    "title": "egress config schema",
+    "properties": {
+        "disableAudit": {
+            "type": "boolean"
+        },
+        "disableEnrich": {
+            "type": "boolean"
+        },
+        "enabled": {
+            "type": "boolean"
+        },
+        "enrichment": {
+            "$ref": "enrichment.json"
+        },
+        "routes": {
+            "type": "array",
+            "title": "List of egress route",
+            "items": {
+                "$ref": "egress_route.json"
+            }
+        },
+        "tokenCheck": {
+            "type": "boolean"
+        },
+        "workloadIdentity": {
+            "type": "object",
+            "title": "egress workload identity config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}

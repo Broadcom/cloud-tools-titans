@@ -1,0 +1,12 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "customTpls.json",
+    "description": "titanSideCars.customTpls",
+    "type": "object",
+    "title": "customer templates config schema",
+    "properties": {
+        "This is a place holder, schema documentation is in process": {
+            "type": "string"
+        }
+    }
+}

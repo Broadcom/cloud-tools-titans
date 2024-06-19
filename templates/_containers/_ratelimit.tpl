@@ -22,38 +22,15 @@
   {{- $ratelimitConfigPath := $ratelimit.configPath | default "/configs/ratelimit/config" -}}
   {{- $ratelimitConfigFileName := $ratelimit.configFileName | default "ratelimit_config.yaml" -}}
   {{- $ratelimitConfigVolumeMountPath := $ratelimit.configVolumeMountPath | default "/configs" -}}
-  {{- $clusters := $envoy.clusters }}
-  {{- $localApp := index $clusters "local-myapp" }}
-
-  {{- $gateway := $localApp.gateway }}
-  {{- $gatewayEnable := $gateway.enabled }}
-  {{- $routes := list }}
-  {{- if $gatewayEnable }}
-    {{- range $cn, $cv := $clusters }}
-      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
-        {{- range $cv.routes }}
-          {{- $newcluster := dict "cluster" $cn }}
-          {{- $routes = append $routes (dict "match" .match "route" $newcluster "ratelimit" .ratelimit) }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
-  {{- else }}
-    {{- $routes = $ingress.routes }}
-    {{- if and $ingress (not $routes) }}
-      {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
-        {{ $routes = $localApp.routes }}
-      {{- end }}
-    {{- end }}
-    {{- $additionalRoutes := $ingress.additionalRoutes }}
-    {{- if $additionalRoutes }}
-      {{- if $routes }}
-        {{- $routes = concat $additionalRoutes $routes }}
-      {{- else }}
-        {{- $routes = $additionalRoutes }}
-      {{- end }}
+  {{- $routes := $ingress.routes | default list }}
+  {{- $additionalRoutes := $ingress.additionalRoutes }}
+  {{- if $additionalRoutes }}
+    {{- if $routes }}
+      {{- $routes = concat $additionalRoutes $routes }}
+    {{- else }}
+      {{- $routes = $additionalRoutes }}
     {{- end }}
   {{- end }}
-  
   {{- if and $envoyEnabled $ratelimitEnabled }}
 - name: {{include "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($ratelimit.imageName | default "ratelimit") ($ratelimit.imageTag | default "latest") }}
@@ -76,8 +53,10 @@
       value: {{ ( $ratelimit.redisPoolSize | default 2 )  | quote  }}
     - name: REDIS_URL
       value: {{ $ratelimit.redisUrl | default "10.251.54.3:6379" | quote }}
-    - name: REDIS_USE_TLS
+    - name: REDIS_TLS
       value: {{ $ratelimit.redisUseTls | default "False" | quote }}
+    - name: REDIS_TLS_SKIP_HOSTNAME_VERIFICATION
+      value: {{ $ratelimit.redisTlsSkipHostnameVerification | default "False" | quote }}
     - name: REDIS_SOCKET_TYPE
       value: {{ $ratelimit.redisSocketType | default "tcp" | quote }}
     - name: REDIS_AUTH

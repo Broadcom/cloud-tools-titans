@@ -1,0 +1,12 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "logs.json",
+    "description": "titanSideCars.logs",
+    "type": "object",
+    "title": "logs config schema",
+    "properties": {
+        "This is a place holder, schema documentation is in process": {
+            "type": "string"
+        }
+    }
+}

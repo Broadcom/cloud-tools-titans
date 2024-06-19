@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "envoy_cluster_route.json",
+    "description": "titanSideCars.envoy.clusters.cluster.routes.route",
+    "type": "object",
+    "title": "envoy cluster route config schema",
+    "properties": {
+        "match": {
+            "$ref": "route_match.json"
+        },
+        "accessibility": {
+            "type": "string",
+            "enum": [
+                "enterprise",
+                "public",
+                "private"
+            ]
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "match"
+    ]
+}

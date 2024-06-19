@@ -1,0 +1,126 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "enrich_transform.json",
+    "description": "[ingress|egress].enrichment.actions.action.transforms or [ingress|egress].routes.enrich.actions.action.transforms",
+    "type": "object",
+    "title": "enrich transform config schema",
+    "properties": {
+        "func": {
+            "type": "string",
+            "enum": [
+                "trim_prefix",
+                "base64_decode",
+                "split",
+                "scanf"
+            ]
+        },
+        "parameters": {
+            "type": "array",
+            "title": "List of enrich parameter",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "func"
+    ],
+    "if": {
+        "properties": {
+            "func": {
+                "const": "trim_prefix"
+            }
+        }
+    },
+    "then": {
+        "properties": {
+            "parameters": {
+                "minItems": 1,
+                "maxItems": 1,
+                "additionalItems": false
+            }
+        }
+    },
+    "else": {
+        "if": {
+            "properties": {
+                "func": {
+                    "const": "base64_decode"
+                }
+            }
+        },
+        "then": {
+            "properties": {
+                "parameters": {
+                    "minItems": 0,
+                    "maxItems": 0,
+                    "additionalItems": false
+                }
+            }
+        },
+        "else": {
+            "if": {
+                "properties": {
+                    "func": {
+                        "const": "split"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "parameters": {
+                        "type": "array",
+                        "title": "List of enrich parameter",
+                        "items": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "string",
+                                "enum": [
+                                    "findFirstPrefix",
+                                    "findFirstContain",
+                                    "findFirst",
+                                    "index"
+                                ]
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "additionalItems": false
+                    }
+                }
+            },
+            "else": {
+                "if": {
+                    "properties": {
+                        "func": {
+                            "const": "scanf"
+                        }
+                    }
+                },
+                "then": {
+                    "properties": {
+                        "parameters": {
+                            "type": "array",
+                            "title": "List of enrich parameter",
+                            "items": [
+                                {
+                                    "type": "string",
+                                    "pattern": ".*%s.*"
+                                }
+                            ],
+                            "minItems": 1,
+                            "maxItems": 1,
+                            "additionalItems": false
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,37 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "enrichment.json",
+    "description": "titanSideCars.ingress.enrichment",
+    "type": "object",
+    "title": "enrichment config schema",
+    "properties": {
+        "actions": {
+            "type": "array",
+            "title": "List of enrichment action",
+            "items": {
+                "$ref": "enrich_action.json"
+            }
+        },
+        "auth_address": {
+            "type": "string"
+        },
+        "auth_host": {
+            "type": "string"
+        },
+        "authentication_path": {
+            "type": "string"
+        },
+        "identity_host": {
+            "type": "string"
+        },
+        "max_page_size": {
+            "type": "integer"
+        },
+        "privs_path": {
+            "type": "string"
+        },
+        "tenancy_check": {
+            "type": "boolean"
+        }
+    }
+}

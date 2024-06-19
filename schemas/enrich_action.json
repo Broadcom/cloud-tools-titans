@@ -1,0 +1,80 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "enrich_action.json",
+    "description": "[ingress|egress].enrichment.actions.action or [ingress|egress].routes.enrich.actions.action",
+    "type": "object",
+    "title": "enrich action config schema",
+    "properties": {
+        "action": {
+            "type": "string",
+            "enum": ["extract", "decode"]
+        },
+        "from": {
+            "type": "string",
+            "pattern": "^(token|header|query)\\..+$"
+        },
+        "if_contain": {
+            "type": "string"
+        },
+        "if_eq": {
+            "type": "string"
+        },
+        "if_start_with": {
+            "type": "string"
+        },
+        "match_headers": {
+            "type": "array",
+            "title": "List of enrich action match header",
+            "items": {
+                "$ref": "enrich_action_match_header.json"
+            }
+        },
+        "path_prefix": {
+            "type": "string"
+        },
+        "to": {
+            "type": "string"
+        },
+        "transforms": {
+            "$type": "array",
+            "items": {
+                "$ref": "enrich_transform.json"
+            }
+        },
+        "with": {
+            "type": "string"
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "action"
+    ],
+    "if": {
+        "properties": {
+            "action": { "const": "decode" }
+        }
+    },
+    "then": {
+        "allOf": [
+            {
+                "required": ["path_prefix"]
+            },
+            {
+                "not": {
+                    "anyOf": [
+                        { "required": ["from"] },
+                        { "required": ["if_contain"] },
+                        { "required": ["if_eq"] },
+                        { "required": ["if_start_with"] },
+                        { "required": ["to"] },
+                        { "required": ["transforms"] },
+                        { "required": ["with"] }
+                    ]
+                }
+            }
+        ]
+    },
+    "else": {
+        "required": ["from", "to"]
+    }
+}

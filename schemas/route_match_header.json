@@ -1,0 +1,69 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "route_match_header.json",
+    "description": "titanSideCars.[ingress|egress].route.match.headers",
+    "type": "object",
+    "title": "route match header config schema",
+    "properties": {
+        "key": {
+            "type": "string",
+            "pattern": "^(:method|:path|:authority|:scheme|:status|(?!:).+)$"
+        },
+        "source": {
+            "type": "string",
+            "enum": [ "request", "response" ]
+        },
+        "eq": {
+            "type": "string"
+        },
+        "neq": {
+            "type": "string"
+        },
+        "sw": {
+            "type": "string"
+        },
+        "nsw": {
+            "type": "string"
+        },
+        "ew": {
+            "type": "string"
+        },
+        "new": {
+            "type": "string"
+        },
+        "co": {
+            "type": "string"
+        },
+        "nco": {
+            "type": "string"
+        },
+        "lk": {
+            "type": "string"
+        },
+        "nlk": {
+            "type": "string"
+        },
+        "pr": {
+            "type": "boolean"
+        },
+        "npr": {
+            "type": "boolean"
+        }
+    },
+    "additionalProperties": false,
+    "required": [ "key" ],
+    "oneOf": [
+        { "required": ["eq"] },
+        { "required": ["neq"] },
+        { "required": ["sw"] },
+        { "required": ["nsw"] },
+        { "required": ["ew"] },
+        { "required": ["new"] },
+        { "required": ["co"] },
+        { "required": ["nco"] },
+        { "required": ["lk"] },
+        { "required": ["nlk"] },
+        { "required": ["pr"] },
+        { "required": ["npr"] }
+    ]
+}

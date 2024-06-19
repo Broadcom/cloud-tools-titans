@@ -1,0 +1,6 @@
+curl -v --insecure --request PUT 'https://proxy:9443/identity/v1/test_rename' --header 'Content-Type: application/json' --header 'Accept: application/json' --data '{"privs_hash":"ss.udkGKEU5OMV4x_gm3l5b0rysKeEMVSaIg4S6dPzqVj4","start_date":"11/22/2021","end_date":"11/22/2026","customer_id":"symantecinfra2"}'
+
+curl -v --insecure --request POST 'https://proxy:9443/identity/v1/test_overwrite' --header 'Content-Type: application/x-www-form-urlencoded' --header 'Accept: application/json'
+
+
+curl -v --insecure --request POST 'https://proxy:9443/identity/v1/test_overwrite' --header 'Content-Type: application/x-www-form-urlencoded' --header 'Accept: application/json' --data-urlencode 'client_id=abc' --data-urlencode 'grant_type=code'

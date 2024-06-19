@@ -4,18 +4,10 @@
   {{- $localMyApp := .localMyApp  }}
   {{- $clusters := .clusters }}
   {{- $providers := list  }}
-  {{- $tokenValidation := false  }}
-  {{- $tokenValidationBypass := false  }}
-  {{- $gatewayEnable := false }}
-  {{- if $localMyApp.gateway  -}}
-    {{- $gatewayEnable = ternary $localMyApp.gateway.enabled true (hasKey $localMyApp.gateway "enabled") }}
-  {{- end }}
-  {{- $routes := $requests.routes }}
-  {{- if and $localMyApp (not $routes) }}
-    {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
-      {{ $routes = $localMyApp.routes }}
-    {{- end }}
-  {{- end }}  
+  {{- $requestsTokenCheck := ternary $requests.tokenCheck false (hasKey $requests "tokenCheck") }}
+  {{- $tokenValidation := $requestsTokenCheck }}
+  {{- $tokenValidationBypass := not $tokenValidation }}
+  {{- $routes := $requests.routes | default list }}
   {{- $additionalRoutes := $requests.additionalRoutes }}
   {{- if $additionalRoutes }}
     {{- if $routes }}
@@ -24,37 +16,9 @@
       {{- $routes = $additionalRoutes }}
     {{- end }}
   {{- end }}
-  {{- if $gatewayEnable }}
-    {{- if not $routes }}
-      {{- $routes = list }}
-    {{- end }}
-    {{- range $cn, $cv := $clusters }}
-      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
-        {{- range $cv.routes }}
-          {{- $route := dict -}}
-          {{- if .match }}
-            {{- $_ := set $route "match" .match }}
-          {{- end }}
-          {{- if .route }}
-            {{- $routeValue := .route }}
-            {{- $_ := set $routeValue "cluster" $cn }}
-            {{- $_ := set $route "route" $routeValue }}
-          {{- else }}
-            {{- $_ := set $route "route" (dict "cluster" $cn) }}
-          {{- end }}
-          {{- if .tokenCheck }}
-            {{- $_ := set $route "tokenCheck" .tokenCheck }}
-          {{- end }}
-          {{- if $route }}
-            {{- $routes = append $routes $route }}
-          {{- end }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
-  {{- end }}
   {{- range $routes  }}
-    {{- $tokenCheck := ternary .tokenCheck (default ($requests.tokenCheck | default false)) (hasKey . "tokenCheck")  }}
-    {{- $tokenBypass := ternary (not .tokenCheck) (ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck")) (hasKey . "tokenCheck")  }}
+    {{- $tokenCheck := ternary .tokenCheck (default $requestsTokenCheck) (hasKey . "tokenCheck")  }}
+    {{- $tokenBypass := ternary (not .tokenCheck) (not $requestsTokenCheck) (hasKey . "tokenCheck")  }}
     {{- if $tokenCheck  }}
       {{- $tokenValidation = true  }}
     {{- end  }}
@@ -102,20 +66,13 @@
               seconds: {{ .timeout | default "1" }}
     {{- end }}
     rules:
-    {{- $allBypass := ternary (not $requests.tokenCheck) true (hasKey $requests "tokenCheck") }}
-    {{- range $routes }}
-      {{- $tokenCheck := false }}
-      {{- if $allBypass }}
-        {{- $tokenCheck = ternary .tokenCheck false (hasKey . "tokenCheck") }}
-      {{- else }}
-        {{- $tokenCheck = ternary .tokenCheck true (hasKey . "tokenCheck") }}
-      {{- end }}
-      {{- if .match }}
-        {{- if or .match.prefix  .match.regex }}
-          {{- if or (and $allBypass $tokenCheck) (and (not $allBypass) (not $tokenCheck)) }}
+    {{- if $tokenValidationBypass }}
+      {{- range $routes }}
+        {{- if hasKey . "tokenCheck" }}
+          {{- if or (and .tokenCheck (not $requestsTokenCheck)) (and (not .tokenCheck) $requestsTokenCheck) }}
     - match:
             {{- include "titan-mesh-helm-lib-chart.envoy.matcher-route" (dict "route" .match "routing" true) | nindent 6 }}
-            {{- if $tokenCheck }}
+            {{- if .tokenCheck }}
       requires:
               {{- if eq (len $providers) 1 }}
         provider_name: {{ first $providers }}
@@ -130,10 +87,23 @@
           {{- end }}
         {{- end }}
       {{- end }}
-    {{- end }}
     - match:
         prefix: /
-    {{- if not $allBypass }}
+      {{- if $requestsTokenCheck }}
+      requires:
+        {{- if eq (len $providers) 1 }}
+        provider_name: {{ first $providers }}
+        {{- else }}
+        requires_any:
+          requirements:
+          {{- range $providers }}
+          - provider_name: {{ . }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+    {{- else }}
+    - match:
+        prefix: /
       requires:
       {{- if eq (len $providers) 1 }}
         provider_name: {{ first $providers }}

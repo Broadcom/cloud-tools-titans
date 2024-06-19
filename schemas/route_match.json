@@ -1,0 +1,56 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "route_match.json",
+    "description": "titanSideCars.[ingress|egress|envoy.cluster].route.match",
+    "type": "object",
+    "title": "route match config schema",
+    "properties": {
+        "method": {
+            "type": "string"
+        },
+        "path": {
+            "type": "string"
+        },
+        "prefix": {
+            "type": "string",
+            "pattern": "^/([a-zA-Z0-9_\\-.]+/?)*$"
+        },
+        "regex": {
+            "type": "string"
+        },
+        "headers": {
+            "type": "array",
+            "title": "List of route match header",
+            "items": {
+                "$ref": "route_match_header.json"
+            }
+        }
+    },
+    "additionalProperties": false,
+    "oneOf": [
+        {
+            "required": [
+                "path"
+            ]
+        },
+        {
+            "required": [
+                "prefix"
+            ]
+        },
+        {
+            "required": [
+                "regex"
+            ]
+        },
+        {
+            "not": {
+                "anyOf": [
+                    { "required": ["path"] },
+                    { "required": ["prefix"] },
+                    { "required": ["regex"] }
+                ]
+            }
+        }
+    ]
+}

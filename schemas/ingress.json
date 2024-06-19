@@ -1,0 +1,52 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "ingress.json",
+    "description": "titanSideCars.ingress",
+    "type": "object",
+    "title": "ingress config schema",
+    "properties": {
+        "additionalRoutes": {
+            "type": "array",
+            "items": {
+                "$ref": "ingress_route.json"
+            }
+        },
+        "disableAudit": {
+            "type": "boolean"
+        },
+        "disableEnrich": {
+            "type": "boolean"
+        },
+        "disableRbac": {
+            "type": "boolean"
+        },
+        "enabled": {
+            "type": "boolean"
+        },
+        "enrichment": {
+            "$ref": "enrichment.json"
+        },
+        "ratelimit": {
+            "$ref": "ratelimit_titanSideCars_ingress.json"
+        },
+        "routes": {
+            "type": "array",
+            "title": "List of ingress route",
+            "items": {
+                "$ref": "ingress_route.json"
+            }
+        },
+        "tokenCheck": {
+            "type": "boolean"
+        },
+        "workloadIdentity": {
+            "type": "object",
+            "title": "ingress workload identity config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

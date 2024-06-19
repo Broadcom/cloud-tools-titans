@@ -1,0 +1,22 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "route_ratelimit.json",
+    "description": "route.ratelimit",
+    "type": "object",
+    "title": "route ratelimit config schema",
+    "properties": {
+        "enabled": {
+            "type": "boolean"
+        },
+        "name": {
+            "type": "string"
+        },
+        "actions": {
+            "type": "array",
+            "title": "List of ratelimit action match",
+            "items": {
+                "$ref": "ratelimit_action_match.json"
+            }
+        }
+    }
+}

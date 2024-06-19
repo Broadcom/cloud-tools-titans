@@ -1,0 +1,12 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "versionFunction.json",
+    "description": "titanSideCars.versionFunction",
+    "type": "object",
+    "title": "versionFunction config schema",
+    "properties": {
+        "This is a place holder, schema documentation is in process": {
+            "type": "string"
+        }
+    }
+}

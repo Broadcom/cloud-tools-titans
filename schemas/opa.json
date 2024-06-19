@@ -1,0 +1,12 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "opa.json",
+    "description": "titanSideCars.opa",
+    "type": "object",
+    "title": "opa config schema",
+    "properties": {
+        "This property is no longer supported": {
+            "type": "string"
+        }
+    }
+}

@@ -1,0 +1,80 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "route_route.json",
+    "description": "titanSideCars.[ingress|egress].routes.route",
+    "type": "object",
+    "title": "route config schema",
+    "properties": {
+        "autoHostRewrite": {
+            "type": "string"
+        },
+        "cluster": {
+            "type": "string"
+        },
+        "disableFilters": {
+            "type": "array",
+            "title": "List of filters to be disabled",
+            "items": {
+                "type": "string"
+            }
+        },
+        "prefixRewrite": {
+            "type": "string"
+        },
+        "regexRewrite": {
+            "type": "object",
+            "title": "route regexRewrite config schema",
+            "properties": {
+                "pattern": {
+                    "type": "string"
+                },
+                "substitution": {
+                    "type": "string"
+                }
+            }
+        },
+        "timeout": {
+            "type": "string"
+        },
+        "weightedClusters": {
+            "type": "array",
+            "title": "List of weightedCluster",
+            "items": {
+                "type": "object",
+                "title": "route weightedCluster config schema",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "weight": {
+                        "type": "integer"
+                    }
+                },
+                "additionalProperties": false,
+                "required": [ "name", "weight" ]
+            }
+        }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+        {"required": ["autoHostRewrite"]},
+        {"required": ["cluster"]},
+        {"required": ["disableFilters"]},
+        {"required": ["prefixRewrite"]},
+        {"required": ["regexRewrite"]},
+        {"required": ["timeout"]},
+        {"required": ["weightedClusters"]}
+    ],
+    "allOf": [
+        {
+            "not": {
+                "required": ["cluster", "p7"]
+            }
+        },
+        {
+            "not": {
+                "required": ["prefixRewrite", "regexRewrite"]
+            }
+        }
+    ]
+}

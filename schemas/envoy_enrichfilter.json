@@ -1,0 +1,45 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "envoy_enrichfilter.json",
+    "description": "titanSideCars.envoy.enrichfilter",
+    "type": "object",
+    "title": "envoy enrichfilter config schema",
+    "properties": {
+        "allowPrecompiled": {
+            "oneOf": [
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "string",
+                    "enum": ["true", "false"]
+                }
+            ]
+        },
+        "failedOpen": {
+            "oneOf": [
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "string",
+                    "enum": ["true", "false"]
+                }
+            ]
+        },
+        "filename": {
+            "type": "string"
+        },
+        "wasmRuntime": {
+            "type": "string",
+            "enum": [ "envoy.wasm.runtime.v8" ]
+        }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+        { "required": ["allowPrecompiled"] },
+        { "required": ["failedOpen"] },
+        { "required": ["filename"] },
+        { "required": ["wasmRuntime"] }
+    ]
+}

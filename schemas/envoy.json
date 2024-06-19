@@ -1,0 +1,316 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "envoy.json",
+    "description": "titanSideCars.envoy",
+    "type": "object",
+    "title": "envoy config schema",
+    "properties": {
+        "adminPort": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "cdsFolderPath": {
+            "type": "string"
+        },
+        "clusters": {
+            "$ref": "envoy_cluster.json"
+        },
+        "configFileFolder": {
+            "type": "string"
+        },
+        "configFolder": {
+            "type": "string"
+        },
+        "configVolumeMountPath": {
+            "type": "string"
+        },
+        "connectionDrainDuration": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "cpu": {
+            "type": "object",
+            "title": "envoy cpu config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        },
+        "customResponsefilter": {
+            "type": "object",
+            "title": "envoy custome response filter config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        },
+        "enrichfilter": {
+            "$ref": "envoy_enrichfilter.json"
+        },
+        "env": {
+            "type": "object",
+            "title": "envoy environment config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        },
+        "ephemeralStorage": {
+            "type": "object",
+            "title": "envoy ephemeral storage config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        },
+        "filtersFolder": {
+            "type": "string"
+        },
+        "generateConfigmpForGcs": {
+            "type": "boolean"
+        },
+        "healthCheckCriticalLocalSidecars": {
+            "type": "boolean"
+        },
+        "intSecretsFolder": {
+            "type": "string"
+        },
+        "intTlsCert": {
+            "type": "string"
+        },
+        "imageName": {
+            "type": "string"
+        },
+        "imageTag": {
+            "type": "string"
+        },
+        "imageRegistry": {
+            "type": "string"
+        },
+        "ldsFolderPath": {
+            "type": "string"
+        },
+        "livenessFailureThreshold": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "livenessPeriodSeconds": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "loadDynamicConfigurationFromGcs": {
+            "type": "object",
+            "title": "envoy local dynamic configuration from GC config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        },
+        "localCircuitBreakers": {
+            "type": "object",
+            "title": "envoy local circuit breaker config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        },
+        "logFolderPath": {
+            "type": "string"
+        },
+        "memory": {
+            "type": "object",
+            "title": "envoy memory config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        },
+        "mergeSlashes": {
+            "type": "string"
+        },
+        "mTLSenabled": {
+            "oneOf": [
+                {
+                    "type": "boolean"
+                },
+                {
+                    "type": "string",
+                    "enum": ["true", "false"]
+                }
+            ]
+        },
+        "normalizePath": {
+            "type": "string"
+        },
+        "pathWithEscapedSlashesAction": {
+            "type": "string",
+            "_comment": "TODO: identify if this should be enum"
+        },
+        "perRouteFilters": {
+            "type": "array",
+            "title": "List of perRouteFilter",
+            "items": {
+                "type": "object",
+                "title": "envoy per route filter config schema",
+                "properties": {
+                    "This is a place holder, schema documentation is in process": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "ratelimitConfigPath": {
+            "type": "string"
+        },
+        "readinessFailureThreshold": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "readinessPeriodSeconds": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "remoteCircuitBreakers": {
+            "type": "object",
+            "title": "envoy remote circuit breaker config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        },
+        "secretsFolder": {
+            "type": "string"
+        },
+        "scriptsFolder": {
+            "type": "string"
+        },
+        "startupFailureThreshold": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "startupPeriodSeconds": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "startupTimeoutSeconds": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "statsConfigRaw": {
+            "type": "object",
+            "title": "envoy stats raw config schema",
+            "properties": {
+                "This is a place holder, schema documentation is in process": {
+                    "type": "string"
+                }
+            }
+        },
+        "statsPort": {
+            "oneOf": [
+                {
+                    "type": "integer"
+                },
+                {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                }
+            ]
+        },
+        "statsFlushInterval": {
+            "type": "string"
+        },
+        "supportPathConfigSource": {
+            "type": "boolean"
+        },
+        "tlsCert": {
+            "type": "string"
+        },
+        "trustCACertBundlePath": {
+            "type": "string"
+        },
+        "useDynamicConfiguration": {
+            "type": "boolean"
+        },
+        "useSeparateConfigMaps": {
+            "type": "boolean"
+        },
+        "useSni": {
+            "type": "boolean"
+        },
+        "validateServerCertificate": {
+            "type": "boolean"
+        }
+    },
+    "additionalProperties": false
+}

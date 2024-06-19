@@ -365,7 +365,7 @@ function validateSchema {
   local validationRootDir="$1"
   local dataFile="$2"
   local logFile="$3"
-  local schemaDir="$1/../titan_schemas"
+  local schemaDir="$1/../schemas"
   local extractTitanSideCarsTpl="$1/gomplate/extract_titanSideCars.tpl"
   local titanSideCarsOnlyYaml="$validationRootDir/tests/values.titanSideCarsOnly.yaml"
 
@@ -376,7 +376,7 @@ function validateSchema {
 
   echo "Start to validate schema on file: $dataFile, log error to: $logFile"
   gotpl "$extractTitanSideCarsTpl" -f "$dataFile" > "$titanSideCarsOnlyYaml"
-  pajv -s "$schemaDir"/titanSideCars.json -r "$schemaDir"/cert.json -r "$schemaDir"/customTpls.json -r "$schemaDir"/egress.json -r "$schemaDir"/envoy_cluster_route_match_header.json -r "$schemaDir"/envoy_cluster_route.json -r "$schemaDir"/envoy_cluster.json -r "$schemaDir"/envoy.json -r "$schemaDir"/imageRegistry.json -r "$schemaDir"/ingress_route.json -r "$schemaDir"/ingress.json -r "$schemaDir"/integration.json -r "$schemaDir"/issuers.json -r "$schemaDir"/logs.json -r "$schemaDir"/opa.json -r "$schemaDir"/ratelimit_match_condition.json -r "$schemaDir"/ratelimit_action_match.json -r "$schemaDir"/ratelimit_titanSideCars_envoy_clusters.json -r "$schemaDir"/ratelimit_titanSideCars_envoy.json -r "$schemaDir"/ratelimit_titanSideCars_ingress.json -r "$schemaDir"/ratelimit_titanSideCars.json -r "$schemaDir"/route_audit.json -r "$schemaDir"/route_enrich.json -r "$schemaDir"/route_match.json -r "$schemaDir"/route_metrics.json -r "$schemaDir"/route_ratelimit.json -r "$schemaDir"/route_rbac_policy_rule.json -r "$schemaDir"/route_rbac_policy.json -r "$schemaDir"/route_rbac.json -r "$schemaDir"/validation.json -r "$schemaDir"/versionFunction.json -d "$titanSideCarsOnlyYaml" > "$logFile" 2>&1
+  pajv -s "$schemaDir"/titanSideCars.json -r "$schemaDir"/cert.json -r "$schemaDir"/customTpls.json -r "$schemaDir"/egress_route.json -r "$schemaDir"/egress.json -r "$schemaDir"/enrich_action_match_header.json -r "$schemaDir"/enrich_action.json -r "$schemaDir"/enrich_transform.json -r "$schemaDir"/enrichment.json -r "$schemaDir"/envoy_cluster_route.json -r "$schemaDir"/envoy_cluster.json -r "$schemaDir"/envoy_enrichfilter.json  -r "$schemaDir"/envoy.json -r "$schemaDir"/imageRegistry.json -r "$schemaDir"/ingress_route.json -r "$schemaDir"/ingress.json -r "$schemaDir"/integration.json -r "$schemaDir"/issuers.json -r "$schemaDir"/logs.json -r "$schemaDir"/opa.json -r "$schemaDir"/ratelimit_action_match.json -r "$schemaDir"/ratelimit_match_condition.json -r "$schemaDir"/ratelimit_titanSideCars_envoy_clusters.json -r "$schemaDir"/ratelimit_titanSideCars_envoy.json -r "$schemaDir"/ratelimit_titanSideCars_ingress.json -r "$schemaDir"/ratelimit_titanSideCars.json -r "$schemaDir"/route_audit.json -r "$schemaDir"/route_enrich.json -r "$schemaDir"/route_match_header.json -r "$schemaDir"/route_match.json -r "$schemaDir"/route_metrics.json -r "$schemaDir"/route_ratelimit.json -r "$schemaDir"/route_rbac_policy_rule.json -r "$schemaDir"/route_rbac_policy.json -r "$schemaDir"/route_rbac.json -r "$schemaDir"/route_route.json -r "$schemaDir"/validation.json -r "$schemaDir"/versionFunction.json -d "$titanSideCarsOnlyYaml" > "$logFile" 2>&1
   if [[ $? -ne 0 ]]
   then
     echo "Failed at validateSchema step, error:"

@@ -1,0 +1,332 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "envoy_cluster.json",
+    "description": "titanSideCars.envoy.clusters.cluster",
+    "type": "object",
+    "title": "envoy cluster config schema",
+    "properties": {
+        "local-myapp": {
+            "type": "object",
+            "title": "local-myapp config schema",
+            "properties": {
+                "addRequestHeaders": {
+                    "type": "object",
+                    "title": "local-myapp add request headers config schema",
+                    "properties": {
+                        "This is a place holder, schema documentation is in process": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "addResponseHeaders": {
+                    "type": "object",
+                    "title": "local-myapp add response headers config schema",
+                    "properties": {
+                        "This is a place holder, schema documentation is in process": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "circuitBreakers": {
+                    "type": "object",
+                    "title": "local-myapp circuit breaker config schema",
+                    "properties": {
+                        "This is a place holder, schema documentation is in process": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "connectionTimeout": {
+                    "type": "string"
+                },
+                "directResponseCode": {
+                    "oneOf": [
+                        {
+                            "type": "integer",
+                            "pattern": "^[1-5][0-9]{2}$"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^\"[1-5][0-9]{2}\"$"
+                        }
+                    ]
+                },
+                "directResponseMessage": {
+                    "type": "string"
+                },
+                "gateway": {
+                    "type": "object",
+                    "title": "gateway config schema",
+                    "properties": {
+                        "checkUpstreamClusters": {
+                            "type": "boolean"
+                        },
+                        "defaultBackend": {
+                            "type": "string"
+                        },
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "minHealthRatio": {
+                            "type": "string"
+                        },
+                        "port": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "healthChecks": {
+                    "type": "object",
+                    "title": "healthChecks config schema",
+                    "properties": {
+                        "interval": {
+                            "type": "string"
+                        },
+                        "noTrafficInterval": {
+                            "type": "string"
+                        },
+                        "path": {
+                            "type": "string"
+                        },
+                        "scheme": {
+                            "type": "string"
+                        },
+                        "timeout": {
+                            "type": "string"
+                        },
+                        "unhealthyThreahold": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "healthyPanicThreshold": {
+                    "oneOf": [
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^[0-9]+$"
+                        }
+                    ]
+                },
+                "idleTimeout": {
+                    "type": "string"
+                },
+                "outlierDetection": {
+                    "type": "object",
+                    "title": "local-myapp outlier detection config schema",
+                    "properties": {
+                        "enforcingConsecutive5xx": {
+                            "type": "string"
+                        },
+                        "enforcingConsecutiveGatewayFailure": {
+                            "type": "string"
+                        },
+                        "enforcingConsecutiveLocalOriginFailure": {
+                            "type": "string"
+                        },
+                        "enforcingFailurePercentage": {
+                            "type": "string"
+                        },
+                        "enforcingFailurePercentageLocalOrigin": {
+                            "type": "string"
+                        },
+                        "enforcingLocalOriginSuccessRate": {
+                            "type": "string"
+                        },
+                        "enforcingSuccessRate": {
+                            "type": "string"
+                        },
+                        "splitExternalLocalOriginErrors": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "path": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "removeRequestHeaders": {
+                    "type": "object",
+                    "title": "local-myapp remove request headers config schema",
+                    "properties": {
+                        "This is a place holder, schema documentation is in process": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "removeResponseHeaders": {
+                    "type": "object",
+                    "title": "local-myapp remove response headers config schema",
+                    "properties": {
+                        "This is a place holder, schema documentation is in process": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "retryPolicy": {
+                    "type": "object",
+                    "title": "local-myapp retry policy config schema",
+                    "properties": {
+                        "This is a place holder, schema documentation is in process": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "scheme": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "patternProperties": {
+        "^(?!local-myapp$)[a-zA-Z_-]+": {
+            "type": "object",
+            "title": "envoy cluster config schema (except local-myapp)",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "alias": {
+                    "type": "string"
+                },
+                "connectionTimeout": {
+                    "type": "string"
+                },
+                "healthChecks": {
+                    "type": "object",
+                    "title": "cluster healthChecks config schema",
+                    "properties": {
+                        "startup": {
+                            "type": "object",
+                            "title": "healthChecks startup config schema",
+                            "properties": {
+                                "This is a place holder, schema documentation is in process": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "liveness": {
+                            "type": "object",
+                            "title": "healthChecks liveness config schema",
+                            "properties": {
+                                "This is a place holder, schema documentation is in process": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "readyness": {
+                            "type": "object",
+                            "title": "healthChecks readyness config schema",
+                            "properties": {
+                                "This is a place holder, schema documentation is in process": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "healthyPanicThreshold": {
+                    "oneOf": [
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^[0-9]+$"
+                        }
+                    ]
+                },
+                "hostname": {
+                    "type": "string"
+                },
+                "idleTimeout": {
+                    "oneOf": [
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^[0-9]+$"
+                        }
+                    ]
+                },
+                "lbPolicy": {
+                    "type": "string"
+                },
+                "outlierDetection": {
+                    "type": "object",
+                    "title": "local-myapp outlier detection config schema",
+                    "properties": {
+                        "enforcingConsecutive5xx": {
+                            "type": "string"
+                        },
+                        "enforcingConsecutiveGatewayFailure": {
+                            "type": "string"
+                        },
+                        "enforcingConsecutiveLocalOriginFailure": {
+                            "type": "string"
+                        },
+                        "enforcingFailurePercentage": {
+                            "type": "string"
+                        },
+                        "enforcingFailurePercentageLocalOrigin": {
+                            "type": "string"
+                        },
+                        "enforcingLocalOriginSuccessRate": {
+                            "type": "string"
+                        },
+                        "enforcingSuccessRate": {
+                            "type": "string"
+                        },
+                        "splitExternalLocalOriginErrors": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                "path": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "retryPolicy": {
+                    "type": "object",
+                    "title": "cluster retry policy config schema",
+                    "properties": {
+                        "This is a place holder, schema documentation is in process": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "routes": {
+                    "type": "array",
+                    "title": "cluster routes config schema",
+                    "items": {
+                        "$ref": "envoy_cluster_route.json"
+                    }
+                },
+                "scheme": {
+                    "type": "string"
+                },
+                "targetPort": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "additionalProperties": false
+    },
+    "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "cert.json",
+    "description": "titanSideCars.cert",
+    "type": "object",
+    "title": "cert config schema",
+    "properties": {
+        "This is a place holder, schema documentation is in process": {
+            "type": "string"
+        }
+    }
+}

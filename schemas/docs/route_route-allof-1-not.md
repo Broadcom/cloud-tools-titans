@@ -1,0 +1,15 @@
+# Untitled undefined type in route config schema Schema
+
+```txt
+route_route.json#/allOf/1/not
+```
+
+
+
+| Abstract            | Extensible | Status         | Identifiable            | Custom Properties | Additional Properties | Access Restrictions | Defined In                                                            |
+| :------------------ | :--------- | :------------- | :---------------------- | :---------------- | :-------------------- | :------------------ | :-------------------------------------------------------------------- |
+| Can be instantiated | No         | Unknown status | Unknown identifiability | Forbidden         | Allowed               | none                | [route\_route.json\*](../out/route_route.json "open original schema") |
+
+## not Type
+
+unknown

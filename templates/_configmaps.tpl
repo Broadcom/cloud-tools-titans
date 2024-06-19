@@ -6,6 +6,12 @@
       {{- $_ := set $titanSideCars "envoy" (dict "clusters" dict) -}}
     {{- end -}}
     {{- $envoy := $titanSideCars.envoy -}}
+    {{- $clusters := $envoy.clusters -}}
+    {{- range $c, $v := $clusters -}}
+      {{- if not (ternary $v.enabled true (hasKey $v "enabled")) -}}
+      {{- $_ := unset $clusters $c -}}
+      {{- end -}}
+    {{- end -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false }}
     {{- $useSeparateConfigMaps := $envoy.useSeparateConfigMaps | default false }}
     {{- $loadDynamicConfigurationFromGcs := $envoy.loadDynamicConfigurationFromGcs }}

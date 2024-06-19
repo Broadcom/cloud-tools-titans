@@ -1,0 +1,12 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "validation.json",
+    "description": "titanSideCars.validation",
+    "type": "object",
+    "title": "validation config schema",
+    "properties": {
+        "This is a place holder, schema documentation is in process": {
+            "type": "string"
+        }
+    }
+}

@@ -1,0 +1,80 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "ingress_route.json",
+    "description": "titanSideCars.ingress.route",
+    "type": "object",
+    "title": "ingress route config schema",
+    "properties": {
+        "audit": {
+            "$ref": "route_audit.json"
+        },
+        "customResponse": {
+            "type": "object",
+            "title": "ingress customer response config schema",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "addHeaders": {
+                    "type": "array",
+                    "title": "List of customerResponse addHeader",
+                    "items": {
+                        "type": "object",
+                        "title": "ingress add header config schema",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "directResponse": {
+            "type": "object",
+            "title": "ingress direct response config schema",
+            "properties": {
+                "body": {
+                    "type": "string"
+                },
+                "status": {
+                    "oneOf": [
+                        {
+                            "type": "integer"
+                        },
+                        {
+                            "type": "string",
+                            "pattern": "^[0-9]+$"
+                        }
+                    ]
+                }
+            },
+            "additionalProperties": false
+        },
+        "enrich": {
+            "$ref": "route_enrich.json"
+        },
+        "match": {
+            "$ref": "route_match.json"
+        },
+        "metrics": {
+            "$ref": "route_metrics.json"
+        },
+        "ratelimit": {
+            "$ref": "route_ratelimit.json"
+        },
+        "rbac": {
+            "$ref": "route_rbac.json"
+        },
+        "route": {
+            "$ref": "route_route.json"
+        },
+        "tokenCheck": {
+            "type": "boolean"
+        }
+    },
+    "additionalProperties": false
+}

@@ -1,0 +1,75 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "titanSideCars.json",
+    "description": "titanSideCars configuration schema",
+    "type": "object",
+    "title": "TitanSideCars config schema",
+    "properties": {
+        "titanSideCars": {
+            "type": "object",
+            "title": "titanSideCars schema",
+            "properties": {
+                "ratelimit": {
+                    "$ref": "ratelimit_titanSideCars.json"
+                },
+                "envoy": {
+                    "$ref": "envoy.json"
+                },
+                "ingress": {
+                    "$ref": "ingress.json"
+                },
+                "egress": {
+                    "$ref": "egress.json"
+                },
+                "cert": {
+                    "$ref": "cert.json"
+                },
+                "customTpls": {
+                    "$ref": "customTpls.json"
+                },
+                "issuers": {
+                    "$ref": "issuers.json"
+                },
+                "imageRegistry": {
+                    "$ref": "imageRegistry.json"
+                },
+                "versionFunction": {
+                    "$ref": "versionFunction.json"
+                },
+                "logs": {
+                    "$ref": "logs.json"
+                },
+                "validation": {
+                    "$ref": "validation.json"
+                },
+                "opa": {
+                    "$ref": "opa.json",
+                    "_comment": "deprecated, won't be validated"
+                },
+                "integration": {
+                    "$ref": "integration.json",
+                    "_comment": "place holder, not publicly supported yet. won't be validated"
+                }
+            },
+            "required": [
+                "envoy"
+            ],
+            "anyOf": [
+                {
+                    "required": [
+                        "ingress"
+                    ]
+                },
+                {
+                    "required": [
+                        "egress"
+                    ]
+                }
+            ],
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "titanSideCars"
+    ]
+}

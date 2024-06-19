@@ -1,0 +1,96 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "enrich_action_match_header.json",
+    "description": "[ingress|egress].enrichment.actions.action.match_header or [ingress|egress].routes.enrich.actions.action.match_header",
+    "type": "object",
+    "title": "enrich header match config schema",
+    "properties": {
+        "inv": {
+            "type": "boolean"
+        },
+        "invert": {
+            "type": "boolean"
+        },
+        "name": {
+            "type": "string"
+        },
+        "pattern": {
+            "type": "string",
+            "enum": [
+                "prefix",
+                "sw",
+                "exact",
+                "eq",
+                "contain",
+                "co",
+                "exist",
+                "ex",
+                "suffix",
+                "ew",
+                "regex"
+            ]
+        },
+        "val": {
+            "type": "string",
+            "description": "This should not be specified if pattern is 'ex' or 'exist'"
+        },
+        "value": {
+            "type": "string",
+            "description": "This should not be specified if pattern is 'ex' or 'exist'"
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "pattern"
+    ],
+    "allOf": [
+        {
+            "oneOf": [
+                {
+                    "required": ["inv"],
+                    "not": {
+                        "required": ["invert"]
+                    }
+                },
+                {
+                    "required": ["invert"],
+                    "not": {
+                        "required": ["inv"]
+                    }
+                },
+                {
+                    "not": {
+                        "anyOf": [
+                            { "required": ["inv"] },
+                            { "required": ["invert"] }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "oneOf": [
+                {
+                    "required": ["val"],
+                    "not": {
+                        "required": ["value"]
+                    }
+                },
+                {
+                    "required": ["value"],
+                    "not": {
+                        "required": ["val"]
+                    }
+                },
+                {
+                    "not": {
+                        "anyOf": [
+                            { "required": ["val"] },
+                            { "required": ["value"] }
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}

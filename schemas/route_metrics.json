@@ -1,0 +1,7 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "route_metrics.json",
+    "description": "titanSideCars.ingress.route.metrics or titanSideCars.egress.route.metrics",
+    "type": "object",
+    "title": "route metrics config schema"
+}

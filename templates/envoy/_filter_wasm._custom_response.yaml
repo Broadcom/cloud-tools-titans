@@ -3,32 +3,13 @@
   {{- $requests := .requests  }}
   {{- $envoy := .envoy }}
   {{- $config := $requests.customResponse | default dict }}
-  {{- $localMyApp := .localMyApp  }}
-  {{- $gateway := $localMyApp.gateway }}
-  {{- $gatewayEnable := $gateway.enabled }}
-  {{- $routes := list }}
-  {{- if $gatewayEnable }}
-    {{- range $cn, $cv := $clusters }}
-      {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
-        {{- range $cv.routes }}
-          {{- $routes = append $routes . }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
-  {{- else }}
-    {{- $routes = $requests.routes }}
-    {{- if and $requests (not $routes) }}
-      {{- if ternary $requests.enabled true (hasKey $requests "enabled") }}
-        {{ $routes = $localMyApp.routes }}
-      {{- end }}
-    {{- end }}
-    {{- $additionalRoutes := $requests.additionalRoutes }}
-    {{- if $additionalRoutes }}
-      {{- if $routes }}
-        {{- $routes = concat $additionalRoutes $routes }}
-      {{- else }}
-        {{- $routes = $additionalRoutes }}
-      {{- end }}
+  {{- $routes := $requests.routes | default list }}
+  {{- $additionalRoutes := $requests.additionalRoutes }}
+  {{- if $additionalRoutes }}
+    {{- if $routes }}
+      {{- $routes = concat $additionalRoutes $routes }}
+    {{- else }}
+      {{- $routes = $additionalRoutes }}
     {{- end }}
   {{- end }}
   {{- $customResponses := list }}

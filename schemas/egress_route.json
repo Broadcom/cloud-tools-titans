@@ -1,0 +1,30 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "egress_route.json",
+    "description": "titanSideCars.egress.route",
+    "type": "object",
+    "title": "egress route config schema",
+    "properties": {
+        "audit": {
+            "$ref": "route_audit.json",
+            "_comment": "TODO: check wasm-filter"
+        },
+        "enrich": {
+            "$ref": "route_enrich.json"
+        },
+        "match": {
+            "$ref": "route_match.json"
+        },
+        "metrics": {
+            "$ref": "route_metrics.json"
+        },
+        "route": {
+            "$ref": "route_route.json"
+        },
+        "tokenCheck": {
+            "type": "boolean"
+        }
+    },
+    "additionalProperties": false,
+    "required": [ "route" ]
+}

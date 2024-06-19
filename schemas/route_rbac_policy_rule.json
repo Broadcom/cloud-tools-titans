@@ -1,0 +1,98 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "route_rbac_policy_rule.json",
+    "description": "titanSideCars.ingress.route.rbac.policy.rule or titanSideCars.egress.route.rbac.policy.rule",
+    "type": "object",
+    "title": "route rbac police rule config schema",
+    "properties": {
+        "inv": {
+            "type": "boolean"
+        },
+        "lop": {
+            "type": "string",
+            "pattern": "^request[.](body|headers|query|token)\\[[a-zA-Z-_]+\\]$",
+            "_comment": "The left operator should always be request.body, request.headers or request.query"
+        },
+        "op": {
+            "type": "string",
+            "enum": [
+                "ex",
+                "eq",
+                "ne",
+                "sw",
+                "nsw",
+                "ew",
+                "new",
+                "co",
+                "nco",
+                "has"
+            ]
+        },
+        "rop": {
+            "type": "string",
+            "pattern": "^request[.](body|headers|query|token)\\[[a-zA-Z-_]+\\]$",
+            "_comment": "The right operator should always be request.body, request.headers or request.query"
+        },
+        "val": {
+            "type": "string",
+            "_comment": "This will always be treated as plain-text for comparison"
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "lop",
+        "op"
+    ],
+    "oneOf": [
+        {
+            "if": {
+                "properties": {
+                    "op": {
+                        "const": "ex"
+                    }
+                }
+            },
+            "then": {
+                "not": {
+                    "required": [
+                        "rop",
+                        "val"
+                    ]
+                },
+                "properties": {
+                    "rop": {
+                        "type": "null"
+                    },
+                    "val": {
+                        "type": "null"
+                    },
+                    "_comment": "This is optional, but better to have to explicitly disallow 'rop' and 'op' in this case"
+                }
+            },
+            "else": {
+                "oneOf": [
+                    {
+                        "required": [
+                            "rop"
+                        ],
+                        "not": {
+                            "required": [
+                                "val"
+                            ]
+                        }
+                    },
+                    {
+                        "required": [
+                            "val"
+                        ],
+                        "not": {
+                            "required": [
+                                "rop"
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "ratelimit_titanSideCars_envoy.json",
+    "description": "titanSideCars.envoy.ratelimit",
+    "type": "object",
+    "title": "envoy ratelimit config schema",
+    "properties": {
+        "enabled": {
+            "type": "boolean"
+        }
+    },
+    "required": [
+        "enabled"
+    ]
+}

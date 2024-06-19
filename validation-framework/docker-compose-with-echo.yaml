@@ -1,0 +1,88 @@
+
+version: '3.7'
+services:
+  proxy:
+    user: root
+    image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/envoy:1.26.1-redhat-fips-titan-proxy-wasm-bundle.33.20
+    platform: linux/amd64
+    volumes:
+      - ./envoy/config:/envoy/config
+      - ./envoy/ratelimit:/envoy/ratelimit
+      - ./secrets:/secrets
+      - ./tests:/tests
+    depends_on:
+      - myapp
+      - token-generator
+    networks:
+      - envoymesh
+    expose:
+      - "9443"
+      - "9565"
+    entrypoint:
+    - /usr/local/bin/envoy
+    - -c
+    - /envoy/config/envoy.yaml
+    - -l
+    - info
+    - '--log-path'
+    - /tests/logs/envoy.application.log
+  myapp:
+    image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/echo-server:0.8.6
+    platform: linux/amd64
+    expose:
+     - "8080"
+    networks:
+      - envoymesh
+    volumes:
+      - ./tests:/tests
+    environment:
+      - PORT=8080
+  echo:
+    image: jmalloc/echo-server
+    platform: linux/amd64
+    expose:
+     - "8080"
+    networks:
+      - envoymesh
+    volumes:
+      - ./tests:/tests
+    environment:
+      - PORT=8080
+  token-generator:
+    image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/token-generator:0.205.5
+    platform: linux/amd64
+    entrypoint:
+      - /usr/local/broadcom/token-generator/token-generator
+      - -logFile
+      - stdout
+      - -issuer
+      - http://token-generator
+      - -useDynamicKey
+      - "true"
+      
+    expose:
+     - "8080"
+    networks:
+      - envoymesh
+    environment:
+      - PORT=8080
+  engine:
+    image: sbo-sps-docker-release-local.usw1.packages.broadcom.com/sps-images/alpine-bash-curl-jq:latest
+    platform: linux/amd64
+    entrypoint: 
+      - tail 
+      - -f
+      - /dev/null
+#    command: /tests/validation-test.sh
+    depends_on:
+      - proxy
+    networks:
+      - envoymesh
+    volumes:
+      - ./tests:/tests
+      - ./secrets:/secrets
+volumes:
+  redis:
+    driver: local
+networks:
+  envoymesh: {}
