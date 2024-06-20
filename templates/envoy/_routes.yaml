@@ -15,44 +15,73 @@
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
-
+  {{- $weightedClusters := $envoy.weightedClusters -}}
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $localMyApp := index $clusters "local-myapp" }}
   {{- $gatewayEnable := false }}
   {{- $defaultBackend := "local-myapp" }}
   {{- if $localMyApp.gateway  -}}
-    {{- $gatewayEnable = ternary $localMyApp.gateway.enabled true (hasKey $localMyApp.gateway "enabled") }}
-    {{- if $gatewayEnable }}
-      {{- $defaultBackend = ternary $localMyApp.gateway.defaultBackend "" (hasKey $localMyApp.gateway "defaultBackend") }}
-    {{- end }}
+    {{- $gatewayEnable = ternary $localMyApp.gateway.enabled true (hasKey $localMyApp.gateway "enabled") -}}
+    {{- if $gatewayEnable -}}
+      {{- $defaultBackend = ternary $localMyApp.gateway.defaultBackend "" (hasKey $localMyApp.gateway "defaultBackend") -}}
+    {{- end -}}
   {{- end }}
-  {{- $routes := list }}
-  {{- $weightedClustersRoutes := dict -}}
-  {{- if $gatewayEnable }}
+  {{- $routesBuilder := dict "routes" (list) "weightedClustersRoutes" (dict) -}}
+  {{- $routes := $routesBuilder.routes }}
+  {{- $weightedClustersRoutes := $routesBuilder.weightedClustersRoutes -}}
+  {{- if $gatewayEnable -}}
+    {{- $requestRoutes := ternary $ingress.routes $egress.routes (eq $direction "ingress") -}}
+    {{- range $requestRoutes -}}
+      {{- $match := .match -}}
+      {{- $route := .route -}}
+      {{- if hasKey $route "cluster" -}}
+        {{- $clusterName := $route.cluster -}}
+        {{- $clusterValue := get $clusters $clusterName -}}
+        {{- $requestOverride := dict -}}
+        {{- if $match -}}
+          {{- $_ := set $requestOverride "match" $match -}}
+        {{- end -}}
+        {{- $routeActions := dict -}}
+        {{- if $route -}}
+          {{- range $k, $v := $route -}}
+            {{- if ne $k "cluster" -}}
+              {{- $_ := set $routeActions $k $v -}}
+            {{- end -}}
+          {{- end -}}
+        {{- end -}}
+        {{- if $clusterValue -}}
+          {{- $clusterCanaryNamespace := $clusterValue.canaryNamespace | default "" -}}
+          {{- $clusterCanarySupport := $clusterValue.supportCanary | default true -}}
+          {{- if $routeActions -}}
+            {{- $_ := set $requestOverride "route" $routeActions -}}
+          {{- end -}}
+          {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes.prepare" (dict "routesBuilder" $routesBuilder "canaryHeaderValue" $canaryHeaderValue "canaryHeaderName" $canaryHeaderName "clusterCanaryNamespace" $clusterCanaryNamespace "clusterCanarySupport" $clusterCanarySupport "clusterName" $clusterName "clusterValue" $clusterValue "requestOverride" $requestOverride) }}         
+        {{- else if hasKey $weightedClusters $clusterName -}}
+          {{- $wsv := get $weightedClusters $clusterName -}}
+          {{- range $clusterName, $weight := $wsv -}}
+            {{- $clusterValue = get $clusters $clusterName -}}
+            {{- if $clusterValue -}}
+              {{- $clusterCanaryNamespace := $clusterValue.canaryNamespace | default "" -}}
+              {{- $clusterCanarySupport := $clusterValue.supportCanary | default true -}}
+              {{- if $routeActions -}}
+                {{- $_ := set $requestOverride "route" $routeActions -}}
+              {{- end -}}
+              {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes.prepare" (dict "routesBuilder" $routesBuilder "canaryHeaderValue" $canaryHeaderValue "canaryHeaderName" $canaryHeaderName "clusterCanaryNamespace" $clusterCanaryNamespace "clusterCanarySupport" $clusterCanarySupport "clusterName" $clusterName "clusterValue" $clusterValue "requestOverride" $requestOverride) }}
+            {{- end -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
     {{- range $cn, $cv := $clusters }}
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
-        {{- $includeIt := true }}
+        {{- $includeIt := ternary false true (eq $direction "egress") }}
         {{- $clusterCanaryNamespace := $cv.canaryNamespace | default "" -}}
         {{- $clusterCanarySupport := $cv.supportCanary | default true -}}
         {{- if eq $clusterCanaryNamespace "" -}}
           {{- $clusterCanarySupport = false -}}
         {{- end -}}
-        {{- if eq $direction "egress" }}
-          {{- $egressRoutes := $egress.routes }}
-          {{- $foundCluster := false -}}
-          {{- range $egressRoutes -}}
-            {{- $route := .route -}}
-            {{- if $route.cluster -}}
-              {{- if eq $route.cluster $cn -}}
-                {{- $foundCluster = true -}}
-              {{- end -}}
-            {{- end -}}
-          {{- end }}
-          {{- if not $foundCluster -}}
-            {{- $includeIt = false -}}
-          {{- end -}}
-        {{- end }}
         {{- if $includeIt }}
+          {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes.prepare" (dict "routesBuilder" $routesBuilder "canaryHeaderValue" $canaryHeaderValue "canaryHeaderName" $canaryHeaderName "clusterCanaryNamespace" $clusterCanaryNamespace "clusterCanarySupport" $clusterCanarySupport "clusterName" $cn "clusterValue" $cv) }}
           {{- range $cv.routes }}
             {{- $route := .route | default dict -}}
             {{- $_ := set $route "cluster" $cn -}}
@@ -149,23 +178,6 @@
         {{- end }}
       {{- end }}
     {{- end }}
-
-    {{- $ingressRoutes := list -}}
-    {{- range $ingress.routes -}}
-      {{- if .route -}}
-        {{- $ingressRoute := . -}}
-        {{- $ingressRouteOperation := $ingressRoute.route -}}
-        {{- if or (hasKey $ingressRouteOperation "cluster") (ne $defaultBackend "") -}}
-          {{- if not (hasKey $ingressRouteOperation "cluster") -}}
-            {{- $_ := set $ingressRouteOperation "cluster" $defaultBackend -}}
-          {{- end -}}
-          {{- $ingressRoutes = append $ingressRoutes $ingressRoute -}}
-        {{- end -}}
-      {{- end -}}
-    {{- end -}}
-    {{- if $ingressRoutes -}}
-      {{- $routes = concat $ingressRoutes $routes -}}
-    {{- end -}}
   {{- else }}
     {{- $routes = ternary $ingress.routes $egress.routes (eq "ingress" $direction) }}
     {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq "ingress" $direction) }}

@@ -22,7 +22,21 @@
   {{- $defaultBackend := "local-myapp" }}
   {{- $addAdditionalClustersForFilters := $envoy.filterClusters }}
   {{- if $gatewayEnable }} 
-    {{- $defaultBackend = $gateway.defaultBackend | default "" }}  
+    {{- $defaultBackend = $gateway.defaultBackend | default "" }}
+    {{- $weightedClusters := dict -}}
+    {{- range $cluster, $value := $clusters }}
+      {{- if $value.weightedClusterId -}}
+        {{- $weightedCluster := get $weightedClusters $value.weightedClusterId -}}
+        {{- if $weightedCluster -}}
+          {{- $_ := set $weightedCluster $cluster $value.weight -}}
+        {{- else -}}
+          {{- $_ := set $weightedClusters $value.weightedClusterId (dict $cluster $value.weight) -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if $weightedClusters -}}
+      {{- $_ := set $envoy "weightedClusters" $weightedClusters -}}
+    {{- end -}}
   {{- end }}
   {{- $myClusters := dict }}
   {{- range $cluster, $value := $clusters }}
