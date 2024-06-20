@@ -9,13 +9,14 @@
     {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") }}
   {{- end }}
   {{- $canary := $titanSideCars.canary -}}
+  {{- $canaryEnabled := ternary $canary.enabled false (hasKey $canary "enabled") -}}
   {{- $canaryHeaderName := $canary.headerName | default "x-epmp-routing-hint" -}}
   {{- $canaryHeaderValue := $canary.headerValue | default "canary" -}}
   {{- $ingress := $titanSideCars.ingress }}
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
   {{- $clusters := $envoy.clusters }}
-  {{- $weightedClusters := $envoy.weightedClusters -}}
+  {{- $weightedClusters := $envoy.weightedClusters }}
   {{- $remoteMyApp := index $clusters "remote-myapp" }}
   {{- $localMyApp := index $clusters "local-myapp" }}
   {{- $gatewayEnable := false }}
@@ -26,8 +27,8 @@
       {{- $defaultBackend = ternary $localMyApp.gateway.defaultBackend "" (hasKey $localMyApp.gateway "defaultBackend") -}}
     {{- end -}}
   {{- end }}
-  {{- $routesBuilder := dict "routes" (list) "weightedClustersRoutes" (dict) -}}
-  {{- $routes := $routesBuilder.routes }}
+  {{- $routesBuilder := dict "weightedClustersRoutes" (dict) -}}
+  {{- $routes := list }}
   {{- $weightedClustersRoutes := $routesBuilder.weightedClustersRoutes -}}
   {{- if $gatewayEnable -}}
     {{- $requestRoutes := ternary $ingress.routes $egress.routes (eq $direction "ingress") -}}
@@ -51,22 +52,37 @@
         {{- end -}}
         {{- if $clusterValue -}}
           {{- $clusterCanaryNamespace := $clusterValue.canaryNamespace | default "" -}}
-          {{- $clusterCanarySupport := $clusterValue.supportCanary | default true -}}
+          {{- $clusterCanarySupport := $clusterValue.supportCanary | default $canaryEnabled -}}
           {{- if $routeActions -}}
             {{- $_ := set $requestOverride "route" $routeActions -}}
           {{- end -}}
-          {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes.prepare" (dict "routesBuilder" $routesBuilder "canaryHeaderValue" $canaryHeaderValue "canaryHeaderName" $canaryHeaderName "clusterCanaryNamespace" $clusterCanaryNamespace "clusterCanarySupport" $clusterCanarySupport "clusterName" $clusterName "clusterValue" $clusterValue "requestOverride" $requestOverride) }}         
+          {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes.prepare" (dict "routesBuilder" $routesBuilder "canaryHeaderValue" $canaryHeaderValue "canaryHeaderName" $canaryHeaderName "clusterCanaryNamespace" $clusterCanaryNamespace "clusterCanarySupport" $clusterCanarySupport "clusterName" $clusterName "clusterValue" $clusterValue "requestOverride" $requestOverride) }}
+          {{- if hasKey $routesBuilder "routes" -}}
+            {{- $buiderRoutes := $routesBuilder.routes -}}
+            {{- range $buiderRoutes }}
+              {{- $newRoute := . | deepCopy -}}
+              {{- $routes = append $routes $newRoute -}}
+            {{- end }}
+          {{- end -}}
+        
         {{- else if hasKey $weightedClusters $clusterName -}}
           {{- $wsv := get $weightedClusters $clusterName -}}
           {{- range $clusterName, $weight := $wsv -}}
             {{- $clusterValue = get $clusters $clusterName -}}
             {{- if $clusterValue -}}
               {{- $clusterCanaryNamespace := $clusterValue.canaryNamespace | default "" -}}
-              {{- $clusterCanarySupport := $clusterValue.supportCanary | default true -}}
+              {{- $clusterCanarySupport := $clusterValue.supportCanary | default $canaryEnabled -}}
               {{- if $routeActions -}}
                 {{- $_ := set $requestOverride "route" $routeActions -}}
               {{- end -}}
               {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes.prepare" (dict "routesBuilder" $routesBuilder "canaryHeaderValue" $canaryHeaderValue "canaryHeaderName" $canaryHeaderName "clusterCanaryNamespace" $clusterCanaryNamespace "clusterCanarySupport" $clusterCanarySupport "clusterName" $clusterName "clusterValue" $clusterValue "requestOverride" $requestOverride) }}
+              {{- if hasKey $routesBuilder "routes" -}}
+                {{- $buiderRoutes := $routesBuilder.routes -}}
+                {{- range $buiderRoutes }}
+                  {{- $newRoute := . | deepCopy -}}
+                  {{- $routes = append $routes $newRoute -}}
+                {{- end }}
+              {{- end -}}
             {{- end -}}
           {{- end -}}
         {{- end -}}
@@ -76,85 +92,19 @@
       {{- if and (ne $cn "local-myapp") (ne $cn "remote-myapp") }}
         {{- $includeIt := ternary false true (eq $direction "egress") }}
         {{- $clusterCanaryNamespace := $cv.canaryNamespace | default "" -}}
-        {{- $clusterCanarySupport := $cv.supportCanary | default true -}}
+        {{- $clusterCanarySupport := $cv.supportCanary | default $canaryEnabled -}}
         {{- if eq $clusterCanaryNamespace "" -}}
           {{- $clusterCanarySupport = false -}}
         {{- end -}}
         {{- if $includeIt }}
           {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes.prepare" (dict "routesBuilder" $routesBuilder "canaryHeaderValue" $canaryHeaderValue "canaryHeaderName" $canaryHeaderName "clusterCanaryNamespace" $clusterCanaryNamespace "clusterCanarySupport" $clusterCanarySupport "clusterName" $cn "clusterValue" $cv) }}
-          {{- range $cv.routes }}
-            {{- $route := .route | default dict -}}
-            {{- $_ := set $route "cluster" $cn -}}
-            {{- if hasKey $cv "fixedSiteDomainName" -}}
-              {{- $match := .match | deepCopy }}
-              {{- $headers := $match.headers | default list -}}
-              {{- $addFixedSiteRoute := true -}}
-              {{- range $headers -}}
-                {{- if and (eq .key ":authority") (hasKey . "eq") -}}
-                  {{- if not (contains $cv.fixedSiteDomainName .eq) -}}
-                    {{- $addFixedSiteRoute = false -}}
-                  {{- end -}}
-                {{- end }}
-              {{- end -}}
-              {{- if $addFixedSiteRoute -}}
-                {{- $headers = append $headers (dict "key" ":authority" "ew" $cv.fixedSiteDomainName) }}
-                {{- if $clusterCanarySupport }}
-                  {{- $canaryHeaders := $headers | deepCopy -}}
-                  {{- $canaryMatch := $match | deepCopy -}}
-                  {{- $canaryRoute := $route | deepCopy -}}
-                  {{- $_ := set $canaryRoute "cluster" (printf "%s.%s" ($cv.alias | default $cn) $clusterCanaryNamespace) -}}
-                  {{- $_ := set $canaryRoute "baseCluster" $cn -}}
-                  {{- $canaryHeaders = append $canaryHeaders (dict "key" $canaryHeaderName "eq" $canaryHeaderValue) -}}
-                  {{- $_ := set $canaryMatch "headers" $canaryHeaders -}}
-                  {{- $routes = append $routes (dict "match" $canaryMatch "route" $canaryRoute "ratelimit" .ratelimit) }}
-                {{- end }}
-                {{- $_ := set $match "headers" $headers }}
-                {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) }}
-              {{- end -}}
-            {{- else if not (hasKey $cv "weightedClusterId") }}
-              {{- $match := .match }}
-              {{- $headers := $match.headers | default list -}}
-              {{- if $clusterCanarySupport }}
-                {{- $canaryHeaders := $headers | deepCopy -}}
-                {{- $canaryMatch := $match | deepCopy -}}
-                {{- $canaryRoute := $route | deepCopy -}}
-                {{- $_ := set $canaryRoute "cluster" (printf "%s.%s" ($cv.alias | default $cn) $clusterCanaryNamespace) -}}
-                {{- $_ := set $canaryRoute "baseCluster" $cn -}}
-                {{- $canaryHeaders = append $canaryHeaders (dict "key" $canaryHeaderName "eq" $canaryHeaderValue) -}}
-                {{- $_ := set $canaryMatch "headers" $canaryHeaders -}}
-                {{- $routes = append $routes (dict "match" $canaryMatch "route" $canaryRoute "ratelimit" .ratelimit) }}
-              {{- end }}
-              {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) }}
+          {{- if hasKey $routesBuilder "routes" -}}
+            {{- $buiderRoutes := $routesBuilder.routes -}}
+            {{- range $buiderRoutes }}
+              {{- $newRoute := . | deepCopy -}}
+              {{- $routes = append $routes $newRoute -}}
             {{- end }}
-          {{- end }}
-          {{- if hasKey $cv "weightedClusterId" }}
-            {{- if hasKey $weightedClustersRoutes $cv.weightedClusterId -}}
-              {{- if $clusterCanarySupport }}
-                {{- $wr := get $weightedClustersRoutes (printf "%s-canary" $cv.weightedClusterId) }}
-                {{- $wrList := $wr.weightedClusters }}
-                {{- $wrList = append $wrList (dict "name" (printf "%s.%s" ($cv.alias | default $cn) $clusterCanaryNamespace) "weight" $cv.weight) }}
-                {{- $_ := set $wr "weightedClusters" $wrList }}
-                {{- $_ := set $weightedClustersRoutes (printf "%s-canary" $cv.weightedClusterId) $wr }}
-              {{- end }}
-              {{- $wr := get $weightedClustersRoutes $cv.weightedClusterId }}
-              {{- $wrList := $wr.weightedClusters }}
-              {{- $wrList = append $wrList (dict "name" $cn "weight" $cv.weight) }}
-              {{- $_ := set $wr "weightedClusters" $wrList }}
-              {{- $_ := set $weightedClustersRoutes $cv.weightedClusterId $wr }}
-            {{- else }}
-              {{- if $clusterCanarySupport }}
-                {{- $canaryRoutes := $cv.routes | deepCopy -}}
-                {{- range $canaryRoutes -}}
-                  {{- $match := .match -}}
-                  {{- $headers := $match.headers | default list -}}
-                  {{- $headers = append $headers (dict "key" $canaryHeaderName "eq" $canaryHeaderValue) -}}
-                  {{- $_ := set $match "headers" $headers -}}
-                {{- end -}}
-                {{- $_ := set $weightedClustersRoutes (printf "%s-canary" $cv.weightedClusterId) (dict "routes" $canaryRoutes "weightedClusters" (list (dict "name" (printf "%s.%s" ($cv.alias | default $cn) $clusterCanaryNamespace) "weight" $cv.weight))) }}
-              {{- end }}
-              {{- $_ := set $weightedClustersRoutes $cv.weightedClusterId (dict "routes" $cv.routes "weightedClusters" (list (dict "name" $cn "weight" $cv.weight))) }}
-            {{- end }}
-          {{- end }}
+          {{- end -}}
         {{- end }}
       {{- end }}
     {{- end }}

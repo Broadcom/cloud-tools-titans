@@ -7,7 +7,7 @@
   {{- $clusterName := .clusterName }}
   {{- $clusterValue := .clusterValue }}
   {{- $requestOverride := .requestOverride -}}
-  {{- $routes := $routesBuilder.routes -}}
+  {{- $routes := list -}}
   {{- $weightedClustersRoutes := $routesBuilder.weightedClustersRoutes -}}
   {{- range $clusterValue.routes }}
     {{- $route := mergeOverwrite (deepCopy (.route | default dict)) ($requestOverride.route | default dict) -}}
@@ -54,6 +54,9 @@
       {{- $routes = append $routes (dict "match" $match "route" $route "ratelimit" .ratelimit) }}
     {{- end }}
   {{- end }}
+  {{- if $routes }}
+    {{- $_ := set $routesBuilder "routes" $routes -}}
+  {{- end }}
   {{- if hasKey $clusterValue "weightedClusterId" }}
     {{- if hasKey $weightedClustersRoutes $clusterValue.weightedClusterId -}}
       {{- if $clusterCanarySupport }}
@@ -82,5 +85,4 @@
       {{- $_ := set $weightedClustersRoutes $clusterValue.weightedClusterId (dict "routes" $clusterValue.routes "weightedClusters" (list (dict "name" $clusterName "weight" $clusterValue.weight))) }}
     {{- end }}
   {{- end }}
-
 {{- end }}
