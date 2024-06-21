@@ -64,7 +64,6 @@
               {{- $routes = append $routes $newRoute -}}
             {{- end }}
           {{- end -}}
-        
         {{- else if hasKey $weightedClusters $clusterName -}}
           {{- $wsv := get $weightedClusters $clusterName -}}
           {{- range $clusterName, $weight := $wsv -}}
@@ -97,6 +96,7 @@
           {{- $clusterCanarySupport = false -}}
         {{- end -}}
         {{- if $includeIt }}
+          {{- $_ := unset $routesBuilder "routes" -}}
           {{- include "titan-mesh-helm-lib-chart.envoy.filter.routes.prepare" (dict "routesBuilder" $routesBuilder "canaryHeaderValue" $canaryHeaderValue "canaryHeaderName" $canaryHeaderName "clusterCanaryNamespace" $clusterCanaryNamespace "clusterCanarySupport" $clusterCanarySupport "clusterName" $cn "clusterValue" $cv) }}
           {{- if hasKey $routesBuilder "routes" -}}
             {{- $buiderRoutes := $routesBuilder.routes -}}
