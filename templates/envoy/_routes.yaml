@@ -31,11 +31,13 @@
   {{- $routes := list }}
   {{- $weightedClustersRoutes := $routesBuilder.weightedClustersRoutes -}}
   {{- if $gatewayEnable -}}
-    {{- $requestRoutes := ternary $ingress.routes $egress.routes (eq $direction "ingress") -}}
+    {{- $requestRoutes := ternary $ingress.routes $egress.routes (eq $direction "ingress") | default list -}}
+    {{- $additionalRoutes := ternary $ingress.additionalRoutes $egress.additionalRoutes (eq $direction "ingress") | default list }}
+    {{- $requestRoutes = concat $requestRoutes $additionalRoutes -}}
     {{- range $requestRoutes -}}
       {{- $match := .match -}}
       {{- $route := .route -}}
-      {{- if hasKey $route "cluster" -}}
+      {{- if and (hasKey . "route") (hasKey $route "cluster") -}}
         {{- $clusterName := $route.cluster -}}
         {{- $clusterValue := get $clusters $clusterName -}}
         {{- $requestOverride := dict -}}
@@ -141,7 +143,7 @@
   {{- end }}
   {{- include "titan-mesh-helm-lib-chart.envoy.filter.request.routes" (dict "routes" $routes "direction" $direction "clusters" $clusters "remoteMyApp" $remoteMyApp "routingType" $routingType "envoy" $envoy "validationEnabled" $validationEnabled "gatewayEnable" $gatewayEnable) }}
   {{- if and (eq $direction "ingress") (eq $routingType "pathBasedRouting") }}
-    {{- $gatewayIngressRoutes := $ingress.routes -}}
+    {{- $gatewayIngressRoutes := concat ($ingress.additionalRoutes | default list) ($ingress.routes | default list) -}}
     {{- if and $gatewayEnable $gatewayIngressRoutes }}
       {{- include "titan-mesh-helm-lib-chart.envoy.filter.request.routes" (dict "routes" $gatewayIngressRoutes "direction" $direction "clusters" $clusters "remoteMyApp" $remoteMyApp "routingType" $routingType "envoy" $envoy "validationEnabled" $validationEnabled "gatewayEnable" $gatewayEnable) }}
     {{- end }}
