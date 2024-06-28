@@ -1,4 +1,5 @@
 *.md
+examples/
 images/
 docs/
 .gitignore

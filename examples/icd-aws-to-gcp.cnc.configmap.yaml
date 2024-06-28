@@ -1,0 +1,389 @@
+admin:
+  access_log_path: /logs/envoy.admin.log
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 10000
+static_resources:
+  clusters:
+  - common_lb_config:
+      healthy_panic_threshold:
+        value: 25
+    connect_timeout: 0.1s
+    dns_lookup_family: V4_ONLY
+    health_checks:
+    - healthy_threshold: 1
+      http_health_check:
+        path: /healthz
+      interval: 1s
+      no_traffic_interval: 1s
+      timeout: 1s
+      unhealthy_threshold: 1
+    hosts:
+    - socket_address:
+        address: identity-all-endpoints
+        port_value: 9443
+    http2_protocol_options: {}
+    lb_policy: LEAST_REQUEST
+    name: identity
+    tls_context:
+      sni: identity-all-endpoints
+    type: STRICT_DNS
+  - circuit_breakers:
+      thresholds:
+      - max_connections: 29
+        max_pending_requests: 300
+    common_lb_config:
+      healthy_panic_threshold:
+        value: 25
+    connect_timeout: 0.1s
+    dns_lookup_family: V4_ONLY
+    health_checks:
+    - healthy_threshold: 2
+      http_health_check:
+        path: /cnc_epmp_i/health
+      interval: 5s
+      no_traffic_interval: 5s
+      timeout: 5s
+      unhealthy_threshold: 3
+    hosts:
+    - socket_address:
+        address: 127.0.0.1
+        port_value: 8080
+    lb_policy: LEAST_REQUEST
+    name: local-appserver
+    type: STATIC
+  - common_lb_config:
+      healthy_panic_threshold:
+        value: 25
+    connect_timeout: 0.1s
+    dns_lookup_family: V4_ONLY
+    health_checks:
+    - healthy_threshold: 1
+      interval: 1s
+      no_traffic_interval: 1s
+      tcp_health_check: {}
+      timeout: 1s
+      unhealthy_threshold: 2
+    hosts:
+    - socket_address:
+        address: 127.0.0.1
+        port_value: 7070
+    http2_protocol_options: {}
+    lb_policy: LEAST_REQUEST
+    name: local-grpc-appserver
+    type: STATIC
+  listeners:
+  - address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 9443
+    filter_chains:
+    - filters:
+      - config:
+          access_log:
+            config:
+              format: |
+                {"start-time": "%START_TIME%", "envoy-direction": "downstream", "method": "%REQ(:METHOD)%", "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%", "x-epmpi-cluster": "%REQ(X-EPMPI-CLUSTER)%", "protocol": "%PROTOCOL%", "response-code": "%RESPONSE_CODE%", "duration": "%DURATION%", "flags": "%RESPONSE_FLAGS%", "upstream-duration": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%", "upstream-cluster": "%UPSTREAM_CLUSTER%", "upstream-address": "%UPSTREAM_HOST%", "customerId": "%REQ(X-EPMP-CUSTOMER-ID)%", "domainId": "%REQ(X-EPMP-DOMAIN-ID)%", "sessionId": "%REQ(X-EPMP-SESSION-ID)%", "x-forwarded-for": "%REQ(X-FORWARDED-FOR)%", "envoy-request-id": "%REQ(X-REQUEST-ID)%", "downstream-address": "%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%", "user-agent": "%REQ(USER-AGENT)%", "bytes-sent": "%BYTES_SENT%", "bytes-received": "%BYTES_RECEIVED%", "envoy-epmp-filter-error": "%RESP(X-ENVOY-EPMP-FILTER-ERROR)%"}
+              path: /logs/envoy.log
+            filter:
+              and_filter:
+                filters:
+                - not_health_check_filter: {}
+                - or_filter:
+                    filters:
+                    - status_code_filter:
+                        comparison:
+                          op: EQ
+                          value:
+                            default_value: 0
+                            runtime_key: __unused__
+                    - status_code_filter:
+                        comparison:
+                          op: GE
+                          value:
+                            default_value: 400
+                            runtime_key: __unused__
+                    - duration_filter:
+                        comparison:
+                          op: GE
+                          value:
+                            default_value: 5000
+                            runtime_key: __unused__
+                    - traceable_filter: {}
+            name: envoy.file_access_log
+          http2_protocol_options:
+            max_concurrent_streams: 1073741824
+          http_filters:
+          - config:
+              cluster_min_healthy_percentages:
+                local-appserver:
+                  value: 100
+              headers:
+              - exact_match: /healthz
+                name: :path
+              pass_through_mode: false
+            name: envoy.health_check
+          - config:
+              bypass:
+              - prefix: /healthz
+              extract:
+              - from_jwt:
+                - claim: jti
+                  header_name: x-epmp-jwt-jti
+                - claim: iat
+                  header_name: x-epmp-jwt-iat
+                - attribute: scope
+                  claim: sub
+                  header_name: x-epmp-jwt-scope
+                - claim: authscopes
+                  header_name: x-epmp-jwt-authscopes
+                - attribute: uri
+                  claim: sub
+                  header_name: x-epmp-jwt-uri
+                - attribute: domain_id
+                  claim: sub
+                  header_name: x-epmp-jwt-domain-id
+                - attribute: customer_id
+                  claim: sub
+                  header_name: x-epmp-jwt-customer-id
+                - attribute: privs
+                  claim: sub
+                  header_name: x-epmp-jwt-privs
+                - claim: role
+                  header_name: x-epmp-jwt-role
+                route:
+                  prefix: /
+              rules:
+              - forward: true
+                from_headers:
+                - name: Authorization
+                  value_prefix: Bearer
+                issuer: https://r3-icd-aws-to-gcp.apps.acp-dev.us-east-1.symc.dev.aws.symcpe.net
+                remote_jwks:
+                  cache_duration:
+                    seconds: 1000000000
+                  http_uri:
+                    cluster: identity
+                    timeout:
+                      seconds: 1
+                    uri: https://identity-all-endpoints/id_epmp_i/oauth2/keys
+              - forward: true
+                from_headers:
+                - name: Authorization
+                  value_prefix: Bearer
+                issuer: identity.localpod./
+                remote_jwks:
+                  cache_duration:
+                    seconds: 1000000000
+                  http_uri:
+                    cluster: identity
+                    timeout:
+                      seconds: 1
+                    uri: https://identity-all-endpoints/id_epmp_i/oauth2/keys
+            name: epmp.filters.http.jwt_authn
+          - config:
+              rules:
+                action: ALLOW
+                policies:
+                  cnc_rbac:
+                    permissions:
+                    - and_rules:
+                        rules:
+                        - header:
+                            name: x-epmp-jwt-role
+                            regex_match: .*<system_admin>.*
+                        - header:
+                            name: :path
+                            regex_match: /cnc_epmp_i(/.*)?
+                    principals:
+                    - any: true
+            name: envoy.filters.http.rbac
+          - config:
+              upstream_log:
+                config:
+                  format: |
+                    {"start-time": "%START_TIME%", "envoy-direction": "upstream", "method": "%REQ(:METHOD)%", "path": "%REQ(:PATH)%", "x-epmpi-cluster": "%REQ(X-EPMPI-CLUSTER)%", "protocol": "%PROTOCOL%", "response-code": "%RESPONSE_CODE%", "duration": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%", "flags": "%RESPONSE_FLAGS%", "upstream-cluster": "%UPSTREAM_CLUSTER%", "upstream-address": "%UPSTREAM_HOST%", "customerId": "%REQ(X-EPMP-CUSTOMER-ID)%", "domainId": "%REQ(X-EPMP-DOMAIN-ID)%", "sessionId": "%REQ(X-EPMP-SESSION-ID)%", "envoy-request-id": "%REQ(X-REQUEST-ID)%", "bytes-sent": "%BYTES_SENT%", "bytes-received": "%BYTES_RECEIVED%", "envoy-epmp-filter-error": "%RESP(X-ENVOY-EPMP-FILTER-ERROR)%"}
+                  path: /logs/envoy.log
+                filter:
+                  and_filter:
+                    filters:
+                    - not_health_check_filter: {}
+                    - or_filter:
+                        filters:
+                        - status_code_filter:
+                            comparison:
+                              op: EQ
+                              value:
+                                default_value: 0
+                                runtime_key: __unused__
+                        - status_code_filter:
+                            comparison:
+                              op: GE
+                              value:
+                                default_value: 400
+                                runtime_key: __unused__
+                        - duration_filter:
+                            comparison:
+                              op: GE
+                              value:
+                                default_value: 5000
+                                runtime_key: __unused__
+                        - traceable_filter: {}
+                name: envoy.file_access_log
+            name: envoy.router
+          route_config:
+            internal_only_headers:
+            - x-envoy-original-path
+            name: local-http-proxy
+            request_headers_to_add: []
+            virtual_hosts:
+            - domains: '*'
+              name: local-http-proxy
+              rate_limits: []
+              routes:
+              - match:
+                  prefix: /
+                route:
+                  cluster: local-appserver
+                  retry_policy:
+                    num_retries: 3
+                    retry_on: refused-stream,connect-failure
+                  timeout: 62s
+          server_name: cnc
+          stat_prefix: local-http-proxy
+        name: envoy.http_connection_manager
+      tls_context:
+        common_tls_context:
+          alpn_protocols: h2,http/1.1
+          tls_certificates:
+          - certificate_chain:
+              filename: /secrets/bundle.crt
+            private_key:
+              filename: /secrets/cert.key
+    name: local-http-proxy
+  - address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 7443
+    filter_chains:
+    - filters:
+      - config:
+          access_log:
+            config:
+              format: |
+                {"start-time": "%START_TIME%", "envoy-direction": "downstream", "method": "%REQ(:METHOD)%", "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%", "x-epmpi-cluster": "%REQ(X-EPMPI-CLUSTER)%", "protocol": "%PROTOCOL%", "response-code": "%RESPONSE_CODE%", "duration": "%DURATION%", "flags": "%RESPONSE_FLAGS%", "upstream-duration": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%", "upstream-cluster": "%UPSTREAM_CLUSTER%", "upstream-address": "%UPSTREAM_HOST%", "customerId": "%REQ(X-EPMP-CUSTOMER-ID)%", "domainId": "%REQ(X-EPMP-DOMAIN-ID)%", "sessionId": "%REQ(X-EPMP-SESSION-ID)%", "x-forwarded-for": "%REQ(X-FORWARDED-FOR)%", "envoy-request-id": "%REQ(X-REQUEST-ID)%", "downstream-address": "%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%", "user-agent": "%REQ(USER-AGENT)%", "bytes-sent": "%BYTES_SENT%", "bytes-received": "%BYTES_RECEIVED%", "envoy-epmp-filter-error": "%RESP(X-ENVOY-EPMP-FILTER-ERROR)%"}
+              path: /logs/envoy.log
+            filter:
+              and_filter:
+                filters:
+                - not_health_check_filter: {}
+                - or_filter:
+                    filters:
+                    - status_code_filter:
+                        comparison:
+                          op: EQ
+                          value:
+                            default_value: 0
+                            runtime_key: __unused__
+                    - status_code_filter:
+                        comparison:
+                          op: GE
+                          value:
+                            default_value: 400
+                            runtime_key: __unused__
+                    - duration_filter:
+                        comparison:
+                          op: GE
+                          value:
+                            default_value: 5000
+                            runtime_key: __unused__
+                    - traceable_filter: {}
+            name: envoy.file_access_log
+          http2_protocol_options:
+            max_concurrent_streams: 1073741824
+          http_filters:
+          - config:
+              cluster_min_healthy_percentages:
+                local-appserver:
+                  value: 100
+              headers:
+              - exact_match: /healthz
+                name: :path
+              pass_through_mode: false
+            name: envoy.health_check
+          - config:
+              upstream_log:
+                config:
+                  format: |
+                    {"start-time": "%START_TIME%", "envoy-direction": "upstream", "method": "%REQ(:METHOD)%", "path": "%REQ(:PATH)%", "x-epmpi-cluster": "%REQ(X-EPMPI-CLUSTER)%", "protocol": "%PROTOCOL%", "response-code": "%RESPONSE_CODE%", "duration": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%", "flags": "%RESPONSE_FLAGS%", "upstream-cluster": "%UPSTREAM_CLUSTER%", "upstream-address": "%UPSTREAM_HOST%", "customerId": "%REQ(X-EPMP-CUSTOMER-ID)%", "domainId": "%REQ(X-EPMP-DOMAIN-ID)%", "sessionId": "%REQ(X-EPMP-SESSION-ID)%", "envoy-request-id": "%REQ(X-REQUEST-ID)%", "bytes-sent": "%BYTES_SENT%", "bytes-received": "%BYTES_RECEIVED%", "envoy-epmp-filter-error": "%RESP(X-ENVOY-EPMP-FILTER-ERROR)%"}
+                  path: /logs/envoy.log
+                filter:
+                  and_filter:
+                    filters:
+                    - not_health_check_filter: {}
+                    - or_filter:
+                        filters:
+                        - status_code_filter:
+                            comparison:
+                              op: EQ
+                              value:
+                                default_value: 0
+                                runtime_key: __unused__
+                        - status_code_filter:
+                            comparison:
+                              op: GE
+                              value:
+                                default_value: 400
+                                runtime_key: __unused__
+                        - duration_filter:
+                            comparison:
+                              op: GE
+                              value:
+                                default_value: 5000
+                                runtime_key: __unused__
+                        - traceable_filter: {}
+                name: envoy.file_access_log
+            name: envoy.router
+          route_config:
+            internal_only_headers:
+            - x-envoy-original-path
+            name: local-grpc-proxy
+            request_headers_to_add: []
+            virtual_hosts:
+            - domains: '*'
+              name: local-grpc-proxy
+              rate_limits: []
+              routes:
+                match:
+                  headers:
+                  - exact_match: application/grpc
+                    name: content-type
+                  prefix: /
+                route:
+                  cluster: local-grpc-appserver
+                  retry_policy:
+                    num_retries: 3
+                    retry_on: refused-stream,connect-failure
+                  timeout: 0s
+          server_name: cnc
+          stat_prefix: local-grpc-proxy
+        name: envoy.http_connection_manager
+      tls_context:
+        common_tls_context:
+          alpn_protocols: h2,http/1.1
+          tls_certificates:
+          - certificate_chain:
+              filename: /secrets/bundle.crt
+            private_key:
+              filename: /secrets/cert.key
+    name: local-grpc-proxy
+stats_flush_interval: 30s
+stats_sinks:
+- config:
+    address:
+      socket_address:
+        address: 127.0.0.1
+        port_value: 8126
+        protocol: UDP
+  name: envoy.statsd

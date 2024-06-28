@@ -54,6 +54,8 @@ services:
     - /envoy/config/envoy.yaml
     - -l
     - warn
+    - --service-cluster
+    - proxy
     - '--log-path'
     - /tests/logs/envoy.application.log
   {{- if $ratelimitEnabled }}

@@ -1,7 +1,7 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.httpoptions" }}
   {{- $cluster := .cluster }}
   {{- $httpOptions :=$cluster.httpOptions }}
-  {{- $httpScheme := .httpScheme | default "HTTP" }}
+  {{- $httpScheme := upper (.httpScheme | default "HTTP") }}
   {{- if or (eq $httpScheme "HTTP2") (eq $httpScheme "H2C") }}
 http2_protocol_options:
   allow_connect: true

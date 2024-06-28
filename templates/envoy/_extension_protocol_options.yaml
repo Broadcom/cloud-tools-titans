@@ -1,0 +1,19 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.extention_protocol_options" }}
+  {{- $cluster := .cluster }}
+  {{- $httpOptions :=$cluster.httpOptions }}
+  {{- $httpScheme := upper (.httpScheme | default "HTTP") }}
+  {{- if or (eq $httpScheme "HTTP2") (eq $httpScheme "H2C") }}
+typed_extension_protocol_options:
+  envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+    "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+    upstream_http_protocol_options:
+      auto_sni: true
+    common_http_protocol_options:
+      idle_timeout: 1s
+    explicit_http_config:
+      http2_protocol_options:
+        max_concurrent_streams: {{ $httpOptions.maxConcurrentStreams | default "1024" }}
+        initial_connection_window_size: {{ $httpOptions.initialConnectionWindowSize | default "1048576" }}
+        initial_stream_window_size: {{ $httpOptions.initialStreamWindowSize | default "65536" }}
+  {{- end }}
+{{- end }}
