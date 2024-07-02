@@ -23,15 +23,14 @@
   {{- $ratelimitConfigFileName := $ratelimit.configFileName | default "ratelimit_config.yaml" -}}
   {{- $ratelimitConfigVolumeMountPath := $ratelimit.configVolumeMountPath | default "/configs" -}}
   {{- $routes := $ingress.routes | default list }}
-  {{- $additionalRoutes := $ingress.additionalRoutes }}
-  {{- if $additionalRoutes }}
-    {{- if $routes }}
-      {{- $routes = concat $additionalRoutes $routes }}
-    {{- else }}
-      {{- $routes = $additionalRoutes }}
-    {{- end }}
-  {{- end }}
-  {{- if and $envoyEnabled $ratelimitEnabled }}
+  {{- $additionalRoutes := $ingress.additionalRoutes | default list }}
+  {{- $routes = concat $additionalRoutes $routes }}
+  {{- $hasRatelimit := false -}}
+  {{- range $routes -}}
+    {{- $rt := .ratelimit }}
+    {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled (ternary true false (hasKey . "ratelimit")) (hasKey $rt "enabled")) }}
+  {{- end -}}
+  {{- if and $envoyEnabled $ratelimitEnabled $hasRatelimit }}
 - name: {{include "titan-mesh-helm-lib-chart.containers.ratelimit.containerName" . }}
   image: {{ printf "%s%s:%s" $imageRegistry  ($ratelimit.imageName | default "ratelimit") ($ratelimit.imageTag | default "latest") }}
   imagePullPolicy: IfNotPresent

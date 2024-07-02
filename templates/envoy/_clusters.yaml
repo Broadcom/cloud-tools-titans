@@ -486,22 +486,16 @@
       {{- end }}
     {{- end }}
   {{- else }}
-    {{- $routes = $ingress.routes }}
-    {{- if and $ingress (not $routes) }}
-      {{- if ternary $ingress.enabled true (hasKey $ingress "enabled") }}
-        {{ $routes = $localApp.routes }}
-      {{- end }}
-    {{- end }}
-    {{- $additionalRoutes := $ingress.additionalRoutes }}
-    {{- if $additionalRoutes }}
-      {{- if $routes }}
-        {{- $routes = concat $additionalRoutes $routes }}
-      {{- else }}
-        {{- $routes = $additionalRoutes }}
-      {{- end }}
-    {{- end }}
+    {{- $routes = $ingress.routes | default list }}
+    {{- $additionalRoutes := $ingress.additionalRoutes | default list }}
+    {{- $routes = concat $additionalRoutes $routes }}
   {{- end }}
-  {{- if $ratelimitEnabled }}
+  {{- $hasRatelimit := false -}}
+  {{- range $routes }}
+    {{- $rt := .ratelimit }}
+    {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled (ternary true false (hasKey . "ratelimit")) (hasKey $rt "enabled")) }}
+  {{- end }}
+  {{- if and $ratelimitEnabled $hasRatelimit }}
     - name: ratelimit
     {{- if $useDynamicConfiguration }}
       "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster

@@ -1,5 +1,10 @@
 {{- define "titan-mesh-helm-lib-chart.envoy.listeners" }}
   {{- $titanSideCars := .titanSideCars }}
+  {{- $validation := $titanSideCars.validation -}}
+  {{- $validationEnabled := false -}}
+  {{- if $validation -}}
+    {{- $validationEnabled = ternary $validation.enabled true (hasKey $validation "enabled") -}}
+  {{- end }}
   {{- $releaseNamespace := .releaseNamespace }}
   {{- $chartName := .chartName }}
   {{- $useDynamicConfiguration := .useDynamicConfiguration }}
@@ -10,6 +15,7 @@
   {{- $ingress := $titanSideCars.ingress  }}
   {{- $egress := $titanSideCars.egress }}
   {{- $envoy := $titanSideCars.envoy }}
+  {{- $cors := $ingress.cors | default dict }}
   {{- $healthCheckCriticalLocalSidecars := $envoy.healthCheckCriticalLocalSidecars | default false }}
   {{- $clusters := $envoy.clusters  }}
   {{- if not $clusters }}
@@ -108,6 +114,7 @@
         {{- include .name (dict "config" (.config | default dict)) | nindent 12 }}
       {{- end }}
     {{- end }}
+    {{- include "titan-mesh-helm-lib-chart.envoy.filter.cors" (dict "titanSideCars" $titanSideCars "ingress" $ingress "appName" $appName) | nindent 12 }}
     {{- $upstreamLog := include "titan-mesh-helm-lib-chart.envoy.filter.accesslog" (dict "titanSideCars" $titanSideCars "direction" "inbound-upstream") | fromYaml }}
             - name: envoy.filters.http.router
               typed_config:
@@ -121,6 +128,27 @@
               virtual_hosts:
               - domains: '*'
                 name: {{ $appName }}-ingress
+    {{- if or $envoy.perRouteFilters $cors }}
+                typed_per_filter_config:
+    {{- end }}
+    {{- if $envoy.perRouteFilters }}
+      {{- range $k, $v := $envoy.perRouteFilters }}
+        {{- printf "%s:" $k | nindent 18 }}
+        {{- $v | toYaml | nindent 20 }}
+      {{- end }}
+    {{- end }}
+    {{- if $cors }}
+      {{- if or (not (hasKey $envoy "perRouteFilters")) (and (hasKey $envoy "perRouteFilters") (not (hasKey $envoy.perRouteFilters "envoy.filters.http.cors"))) }}
+                  envoy.filters.http.cors:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.CorsPolicy  
+                    allow_origin_string_match:
+          {{- $cors.allowOriginStringMatch | toYaml | nindent 22 }}
+                    allow_methods: {{ $cors.allowMethods | default "GET,PUT,DELETE,POST,PATCH,OPTIONS" }}
+                    allow_headers: {{ $cors.allowHeaders | default "authority,path,method,user-agent,accept,accept-language,accept-encoding,access-control-request-method,access-control-request-headers,referer,origin,connection,content-type,x-opaque-id,x-xsrf-token" }}
+                    expose_headers: {{ $cors.exposeHeaders | default "content-type,grpc-encoding,grpc-accept-encoding,x-envoy-upstream-service-time,grpc-status,content-length,date,server,x-request-id" }}
+                    allow_credentials: {{ $cors.allowCredentials | default true }}                 
+      {{- end }}
+    {{- end }}
     {{- if $ingress.addRequestHeaders }}
                 request_headers_to_add:
       {{- range $ingress.addRequestHeaders }}
@@ -188,7 +216,7 @@
     {{- end }}
       address:
         socket_address:
-          address: 0.0.0.0
+          address: {{ ternary "0.0.0.0" "127.0.0.1" $validationEnabled }}
           port_value: {{ $envoyEgressPort }}
       filter_chains:
       - filters:
@@ -218,6 +246,13 @@
               - x-forwarded-for
               virtual_hosts:
               - name: {{ $appName }}-egress
+    {{- if $envoy.perRouteFilters }}
+                typed_per_filter_config:
+      {{- range $k, $v := $envoy.perRouteFilters }}
+        {{- printf "%s:" $k | nindent 18 }}
+        {{- $v | toYaml | nindent 20 }}
+      {{- end }}
+    {{- end -}}
     {{- if $egress.addRequestHeaders }}
                 request_headers_to_add:
       {{- range $egress.addRequestHeaders }}

@@ -24,7 +24,7 @@
 
   {{- range $routes }}
     {{- $rt := .ratelimit }}
-    {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled ($rt | default false) (hasKey $rt "enabled")) }}
+    {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled (ternary true false (hasKey . "ratelimit")) (hasKey $rt "enabled")) }}
   {{- end }}
   {{- if and $ratelimitEnabled $hasRatelimit }}
 - name: envoy.filters.http.ratelimit

@@ -15,10 +15,8 @@
   {{- $hashLen := 16 }}
   {{- $hasRatelimit := false }}
   {{- range $routes }}
-    {{- $ratelimit := .ratelimit }}
-    {{- if $ratelimit -}}
-      {{- $hasRatelimit = or $hasRatelimit (ternary $ratelimit.enabled true (hasKey $ratelimit "enabled")) }}
-    {{- end -}}
+    {{- $rt := .ratelimit }}
+    {{- $hasRatelimit = or $hasRatelimit (ternary $rt.enabled (ternary true false (hasKey . "ratelimit")) (hasKey $rt "enabled")) }}
   {{- end }}
   {{- if and $ratelimitEnabled $hasRatelimit }}
   rate_limits:

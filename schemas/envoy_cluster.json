@@ -191,6 +191,14 @@
             "type": "object",
             "title": "envoy cluster config schema (except local-myapp)",
             "properties": {
+                "accessibility": {
+                    "type": "string",
+                    "enum": [
+                        "enterprise",
+                        "public",
+                        "private"
+                    ]
+                },
                 "address": {
                     "type": "string"
                 },

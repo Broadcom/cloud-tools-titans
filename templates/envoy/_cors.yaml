@@ -1,0 +1,11 @@
+{{- define "titan-mesh-helm-lib-chart.envoy.filter.cors" }}
+  {{- $appName := .appName }}
+  {{- $titanSideCars := .titanSideCars }}
+  {{- $ingress := .ingress }}
+  {{- $cors := $ingress.cors -}}
+  {{- if $cors }}
+- name: envoy.filters.http.cors
+  typed_config:
+    "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+  {{- end }}
+{{- end }}
