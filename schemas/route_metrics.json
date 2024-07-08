@@ -3,5 +3,15 @@
     "$id": "route_metrics.json",
     "description": "titanSideCars.ingress.route.metrics or titanSideCars.egress.route.metrics",
     "type": "object",
-    "title": "route metrics config schema"
+    "title": "route metrics config schema",
+    "properties": {
+        "enabled": {
+            "type": "boolean"
+        },
+        "name": {
+            "type": "string"
+        }
+    },
+    "additionalProperties": false,
+    "required": [ "name" ]
 }

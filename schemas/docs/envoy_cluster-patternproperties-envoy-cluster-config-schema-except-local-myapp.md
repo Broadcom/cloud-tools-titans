@@ -18,6 +18,7 @@ envoy_cluster.json#/patternProperties/^(?!local-myapp$)[a-zA-Z_-]+
 
 | Property                                        | Type     | Required | Nullable       | Defined by                                                                                                                                                                                                                                                                |
 | :---------------------------------------------- | :------- | :------- | :------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [accessibility](#accessibility)                 | `string` | Optional | cannot be null | [envoy cluster config schema](envoy_cluster-patternproperties-envoy-cluster-config-schema-except-local-myapp-properties-accessibility.md "envoy_cluster.json#/patternProperties/^(?!local-myapp$)\[a-zA-Z_-]+/properties/accessibility")                                  |
 | [address](#address)                             | `string` | Optional | cannot be null | [envoy cluster config schema](envoy_cluster-patternproperties-envoy-cluster-config-schema-except-local-myapp-properties-address.md "envoy_cluster.json#/patternProperties/^(?!local-myapp$)\[a-zA-Z_-]+/properties/address")                                              |
 | [alias](#alias)                                 | `string` | Optional | cannot be null | [envoy cluster config schema](envoy_cluster-patternproperties-envoy-cluster-config-schema-except-local-myapp-properties-alias.md "envoy_cluster.json#/patternProperties/^(?!local-myapp$)\[a-zA-Z_-]+/properties/alias")                                                  |
 | [connectionTimeout](#connectiontimeout)         | `string` | Optional | cannot be null | [envoy cluster config schema](envoy_cluster-patternproperties-envoy-cluster-config-schema-except-local-myapp-properties-connectiontimeout.md "envoy_cluster.json#/patternProperties/^(?!local-myapp$)\[a-zA-Z_-]+/properties/connectionTimeout")                          |
@@ -34,6 +35,34 @@ envoy_cluster.json#/patternProperties/^(?!local-myapp$)[a-zA-Z_-]+
 | [scheme](#scheme)                               | `string` | Optional | cannot be null | [envoy cluster config schema](envoy_cluster-patternproperties-envoy-cluster-config-schema-except-local-myapp-properties-scheme.md "envoy_cluster.json#/patternProperties/^(?!local-myapp$)\[a-zA-Z_-]+/properties/scheme")                                                |
 | [targetPort](#targetport)                       | `string` | Optional | cannot be null | [envoy cluster config schema](envoy_cluster-patternproperties-envoy-cluster-config-schema-except-local-myapp-properties-targetport.md "envoy_cluster.json#/patternProperties/^(?!local-myapp$)\[a-zA-Z_-]+/properties/targetPort")                                        |
 | [type](#type)                                   | `string` | Optional | cannot be null | [envoy cluster config schema](envoy_cluster-patternproperties-envoy-cluster-config-schema-except-local-myapp-properties-type.md "envoy_cluster.json#/patternProperties/^(?!local-myapp$)\[a-zA-Z_-]+/properties/type")                                                    |
+
+## accessibility
+
+
+
+`accessibility`
+
+* is optional
+
+* Type: `string`
+
+* cannot be null
+
+* defined in: [envoy cluster config schema](envoy_cluster-patternproperties-envoy-cluster-config-schema-except-local-myapp-properties-accessibility.md "envoy_cluster.json#/patternProperties/^(?!local-myapp$)\[a-zA-Z_-]+/properties/accessibility")
+
+### accessibility Type
+
+`string`
+
+### accessibility Constraints
+
+**enum**: the value of this property must be equal to one of the following values:
+
+| Value          | Explanation |
+| :------------- | :---------- |
+| `"enterprise"` |             |
+| `"public"`     |             |
+| `"private"`    |             |
 
 ## address
 
