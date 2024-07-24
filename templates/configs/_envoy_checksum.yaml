@@ -3,9 +3,11 @@
   {{- $appName := include "titan-mesh-helm-lib-chart.app-name" . -}}
   {{- $titanSideCars := mergeOverwrite (deepCopy ($global.titanSideCars | default dict)) ($.Values.titanSideCars | default dict) -}}
   {{- $envoy := $titanSideCars.envoy -}}
-  {{- $ingress := $titanSideCars.ingress | default dict -}}
-  {{- $egress := $titanSideCars.egress | default dict  -}}
-  {{- if or (ternary $ingress.enabled false (hasKey $ingress "enabled")) (ternary $egress.enabled false (hasKey $egress "enabled")) -}}
+  {{- $ingress := $titanSideCars.ingress | default (dict "enabled" false) -}}
+  {{- $egress := $titanSideCars.egress | default (dict "enabled" false) -}}
+  {{- $customTpls := $titanSideCars.customTpls }}
+  {{- $sideCars := $customTpls.sideCars }}
+  {{- if or (ternary $ingress.enabled true (hasKey $ingress "enabled")) (ternary $egress.enabled true (hasKey $egress "enabled")) -}}
     {{- $useDynamicConfiguration := $envoy.useDynamicConfiguration | default false -}}
     {{- $configmap := include "titan-mesh-helm-lib-chart.configs.envoy.dmc" (dict "titanSideCars" $titanSideCars "appName" $appName "releaseNamespace" .Release.Namespace "chartName" .Chart.Name) | fromYaml -}}
     {{- if not $useDynamicConfiguration -}}
@@ -14,9 +16,22 @@
     {{- $envoyFile := dict -}}
     {{- range $k, $v := $configmap -}}
       {{- if eq $k "envoy.yaml" -}}
-        {{- $envoyFile = $v -}}
+        {{- $_ := set $envoyFile $k $v -}}
       {{- end -}}
     {{- end -}}
+    {{- if $sideCars }}
+      {{- $hasConfigTpl := false -}}
+      {{- range $sideCarName, $sideCarValue := $sideCars -}}
+        {{- if $sideCarValue.configTpl -}}
+          {{- $hasConfigTpl = true -}}
+        {{- end -}}
+      {{- end -}}
+      {{- if $hasConfigTpl }}
+        {{- range $sideCarName, $sideCarValue := $sideCars -}}
+          {{- $_ := set $envoyFile $sideCarName (include $sideCarValue.configTpl $ | fromYaml) -}}
+        {{- end -}}     
+      {{- end }}
+    {{- end }}
     {{- print $envoyFile | sha256sum -}}
   {{- else -}}
     {{- print "notused" | sha256sum -}}
